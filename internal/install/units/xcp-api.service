@@ -1,0 +1,43 @@
+[Unit]
+Description=XCP API and web UI
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/plan/01-architecture.md
+After=network-online.target xcp-agent.service
+Wants=network-online.target xcp-agent.service
+
+[Service]
+Type=simple
+User=xcp
+Group=xcp
+ExecStart=/usr/sbin/xcp-api --config /etc/xcp/xcp.toml
+Restart=on-failure
+RestartSec=2s
+UMask=0027
+
+# xcp-api faces the network, so it gets the tightest sandbox: no privileges,
+# read-only system, writable only where its database lives.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/xcp
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

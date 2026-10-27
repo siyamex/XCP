@@ -1,0 +1,353 @@
+openapi: 3.1.0
+info:
+  title: XCP API
+  version: 0.1.0
+  description: |
+    REST API of the XCP hosting panel. The web UI uses exactly this API.
+
+    **Authentication.** Browsers log in with `POST /auth/login`, which sets an
+    HttpOnly session cookie (`__Host-xcp_session`, or `xcp_session` in local
+    development). Every request that changes state (anything but GET/HEAD)
+    must also send the `X-CSRF-Token` header with the `csrf_token` value from
+    the login response or from `GET /me`.
+
+    **Errors.** All errors use RFC 9457 `application/problem+json`. Switch on
+    the stable `code` field, not on the message.
+  license:
+    name: AGPL-3.0-only
+servers:
+  - url: /api/v1
+
+tags:
+  - name: auth
+  - name: me
+  - name: system
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Liveness check
+      operationId: health
+      security: []
+      responses:
+        "200":
+          description: The API is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: ok }
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in with username and password
+      description: |
+        On success sets the session cookie. If `mfa_required` is true, the
+        session is limited until `POST /auth/2fa/verify` succeeds (within 5 minutes).
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password]
+              properties:
+                username: { type: string, maxLength: 64 }
+                password: { type: string, maxLength: 1024 }
+      responses:
+        "200":
+          description: Password accepted.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /auth/2fa/verify:
+    post:
+      tags: [auth]
+      summary: Complete a login with a TOTP code or a recovery code
+      operationId: verify2FA
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "204": { description: Second factor accepted; the session is now fully usable. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: End the current session
+      operationId: logout
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Logged out; the cookie is cleared. }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /me:
+    get:
+      tags: [me]
+      summary: The logged-in identity
+      description: Also returns the CSRF token for this session.
+      operationId: getMe
+      responses:
+        "200":
+          description: Current login.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /me/password:
+    post:
+      tags: [me]
+      summary: Change the password
+      description: Logs out every other session of this login.
+      operationId: changePassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string }
+                new_password: { type: string, minLength: 10, maxLength: 1024 }
+      responses:
+        "204": { description: Password changed. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /me/reauth:
+    post:
+      tags: [me]
+      summary: Confirm the password before a sensitive action
+      operationId: reauth
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordRequest" }
+      responses:
+        "204": { description: Confirmed. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /me/sessions:
+    get:
+      tags: [me]
+      summary: List this login's sessions
+      operationId: listSessions
+      responses:
+        "200":
+          description: Sessions, newest activity first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /me/sessions/{id}:
+    delete:
+      tags: [me]
+      summary: End one of this login's sessions
+      operationId: revokeSession
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9a-f]{64}$" }
+      responses:
+        "204": { description: Session ended. }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /me/2fa/setup:
+    post:
+      tags: [me]
+      summary: Start enabling two-factor authentication
+      description: Returns a new secret. 2FA is not active until `/me/2fa/confirm`.
+      operationId: setup2FA
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Secret to add to an authenticator app.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [secret, otpauth_uri]
+                properties:
+                  secret: { type: string, description: Base32, for manual entry }
+                  otpauth_uri: { type: string, description: Payload for a QR code }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /me/2fa/confirm:
+    post:
+      tags: [me]
+      summary: Activate 2FA with a code from the app
+      operationId: confirm2FA
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "200":
+          description: 2FA is active. Show the recovery codes once.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recovery_codes]
+                properties:
+                  recovery_codes:
+                    type: array
+                    items: { type: string, examples: ["ABCDE-FGHIJ"] }
+        "401": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /me/2fa/disable:
+    post:
+      tags: [me]
+      summary: Turn 2FA off (requires the password)
+      operationId: disable2FA
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordRequest" }
+      responses:
+        "204": { description: 2FA disabled. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+security:
+  - sessionCookie: []
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-xcp_session
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: The `csrf_token` from the login response or `GET /me`. Required with the session cookie on state-changing requests.
+
+  responses:
+    Problem:
+      description: Error (RFC 9457).
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Too many attempts.
+      headers:
+        Retry-After:
+          description: Seconds to wait.
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    LoginResult:
+      type: object
+      required: [mfa_required, must_change_password, csrf_token]
+      properties:
+        mfa_required: { type: boolean }
+        must_change_password: { type: boolean }
+        csrf_token: { type: string }
+
+    CodeRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string, description: "6-digit TOTP code or a recovery code" }
+
+    PasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string }
+
+    Me:
+      type: object
+      required: [id, username, role, email, locale, totp_enabled, must_change_password, csrf_token]
+      properties:
+        id: { type: string, description: ULID }
+        username: { type: string }
+        role: { type: string, enum: [admin, reseller, user, subuser] }
+        email: { type: string }
+        locale: { type: string }
+        totp_enabled: { type: boolean }
+        must_change_password: { type: boolean }
+        impersonator_id: { type: string, description: Set while an admin or reseller is logged in as this user }
+        csrf_token: { type: string }
+
+    Session:
+      type: object
+      required: [id, ip, user_agent, created_at, last_seen_at, current]
+      properties:
+        id: { type: string }
+        ip: { type: string }
+        user_agent: { type: string }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        current: { type: boolean }
+
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        code:
+          type: string
+          description: Stable machine-readable error code.
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required]
+        detail: { type: string }
+        request_id: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, code, message]
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }

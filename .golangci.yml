@@ -1,0 +1,54 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - bodyclose
+    - errorlint
+    - misspell
+    - nilerr
+    - revive
+    - unconvert
+    - depguard
+    - forbidigo
+
+  settings:
+    depguard:
+      rules:
+        exec-only-in-execx:
+          files:
+            - "$all"
+            - "!**/internal/execx/**"
+          deny:
+            - pkg: os/exec
+              desc: "run commands through internal/execx (absolute path, argv, timeout); see 07-security.md §6"
+    forbidigo:
+      forbid:
+        - pattern: '^os\.(WriteFile|Create)$'
+          msg: "write user files via internal/fsx and system config via the agent's FileWriteManaged"
+      exclude-godoc-examples: true
+    gosec:
+      excludes:
+        - G104 # covered by errcheck
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [gosec, forbidigo]
+      - path: internal/fsx/
+        linters: [forbidigo]
+      - path: internal/store/
+        linters: [forbidigo]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports

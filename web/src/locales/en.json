@@ -1,0 +1,94 @@
+{
+  "app": { "name": "XCP", "loading": "Loading…" },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "comingSoon": "Soon",
+    "current": "This device"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "XControl Panel",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "mfaTitle": "Two-factor authentication",
+    "mfaHelp": "Enter the 6-digit code from your authenticator app, or one of your recovery codes.",
+    "code": "Code",
+    "verify": "Verify",
+    "back": "Use another account"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "customers": "Customers",
+    "packages": "Packages",
+    "resellers": "Resellers",
+    "dns": "DNS",
+    "services": "Services",
+    "settings": "Server settings",
+    "domains": "Domains",
+    "email": "Email",
+    "databases": "Databases",
+    "files": "Files",
+    "ssl": "SSL/TLS",
+    "backups": "Backups",
+    "security": "Security"
+  },
+  "role": { "admin": "Admin", "reseller": "Reseller", "user": "User", "subuser": "Team member" },
+  "topbar": {
+    "theme": { "light": "Light", "dark": "Dark", "system": "System" },
+    "logout": "Sign out"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "intro": "XCP is in early development. Hosting features (accounts, domains, email, DNS) arrive in the next phase.",
+    "enable2fa": "Protect this login with two-factor authentication.",
+    "enable2faLink": "Set it up"
+  },
+  "security": {
+    "title": "Login & security",
+    "forcedPassword": "Your password must be changed before you can continue.",
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "repeat": "Repeat new password",
+      "mismatch": "The new passwords do not match.",
+      "changed": "Password changed. Your other sessions were signed out."
+    },
+    "twofa": {
+      "title": "Two-factor authentication",
+      "enabled": "Two-factor authentication is on.",
+      "disabled": "Two-factor authentication is off.",
+      "setup": "Set up 2FA",
+      "scan": "Scan this QR code with an authenticator app, or enter the key by hand:",
+      "confirm": "Enter a code from the app to finish:",
+      "activate": "Activate",
+      "recoveryTitle": "Save your recovery codes",
+      "recoveryHelp": "Each code works once if you lose your phone. Store them somewhere safe; they will not be shown again.",
+      "recoveryDone": "I saved them",
+      "disable": "Turn off 2FA",
+      "disableHelp": "Enter your password to turn off two-factor authentication."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "ip": "IP address",
+      "device": "Device",
+      "lastSeen": "Last active",
+      "revoke": "Sign out"
+    }
+  },
+  "errors": {
+    "invalid_credentials": "Wrong username or password.",
+    "invalid_code": "That code is wrong or was already used.",
+    "rate_limited": "Too many attempts. Please wait and try again.",
+    "login_disabled": "This login is suspended. Contact your provider.",
+    "unauthenticated": "Your session has ended. Please sign in again.",
+    "csrf_failed": "Security check failed. Reload the page and try again.",
+    "validation_failed": "Please check the highlighted fields.",
+    "network": "Cannot reach the server.",
+    "unknown": "Something went wrong."
+  }
+}

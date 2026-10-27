@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Web UI (types from spec, typecheck, test, build)
+        working-directory: web
+        run: |
+          npm ci
+          npm run gen:api
+          git diff --exit-code -- src/api/schema.d.ts || (echo "::error::run 'npm run gen:api' and commit src/api/schema.d.ts" && exit 1)
+          npm test
+          npm run build
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build
+        run: make build
+      - name: Test
+        run: make test-race
+      - name: Fuzz (short)
+        run: make fuzz
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1
+      - name: Vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  installer-e2e:
+    # Installs XCP into Ubuntu 24.04 running systemd (in Docker),
+    # then checks xcpctl doctor and that a re-run changes nothing.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build web UI
+        working-directory: web
+        run: npm ci && npm run build
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install end to end
+        run: sh test/e2e/install/run.sh
+
+  cross-build:
+    # Dev on Windows/macOS must keep compiling (fake agent, stubs).
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        goos: [windows, darwin]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: GOOS=${{ matrix.goos }} go build ./...

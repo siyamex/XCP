@@ -1,0 +1,28 @@
+[Unit]
+Description=XCP agent (privileged operations)
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/plan/01-architecture.md
+After=network.target
+Before=xcp-api.service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/xcp-agent --config /etc/xcp/xcp.toml
+Restart=on-failure
+RestartSec=2s
+# The agent must stay root: it manages users, quotas and services. It is
+# still kept away from things it never needs.
+User=root
+UMask=0022
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+RuntimeDirectory=xcp
+RuntimeDirectoryPreserve=yes
+RuntimeDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target

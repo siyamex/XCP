@@ -1,0 +1,5 @@
+# Keep LF line endings everywhere (gofmt, shell scripts and Dockerfiles need them),
+# even when the repo is checked out on Windows.
+* text=auto eol=lf
+*.png binary
+*.ico binary

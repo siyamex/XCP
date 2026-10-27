@@ -1,0 +1,25 @@
+# Local development config: plain HTTP on 127.0.0.1 and the in-memory fake
+# agent, so xcp-api runs on Windows/macOS/Linux without touching the system.
+# Relative paths are resolved from this file's directory.
+#
+#   go run ./cmd/xcpctl admin create --config packaging/dev/xcp.toml --username root
+#   go run ./cmd/xcp-api --config packaging/dev/xcp.toml
+
+[api]
+listen = "127.0.0.1:2443"
+insecure_dev_http = true
+
+[agent]
+fake = true
+
+[db]
+path = "../../.dev/xcp.db"
+
+[log]
+level = "debug"
+format = "text"
+
+[paths]
+state_dir = "../../.dev"
+run_dir = "../../.dev/run"
+secrets_dir = "../../.dev/secrets"

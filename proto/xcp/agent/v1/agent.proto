@@ -1,0 +1,103 @@
+// Contract between xcp-api / xcp-worker (unprivileged) and xcp-agent (root).
+// See 01-architecture.md §3 and 07-security.md.
+//
+// Rules for every operation added here:
+//   - Typed fields only. Never add an operation that takes a command line,
+//     a shell snippet, or an arbitrary path to execute.
+//   - The agent re-validates every field; the caller is not trusted.
+//   - Operations are idempotent: repeating a call gives the same end state.
+syntax = "proto3";
+
+package xcp.agent.v1;
+
+option go_package = "github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1";
+
+service AgentService {
+  // Ping reports that the agent is up, and its version.
+  rpc Ping(PingRequest) returns (PingResponse);
+
+  // ServiceStatus reports the state of a managed service.
+  rpc ServiceStatus(ServiceStatusRequest) returns (ServiceStatusResponse);
+
+  // ServiceAction starts, stops, restarts or reloads a managed service.
+  rpc ServiceAction(ServiceActionRequest) returns (ServiceActionResponse);
+
+  // FileWriteManaged writes a generated config file inside an allow-listed
+  // directory, atomically. If a validator is given and fails, the previous
+  // file is restored and the call fails with FAILED_PRECONDITION.
+  rpc FileWriteManaged(FileWriteManagedRequest) returns (FileWriteManagedResponse);
+
+  // FileRemoveManaged removes a generated config file (same rules as write).
+  rpc FileRemoveManaged(FileRemoveManagedRequest) returns (FileRemoveManagedResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string version = 1;
+  string hostname = 2;
+}
+
+// Services are named by logical ID, not by systemd unit, so callers do not
+// depend on the OS. Examples: "web", "mta", "imap", "dns", "db", "ftp",
+// "spam", "av", "ssh", "php-fpm@8.3". The agent maps IDs to units and
+// rejects unknown IDs.
+message ServiceStatusRequest {
+  string service = 1;
+}
+
+message ServiceStatusResponse {
+  string service = 1;
+  string unit = 2;
+  string active_state = 3;  // active, inactive, failed, activating, ...
+  string sub_state = 4;     // running, dead, exited, ...
+  int32 main_pid = 5;
+  bool enabled = 6;         // starts at boot
+}
+
+enum ServiceActionKind {
+  SERVICE_ACTION_KIND_UNSPECIFIED = 0;
+  SERVICE_ACTION_KIND_START = 1;
+  SERVICE_ACTION_KIND_STOP = 2;
+  SERVICE_ACTION_KIND_RESTART = 3;
+  SERVICE_ACTION_KIND_RELOAD = 4;
+}
+
+message ServiceActionRequest {
+  string service = 1;
+  ServiceActionKind action = 2;
+}
+
+message ServiceActionResponse {}
+
+// Validators are fixed commands chosen by enum, never by the caller.
+enum Validator {
+  VALIDATOR_UNSPECIFIED = 0;  // no validation
+  VALIDATOR_APACHE = 1;       // apachectl -t
+  VALIDATOR_NGINX = 2;        // nginx -t
+  VALIDATOR_POSTFIX = 3;      // postfix check
+}
+
+message FileWriteManagedRequest {
+  // Absolute, clean path below one of the agent's managed directories.
+  string path = 1;
+  bytes content = 2;  // at most 4 MiB
+  // Permission bits: only 0600, 0640 or 0644. Owner is always root.
+  uint32 mode = 3;
+  Validator validator = 4;
+}
+
+message FileWriteManagedResponse {
+  // False when the file already had this content and mode (nothing written,
+  // no validation run), so callers can skip reloading the service.
+  bool changed = 1;
+}
+
+message FileRemoveManagedRequest {
+  string path = 1;
+  Validator validator = 2;
+}
+
+message FileRemoveManagedResponse {
+  bool changed = 1;  // false if the file did not exist
+}

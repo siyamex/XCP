@@ -1,0 +1,25 @@
+# Build output
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Local dev data
+/.dev/
+*.db
+*.db-wal
+*.db-shm
+
+# Frontend
+/web/node_modules/
+/web/dist/*
+!/web/dist/.gitkeep
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
