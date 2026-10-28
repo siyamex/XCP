@@ -131,8 +131,10 @@ func TestPackageLifecycle(t *testing.T) {
 		wantField(t, err, fieldName)
 	}
 
-	p, err := s.SavePackage(ctx, client, admin, "", PackageInput{Name: "Gold", FeatureListID: fl.ID,
-		Limits: Limits{DiskMB: i64(50000), PHPVersions: []string{"8.3", "8.1", "8.3"}}})
+	p, err := s.SavePackage(ctx, client, admin, "", PackageInput{
+		Name: "Gold", FeatureListID: fl.ID,
+		Limits: Limits{DiskMB: i64(50000), PHPVersions: []string{"8.3", "8.1", "8.3"}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

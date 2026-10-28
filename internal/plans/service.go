@@ -100,8 +100,10 @@ func checkFeatures(keys []string) ([]string, error) {
 }
 
 func event(c auth.Client, p *auth.Principal, action, typ, id string, details map[string]any) audit.Event {
-	e := audit.Event{IP: c.IP, UserAgent: c.UserAgent, RequestID: c.RequestID, Action: action, Result: audit.ResultOK,
-		TargetType: typ, TargetID: id, Details: details}
+	e := audit.Event{
+		IP: c.IP, UserAgent: c.UserAgent, RequestID: c.RequestID, Action: action, Result: audit.ResultOK,
+		TargetType: typ, TargetID: id, Details: details,
+	}
 	if p != nil {
 		e.ActorID, e.ImpersonatorID, e.Role = p.Login.ID, p.Session.ImpersonatorID, p.Login.Role
 	} else {

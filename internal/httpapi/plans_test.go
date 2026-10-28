@@ -46,8 +46,10 @@ func TestPackagesOverHTTP(t *testing.T) {
 		t.Fatalf("create list = %d %+v", resp.StatusCode, fl)
 	}
 
-	resp = b.do("POST", "/packages", map[string]any{"name": "Mail", "feature_list_id": fl.ID,
-		"limits": map[string]any{"disk_mb": 2048, "mailboxes": 10, "databases": nil}})
+	resp = b.do("POST", "/packages", map[string]any{
+		"name": "Mail", "feature_list_id": fl.ID,
+		"limits": map[string]any{"disk_mb": 2048, "mailboxes": 10, "databases": nil},
+	})
 	var p plans.Package
 	json.NewDecoder(resp.Body).Decode(&p)
 	if resp.StatusCode != 201 || *p.Limits.DiskMB != 2048 || p.Limits.Databases != nil {
