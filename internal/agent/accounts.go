@@ -307,8 +307,10 @@ func (a *Accounts) quota(ctx context.Context, username string, lim Limits) (bool
 	if !ok {
 		return false, nil
 	}
-	if _, err := os.Stat(SetquotaPath); err != nil {
-		return false, nil
+	if _, err := os.Stat(SetquotaPath); errors.Is(err, fs.ErrNotExist) {
+		return false, nil // quotas are on, but the quota tools are not installed
+	} else if err != nil {
+		return false, err
 	}
 	blocks, inodes := uint64(0), uint64(0) // 0 = no limit for setquota
 	if lim.DiskMB != nil {
