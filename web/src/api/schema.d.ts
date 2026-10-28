@@ -436,6 +436,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/php-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** PHP-FPM versions installed on the server (admins) */
+        get: operations["listPHPVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{id}": {
         parameters: {
             query?: never;
@@ -577,6 +594,8 @@ export interface components {
             uid: number;
             primary_domain: string;
             email: string;
+            /** @description "" = server default (newest installed) */
+            php_version: string;
             package_id: string;
             package_name: string;
             /** @enum {string} */
@@ -596,10 +615,13 @@ export interface components {
             package_id: string;
             email?: string;
             password: string;
+            /** @description Installed version the package allows; "" or omitted = server default */
+            php_version?: string;
         };
         AccountUpdate: {
             package_id: string;
             email: string;
+            php_version?: string;
         };
         Job: {
             id: string;
@@ -1463,6 +1485,29 @@ export interface operations {
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    listPHPVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versions, oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: string[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
         };
     };
     getJob: {

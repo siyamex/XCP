@@ -40,6 +40,7 @@ func run() error {
 	pwStdin := flag.Bool("admin-password-stdin", false, "read the first admin's password from stdin instead of generating one")
 	dryRun := flag.Bool("dry-run", false, "show what would change, change nothing")
 	skipOS := flag.Bool("skip-os-check", false, "install on an OS other than Ubuntu 24.04 (unsupported)")
+	noWeb := flag.Bool("no-web", false, "do not install Apache and PHP-FPM")
 	flag.Parse()
 
 	fmt.Printf("XCP installer %s\n\n", version.Version)
@@ -74,7 +75,7 @@ func run() error {
 	ips := serverIPs()
 	res, err := install.Run(ctx, install.Options{
 		Root: "/", BinDir: *from, Hostname: h, IPs: ips,
-		AdminUser: *adminUser, AdminPassword: password, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
+		AdminUser: *adminUser, AdminPassword: password, NoWeb: *noWeb, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
 	})
 	if err != nil {
 		return err

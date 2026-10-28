@@ -608,6 +608,25 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /server/php-versions:
+    get:
+      tags: [system]
+      summary: PHP-FPM versions installed on the server (admins)
+      operationId: listPHPVersions
+      responses:
+        "200":
+          description: Versions, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { type: string, examples: ["8.3"] }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /jobs/{id}:
     get:
       tags: [system]
@@ -783,13 +802,14 @@ components:
 
     Account:
       type: object
-      required: [id, username, uid, primary_domain, email, package_id, package_name, status, status_detail, created_at, updated_at]
+      required: [id, username, uid, primary_domain, email, php_version, package_id, package_name, status, status_detail, created_at, updated_at]
       properties:
         id: { type: string }
         username: { type: string }
         uid: { type: integer }
         primary_domain: { type: string }
         email: { type: string }
+        php_version: { type: string, description: '"" = server default (newest installed)' }
         package_id: { type: string }
         package_name: { type: string }
         status: { type: string, enum: [creating, active, suspended, terminating, error] }
@@ -808,6 +828,7 @@ components:
         package_id: { type: string }
         email: { type: string }
         password: { type: string, minLength: 10 }
+        php_version: { type: string, description: 'Installed version the package allows; "" or omitted = server default' }
 
     AccountUpdate:
       type: object
@@ -816,6 +837,7 @@ components:
       properties:
         package_id: { type: string }
         email: { type: string }
+        php_version: { type: string }
 
     Job:
       type: object

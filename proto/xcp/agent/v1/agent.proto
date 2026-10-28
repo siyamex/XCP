@@ -41,6 +41,18 @@ service AgentService {
   // AccountDelete stops the user's processes and removes the Linux user, its
   // home folder and its slice. It refuses users that XCP did not create.
   rpc AccountDelete(AccountDeleteRequest) returns (AccountDeleteResponse);
+
+  // SiteApply writes an account's Apache virtual host and PHP-FPM pool. The
+  // agent renders them from these typed fields (callers never send config
+  // text, ADR-0004), runs apachectl -t and php-fpm -t, rolls back on failure
+  // and reloads gracefully. NOT_FOUND: Apache or PHP-FPM is not installed.
+  rpc SiteApply(SiteApplyRequest) returns (SiteApplyResponse);
+
+  // SiteRemove deletes an account's virtual host and PHP-FPM pools.
+  rpc SiteRemove(SiteRemoveRequest) returns (SiteRemoveResponse);
+
+  // PHPVersions lists the installed PHP-FPM versions, oldest first.
+  rpc PHPVersions(PHPVersionsRequest) returns (PHPVersionsResponse);
 }
 
 message PingRequest {}
@@ -158,4 +170,32 @@ message AccountDeleteRequest {
 
 message AccountDeleteResponse {
   bool deleted = 1;  // false if the user did not exist
+}
+
+message SiteApplyRequest {
+  string username = 1;
+  uint32 uid = 2;
+  repeated string domains = 3;  // first is the primary domain; www. aliases are added
+  string php_version = 4;       // "" = newest installed
+  bool suspended = 5;           // serve the suspended notice and run no PHP
+  uint32 max_children = 6;      // PHP worker processes; 0 = default
+}
+
+message SiteApplyResponse {
+  bool changed = 1;
+  string php_version = 2;  // the version actually used
+}
+
+message SiteRemoveRequest {
+  string username = 1;
+}
+
+message SiteRemoveResponse {
+  bool changed = 1;
+}
+
+message PHPVersionsRequest {}
+
+message PHPVersionsResponse {
+  repeated string versions = 1;
 }

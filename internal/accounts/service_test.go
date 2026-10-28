@@ -296,3 +296,64 @@ func waitFor(t *testing.T, cond func() bool) {
 		time.Sleep(20 * time.Millisecond)
 	}
 }
+
+func TestWebsiteFollowsTheAccount(t *testing.T) {
+	e := newEnv(t)
+	a := e.create(t, "web1", "web1.example")
+	e.waitStatus(t, a.ID, store.AccountActive)
+	site, ok := e.fake.Site("web1")
+	// Default package: 100 processes -> 25 PHP workers; newest installed PHP.
+	if !ok || site.Domains[0] != "web1.example" || site.PHPVersion != "8.3" || site.Suspended || site.MaxChildren != 25 {
+		t.Fatalf("site = %+v (%v)", site, ok)
+	}
+	if _, err := e.svc.Suspend(ctx, client, e.admin, a.ID, ""); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { s, _ := e.fake.Site("web1"); return s.Suspended })
+	if _, err := e.svc.Unsuspend(ctx, client, e.admin, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { s, _ := e.fake.Site("web1"); return !s.Suspended })
+	if _, err := e.svc.Update(ctx, client, e.admin, a.ID, UpdateInput{PackageID: e.pkgID, PHPVersion: "8.2"}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { s, _ := e.fake.Site("web1"); return s.PHPVersion == "8.2" })
+	tr, err := e.svc.Terminate(ctx, client, e.admin, a.ID, "web1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, tr.JobID)
+	if _, ok := e.fake.Site("web1"); ok {
+		t.Fatal("website still configured after terminate")
+	}
+}
+
+func TestPHPVersionRules(t *testing.T) {
+	e := newEnv(t)
+	in := CreateInput{Username: "php1", Domain: "php1.example", PackageID: e.pkgID, Password: pw, PHPVersion: "7.4"}
+	_, err := e.svc.Create(ctx, client, e.admin, in)
+	var ve *validate.Error
+	if !errors.As(err, &ve) || ve.Field != "php_version" || !strings.Contains(ve.Message, "not installed") {
+		t.Fatalf("uninstalled version: %v", err)
+	}
+	fl, _ := e.plans.ListFeatureLists(ctx, e.admin)
+	only83, err := e.plans.SavePackage(ctx, client, e.admin, "", plans.PackageInput{
+		Name: "PHP 8.3 only", FeatureListID: fl[0].ID,
+		Limits: plans.Limits{PHPVersions: []string{"8.3"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	in.PackageID, in.PHPVersion = only83.ID, "8.2"
+	if _, err := e.svc.Create(ctx, client, e.admin, in); !errors.As(err, &ve) || !strings.Contains(ve.Message, "does not allow") {
+		t.Fatalf("version the package forbids: %v", err)
+	}
+	in.PHPVersion = "8.3"
+	a, err := e.svc.Create(ctx, client, e.admin, in)
+	if err != nil || a.PHPVersion != "8.3" {
+		t.Fatalf("allowed version: %+v %v", a, err)
+	}
+	if v, err := e.svc.PHPVersions(ctx, e.admin); err != nil || len(v) != 2 {
+		t.Fatalf("PHPVersions = %v, %v", v, err)
+	}
+}

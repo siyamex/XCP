@@ -105,6 +105,21 @@ export function AccountsPage() {
   );
 }
 
+function usePHPVersions() {
+  return useQuery({ queryKey: ["php-versions"], queryFn: () => unwrap(api.GET("/server/php-versions")), staleTime: 300_000 });
+}
+
+function PHPSelect({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation();
+  const versions = usePHPVersions().data?.items ?? [];
+  return (
+    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+      <option value="">{t("accounts.phpDefault", { version: versions[versions.length - 1] ?? "?" })}</option>
+      {versions.map((v) => <option key={v} value={v}>PHP {v}</option>)}
+    </select>
+  );
+}
+
 function generatePassword() {
   const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const out: string[] = [];
@@ -121,7 +136,7 @@ export function AccountCreatePage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const packages = usePackages();
-  const [form, setForm] = useState({ username: "", domain: "", package_id: "", email: "", password: "" });
+  const [form, setForm] = useState({ username: "", domain: "", package_id: "", email: "", password: "", php_version: "" });
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
   useEffect(() => {
     if (!form.package_id && packages.data?.items[0]) setForm((f) => ({ ...f, package_id: packages.data!.items[0]!.id }));
@@ -164,6 +179,9 @@ export function AccountCreatePage() {
         <Field id="email" label={t("accounts.email")}>
           <Input id="email" type="email" value={form.email} onChange={set("email")} />
         </Field>
+        <Field id="php" label={t("accounts.phpVersion")}>
+          <PHPSelect id="php" value={form.php_version} onChange={(v) => setForm({ ...form, php_version: v })} />
+        </Field>
         <Field id="password" label={t("accounts.password")}>
           <div className="flex gap-2">
             <Input id="password" required minLength={10} autoComplete="new-password" value={form.password} onChange={set("password")} />
@@ -191,6 +209,7 @@ export function AccountDetailPage() {
   const packages = usePackages();
   const [packageId, setPackageId] = useState("");
   const [email, setEmail] = useState("");
+  const [php, setPhp] = useState("");
   const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
   const [mustChange, setMustChange] = useState(true);
@@ -200,6 +219,7 @@ export function AccountDetailPage() {
     if (account.data) {
       setPackageId(account.data.package_id);
       setEmail(account.data.email);
+      setPhp(account.data.php_version);
     }
   }, [account.data]);
 
@@ -211,7 +231,7 @@ export function AccountDetailPage() {
     refresh();
   };
   const path = { params: { path: { id: accountId } } };
-  const update = useMutation({ mutationFn: () => unwrap(api.PUT("/accounts/{id}", { ...path, body: { package_id: packageId, email } })), onSuccess: started });
+  const update = useMutation({ mutationFn: () => unwrap(api.PUT("/accounts/{id}", { ...path, body: { package_id: packageId, email, php_version: php } })), onSuccess: started });
   const suspend = useMutation({ mutationFn: () => unwrap(api.POST("/accounts/{id}/suspend", { ...path, body: { reason } })), onSuccess: started });
   const unsuspend = useMutation({ mutationFn: () => unwrap(api.POST("/accounts/{id}/unsuspend", path)), onSuccess: started });
   const setPw = useMutation({ mutationFn: () => unwrap(api.POST("/accounts/{id}/password", { ...path, body: { password, must_change: mustChange } })), onSuccess: () => setPassword("") });
@@ -238,7 +258,7 @@ export function AccountDetailPage() {
       <Card>
         <CardTitle>{t("accounts.details")}</CardTitle>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          {[["accounts.domain", a.primary_domain], ["accounts.uid", String(a.uid)], ["accounts.package", a.package_name],
+          {[["accounts.domain", a.primary_domain], ["accounts.uid", String(a.uid)], ["accounts.package", a.package_name], ["accounts.phpVersion", a.php_version || "default"],
             ["accounts.created", new Date(a.created_at).toLocaleString()]].map(([k, v]) => (
             <div key={k}><dt className="text-slate-500">{t(k!)}</dt><dd className="font-medium">{v}</dd></div>
           ))}
@@ -256,6 +276,9 @@ export function AccountDetailPage() {
           </Field>
           <Field id="acc-email" label={t("accounts.email")}>
             <Input id="acc-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Field id="acc-php" label={t("accounts.phpVersion")}>
+            <PHPSelect id="acc-php" value={php} onChange={setPhp} />
           </Field>
           <div><Button type="submit" disabled={update.isPending}>{t("accounts.saveChanges")}</Button></div>
         </form>

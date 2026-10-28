@@ -20,6 +20,7 @@ type fakeSys struct {
 	healthCA   []byte
 	adminPW    string
 	mustChange bool
+	webDone    bool
 }
 
 func (f *fakeSys) EnsureSystemUser(_ context.Context, name, _ string) (bool, error) {
@@ -51,6 +52,18 @@ func (f *fakeSys) CreateFirstAdmin(_ context.Context, user, pw string, mustChang
 	f.admins++
 	f.adminPW, f.mustChange = pw, mustChange
 	return true, nil
+}
+
+func (f *fakeSys) InstallWebStack(context.Context) (bool, error) {
+	f.calls = append(f.calls, "web install")
+	installed := !f.webDone
+	f.webDone = true
+	return installed, nil
+}
+
+func (f *fakeSys) EnableApacheConf(context.Context) error {
+	f.calls = append(f.calls, "a2enconf xcp")
+	return nil
 }
 
 func (f *fakeSys) WaitHealthy(_ context.Context, _ string, ca []byte) error {
@@ -117,6 +130,9 @@ func TestFirstInstall(t *testing.T) {
 			t.Errorf("%s = %q", dst, got)
 		}
 	}
+	if !strings.Contains(string(e.read(t, ApacheConf)), "IncludeOptional /etc/apache2/xcp/vhosts/*.conf") {
+		t.Error("Apache include for the per-account virtual hosts not written")
+	}
 	cfg := string(e.read(t, ConfigFile))
 	for _, want := range []string{`listen = ":2443"`, `api_user = "xcp"`, `path = "/var/lib/xcp/xcp.db"`, `tls_cert = "/etc/xcp/ssl/panel.crt"`} {
 		if !strings.Contains(cfg, want) {
@@ -145,7 +161,7 @@ func TestFirstInstall(t *testing.T) {
 		}
 	}
 	want := []string{
-		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
+		"useradd xcp", "web install", "a2enconf xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
 		"systemctl restart xcp-agent.service xcp-api.service", "health", "admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {

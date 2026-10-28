@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +25,9 @@ const (
 	useraddPath   = "/usr/sbin/useradd"
 	systemctlPath = "/usr/bin/systemctl"
 	xcpctlPath    = "/usr/bin/xcpctl"
+	aptGetPath    = "/usr/bin/apt-get"
+	a2enmodPath   = "/usr/sbin/a2enmod"
+	a2enconfPath  = "/usr/sbin/a2enconf"
 )
 
 // LinuxSystem is the real System for Ubuntu/Debian.
@@ -32,7 +37,7 @@ type LinuxSystem struct {
 
 // NewLinuxSystem returns the production System.
 func NewLinuxSystem() (*LinuxSystem, error) {
-	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath)
+	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath, aptGetPath, a2enmodPath, a2enconfPath)
 	if err != nil {
 		return nil, err
 	}
@@ -113,4 +118,46 @@ func (s *LinuxSystem) WaitHealthy(ctx context.Context, url string, caPEM []byte)
 		}
 	}
 	return fmt.Errorf("xcp-api did not become healthy at %s: %w (see: journalctl -u xcp-api)", url, last)
+}
+
+// webStackInstalled reports whether Apache and at least one PHP-FPM exist.
+func webStackInstalled() bool {
+	if _, err := os.Stat("/usr/sbin/apachectl"); err != nil {
+		return false
+	}
+	m, _ := filepath.Glob("/usr/sbin/php-fpm[0-9]*")
+	return len(m) > 0
+}
+
+// InstallWebStack implements System.
+func (s *LinuxSystem) InstallWebStack(ctx context.Context) (bool, error) {
+	installed := false
+	if !webStackInstalled() {
+		env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+		if _, err := s.run.Run(ctx, execx.Cmd{Path: aptGetPath, Args: []string{"update", "-q"}, Env: env, Timeout: 10 * time.Minute}); err != nil {
+			return false, fmt.Errorf("apt-get update: %w", err)
+		}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: []string{"install", "-y", "-q", "--no-install-recommends", "apache2", "php-fpm"},
+			Env: env, Timeout: 20 * time.Minute,
+		}); err != nil {
+			return false, fmt.Errorf("apt-get install apache2 php-fpm: %w", err)
+		}
+		installed = true
+	}
+	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enmodPath, Args: []string{"-q", "proxy_fcgi", "setenvif", "rewrite", "headers"}}); err != nil {
+		return installed, fmt.Errorf("a2enmod: %w", err)
+	}
+	return installed, nil
+}
+
+// EnableApacheConf implements System.
+func (s *LinuxSystem) EnableApacheConf(ctx context.Context) error {
+	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enconfPath, Args: []string{"-q", "xcp"}}); err != nil {
+		return fmt.Errorf("a2enconf xcp: %w", err)
+	}
+	if err := s.Systemctl(ctx, "enable", "--now", "apache2.service"); err != nil {
+		return err
+	}
+	return s.Systemctl(ctx, "reload-or-restart", "apache2.service")
 }

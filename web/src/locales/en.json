@@ -257,6 +257,8 @@
       "suspended": "Suspended",
       "terminating": "Terminating",
       "error": "Error"
-    }
+    },
+    "phpVersion": "PHP version",
+    "phpDefault": "Server default ({{version}})"
   }
 }

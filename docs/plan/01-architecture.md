@@ -82,6 +82,8 @@ picks a **fixed** validator (not a free command).
   on failure restore the previous files and mark the job failed.
 - Scopes: `account:<id>`, `domain:<id>`, `service:web`, `service:mail`, `all`.
 - `xcpctl rebuild <scope>` exposes it. It is also used after upgrades.
+- **Amended by ADR-0004:** configs that can run code (web, mail, DNS) are
+  rendered inside the agent from typed requests, not sent as text by the API.
 - Admin customisation goes through **template overrides**
   (`/etc/xcp/templates/custom/*.tmpl`) and **per-domain snippets**
   stored in the DB, never by editing generated files.

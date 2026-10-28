@@ -36,6 +36,9 @@ const (
 	AgentService_AccountEnsure_FullMethodName       = "/xcp.agent.v1.AgentService/AccountEnsure"
 	AgentService_AccountSetSuspended_FullMethodName = "/xcp.agent.v1.AgentService/AccountSetSuspended"
 	AgentService_AccountDelete_FullMethodName       = "/xcp.agent.v1.AgentService/AccountDelete"
+	AgentService_SiteApply_FullMethodName           = "/xcp.agent.v1.AgentService/SiteApply"
+	AgentService_SiteRemove_FullMethodName          = "/xcp.agent.v1.AgentService/SiteRemove"
+	AgentService_PHPVersions_FullMethodName         = "/xcp.agent.v1.AgentService/PHPVersions"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -63,6 +66,15 @@ type AgentServiceClient interface {
 	// AccountDelete stops the user's processes and removes the Linux user, its
 	// home folder and its slice. It refuses users that XCP did not create.
 	AccountDelete(ctx context.Context, in *AccountDeleteRequest, opts ...grpc.CallOption) (*AccountDeleteResponse, error)
+	// SiteApply writes an account's Apache virtual host and PHP-FPM pool. The
+	// agent renders them from these typed fields (callers never send config
+	// text, ADR-0004), runs apachectl -t and php-fpm -t, rolls back on failure
+	// and reloads gracefully. NOT_FOUND: Apache or PHP-FPM is not installed.
+	SiteApply(ctx context.Context, in *SiteApplyRequest, opts ...grpc.CallOption) (*SiteApplyResponse, error)
+	// SiteRemove deletes an account's virtual host and PHP-FPM pools.
+	SiteRemove(ctx context.Context, in *SiteRemoveRequest, opts ...grpc.CallOption) (*SiteRemoveResponse, error)
+	// PHPVersions lists the installed PHP-FPM versions, oldest first.
+	PHPVersions(ctx context.Context, in *PHPVersionsRequest, opts ...grpc.CallOption) (*PHPVersionsResponse, error)
 }
 
 type agentServiceClient struct {
@@ -153,6 +165,36 @@ func (c *agentServiceClient) AccountDelete(ctx context.Context, in *AccountDelet
 	return out, nil
 }
 
+func (c *agentServiceClient) SiteApply(ctx context.Context, in *SiteApplyRequest, opts ...grpc.CallOption) (*SiteApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SiteApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_SiteApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) SiteRemove(ctx context.Context, in *SiteRemoveRequest, opts ...grpc.CallOption) (*SiteRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SiteRemoveResponse)
+	err := c.cc.Invoke(ctx, AgentService_SiteRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) PHPVersions(ctx context.Context, in *PHPVersionsRequest, opts ...grpc.CallOption) (*PHPVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PHPVersionsResponse)
+	err := c.cc.Invoke(ctx, AgentService_PHPVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -178,6 +220,15 @@ type AgentServiceServer interface {
 	// AccountDelete stops the user's processes and removes the Linux user, its
 	// home folder and its slice. It refuses users that XCP did not create.
 	AccountDelete(context.Context, *AccountDeleteRequest) (*AccountDeleteResponse, error)
+	// SiteApply writes an account's Apache virtual host and PHP-FPM pool. The
+	// agent renders them from these typed fields (callers never send config
+	// text, ADR-0004), runs apachectl -t and php-fpm -t, rolls back on failure
+	// and reloads gracefully. NOT_FOUND: Apache or PHP-FPM is not installed.
+	SiteApply(context.Context, *SiteApplyRequest) (*SiteApplyResponse, error)
+	// SiteRemove deletes an account's virtual host and PHP-FPM pools.
+	SiteRemove(context.Context, *SiteRemoveRequest) (*SiteRemoveResponse, error)
+	// PHPVersions lists the installed PHP-FPM versions, oldest first.
+	PHPVersions(context.Context, *PHPVersionsRequest) (*PHPVersionsResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -211,6 +262,15 @@ func (UnimplementedAgentServiceServer) AccountSetSuspended(context.Context, *Acc
 }
 func (UnimplementedAgentServiceServer) AccountDelete(context.Context, *AccountDeleteRequest) (*AccountDeleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AccountDelete not implemented")
+}
+func (UnimplementedAgentServiceServer) SiteApply(context.Context, *SiteApplyRequest) (*SiteApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SiteApply not implemented")
+}
+func (UnimplementedAgentServiceServer) SiteRemove(context.Context, *SiteRemoveRequest) (*SiteRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SiteRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) PHPVersions(context.Context, *PHPVersionsRequest) (*PHPVersionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PHPVersions not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -377,6 +437,60 @@ func _AgentService_AccountDelete_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_SiteApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SiteApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SiteApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SiteApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SiteApply(ctx, req.(*SiteApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_SiteRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SiteRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SiteRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SiteRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SiteRemove(ctx, req.(*SiteRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_PHPVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PHPVersionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).PHPVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_PHPVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).PHPVersions(ctx, req.(*PHPVersionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -415,6 +529,18 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AccountDelete",
 			Handler:    _AgentService_AccountDelete_Handler,
+		},
+		{
+			MethodName: "SiteApply",
+			Handler:    _AgentService_SiteApply_Handler,
+		},
+		{
+			MethodName: "SiteRemove",
+			Handler:    _AgentService_SiteRemove_Handler,
+		},
+		{
+			MethodName: "PHPVersions",
+			Handler:    _AgentService_PHPVersions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

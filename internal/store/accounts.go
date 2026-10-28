@@ -32,6 +32,7 @@ type Account struct {
 	PackageID     string
 	PrimaryDomain string
 	Email         string
+	PHPVersion    string // "" = server default
 	Status        string
 	StatusDetail  string
 	CreatedAt     time.Time
@@ -39,7 +40,7 @@ type Account struct {
 }
 
 const accountColumns = `id, username, uid, COALESCE(owner_id, ''), package_id, primary_domain, email,
-	status, status_detail, created_at, updated_at`
+	php_version, status, status_detail, created_at, updated_at`
 
 func scanAccount(s scanner) (*Account, error) {
 	var (
@@ -47,7 +48,7 @@ func scanAccount(s scanner) (*Account, error) {
 		created, updated string
 	)
 	err := s.Scan(&a.ID, &a.Username, &a.UID, &a.OwnerID, &a.PackageID, &a.PrimaryDomain, &a.Email,
-		&a.Status, &a.StatusDetail, &created, &updated)
+		&a.PHPVersion, &a.Status, &a.StatusDetail, &created, &updated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -127,9 +128,9 @@ func InsertAccount(ctx context.Context, q querier, a *Account) error {
 	now := time.Now().UTC()
 	a.CreatedAt, a.UpdatedAt = now, now
 	_, err := q.ExecContext(ctx, `INSERT INTO accounts (id, username, uid, owner_id, package_id, primary_domain,
-		email, status, status_detail, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		email, php_version, status, status_detail, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		a.ID, a.Username, a.UID, nullIfEmpty(a.OwnerID), a.PackageID, a.PrimaryDomain, a.Email,
-		a.Status, a.StatusDetail, FormatTime(now), FormatTime(now))
+		a.PHPVersion, a.Status, a.StatusDetail, FormatTime(now), FormatTime(now))
 	if uniqueViolation(err) {
 		return ErrConflict
 	}
@@ -139,8 +140,8 @@ func InsertAccount(ctx context.Context, q querier, a *Account) error {
 // UpdateAccount saves package, email, status and detail.
 func UpdateAccount(ctx context.Context, q querier, a *Account) error {
 	a.UpdatedAt = time.Now().UTC()
-	return execOne(ctx, q, `UPDATE accounts SET package_id = ?, email = ?, status = ?, status_detail = ?,
-		updated_at = ? WHERE id = ?`, a.PackageID, a.Email, a.Status, a.StatusDetail, FormatTime(a.UpdatedAt), a.ID)
+	return execOne(ctx, q, `UPDATE accounts SET package_id = ?, email = ?, php_version = ?, status = ?, status_detail = ?,
+		updated_at = ? WHERE id = ?`, a.PackageID, a.Email, a.PHPVersion, a.Status, a.StatusDetail, FormatTime(a.UpdatedAt), a.ID)
 }
 
 // SetAccountStatus changes only the status fields.

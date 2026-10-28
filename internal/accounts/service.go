@@ -8,10 +8,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/siyamex/XCP/internal/agentrpc"
+	"github.com/siyamex/XCP/internal/agentrpc/agentv1"
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
@@ -29,6 +31,7 @@ type Account struct {
 	UID           int       `json:"uid"`
 	PrimaryDomain string    `json:"primary_domain"`
 	Email         string    `json:"email"`
+	PHPVersion    string    `json:"php_version"` // "" = server default
 	PackageID     string    `json:"package_id"`
 	PackageName   string    `json:"package_name"`
 	Status        string    `json:"status"`
@@ -40,17 +43,19 @@ type Account struct {
 
 // CreateInput creates an account.
 type CreateInput struct {
-	Username  string `json:"username"`
-	Domain    string `json:"domain"`
-	PackageID string `json:"package_id"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
+	Username   string `json:"username"`
+	Domain     string `json:"domain"`
+	PackageID  string `json:"package_id"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	PHPVersion string `json:"php_version"`
 }
 
-// UpdateInput changes an account's package and contact email.
+// UpdateInput changes an account's package, contact email and PHP version.
 type UpdateInput struct {
-	PackageID string `json:"package_id"`
-	Email     string `json:"email"`
+	PackageID  string `json:"package_id"`
+	Email      string `json:"email"`
+	PHPVersion string `json:"php_version"`
 }
 
 // Job kinds.
@@ -97,7 +102,7 @@ func event(c auth.Client, p *auth.Principal, action, accountID string, details m
 func (s *Service) view(ctx context.Context, a *store.Account) Account {
 	v := Account{
 		ID: a.ID, Username: a.Username, UID: a.UID, PrimaryDomain: a.PrimaryDomain, Email: a.Email,
-		PackageID: a.PackageID, Status: a.Status, StatusDetail: a.StatusDetail, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
+		PHPVersion: a.PHPVersion, PackageID: a.PackageID, Status: a.Status, StatusDetail: a.StatusDetail, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 	}
 	if pk, err := s.db.PackageByID(ctx, a.PackageID); err == nil {
 		v.PackageName = pk.Name
@@ -149,6 +154,39 @@ func (s *Service) Get(ctx context.Context, p *auth.Principal, id string) (Accoun
 
 func fieldErr(err error, name string) error { return validate.WithField(err, name) }
 
+// PHPVersions returns the PHP versions installed on the server.
+func (s *Service) PHPVersions(ctx context.Context, p *auth.Principal) ([]string, error) {
+	if _, err := scope(p); err != nil {
+		return nil, err
+	}
+	res, err := s.agent.PHPVersions(ctx, &agentv1.PHPVersionsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return res.GetVersions(), nil
+}
+
+// checkPHP accepts "" (server default) or an installed version the package allows.
+func (s *Service) checkPHP(ctx context.Context, version string, lim plans.Limits) error {
+	if version == "" {
+		return nil
+	}
+	bad := func(msg string) error {
+		return &validate.Error{Field: "php_version", Code: validate.CodeFormat, Message: msg}
+	}
+	if len(lim.PHPVersions) > 0 && !slices.Contains(lim.PHPVersions, version) {
+		return bad("the package does not allow PHP " + version)
+	}
+	res, err := s.agent.PHPVersions(ctx, &agentv1.PHPVersionsRequest{})
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(res.GetVersions(), version) {
+		return bad("PHP " + version + " is not installed on this server")
+	}
+	return nil
+}
+
 // Create adds an account and its login, and queues the job that creates
 // the Linux user. The account starts in status "creating".
 func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, in CreateInput) (Account, error) {
@@ -170,9 +208,13 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 			return Account{}, fieldErr(err, "email")
 		}
 	}
-	if _, err := s.plans.GetPackage(ctx, p, in.PackageID); errors.Is(err, store.ErrNotFound) {
+	pk, err := s.plans.GetPackage(ctx, p, in.PackageID)
+	if errors.Is(err, store.ErrNotFound) {
 		return Account{}, &validate.Error{Field: "package_id", Code: validate.CodeFormat, Message: "no such package"}
 	} else if err != nil {
+		return Account{}, err
+	}
+	if err := s.checkPHP(ctx, in.PHPVersion, pk.Limits); err != nil {
 		return Account{}, err
 	}
 	hash, err := s.auth.HashPassword(ctx, in.Password) // slow: done before taking the write lock
@@ -182,7 +224,7 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 
 	a := &store.Account{
 		ID: ids.New(), Username: username, OwnerID: own, PackageID: in.PackageID,
-		PrimaryDomain: domain, Email: email, Status: store.AccountCreating,
+		PrimaryDomain: domain, Email: email, PHPVersion: in.PHPVersion, Status: store.AccountCreating,
 	}
 	var jobID string
 	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
@@ -280,19 +322,23 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 			return Account{}, fieldErr(err, "email")
 		}
 	}
-	if _, err := s.plans.GetPackage(ctx, p, in.PackageID); errors.Is(err, store.ErrNotFound) {
+	pk, err := s.plans.GetPackage(ctx, p, in.PackageID)
+	if errors.Is(err, store.ErrNotFound) {
 		return Account{}, &validate.Error{Field: "package_id", Code: validate.CodeFormat, Message: "no such package"}
 	} else if err != nil {
 		return Account{}, err
 	}
+	if err := s.checkPHP(ctx, in.PHPVersion, pk.Limits); err != nil {
+		return Account{}, err
+	}
 	return s.change(ctx, p, id, editable, JobApply, func(tx *sql.Tx, a *store.Account) error {
 		before := a.PackageID
-		a.PackageID, a.Email = in.PackageID, email
+		a.PackageID, a.Email, a.PHPVersion = in.PackageID, email, in.PHPVersion
 		if a.Status == store.AccountError {
 			a.Status, a.StatusDetail = store.AccountCreating, "" // retry the failed setup
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "account.update", a.ID, map[string]any{
-			"package_from": before, "package_to": in.PackageID, "email": email,
+			"package_from": before, "package_to": in.PackageID, "email": email, "php_version": in.PHPVersion,
 		}))
 	})
 }

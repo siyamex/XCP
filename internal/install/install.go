@@ -54,6 +54,11 @@ type System interface {
 	// CreateFirstAdmin runs `xcpctl admin create --if-none`; it reports whether a login was created.
 	CreateFirstAdmin(ctx context.Context, username, password string, mustChange bool) (created bool, err error)
 	WaitHealthy(ctx context.Context, url string, caPEM []byte) error
+	// InstallWebStack installs Apache and PHP-FPM and enables the Apache
+	// modules XCP needs. It reports whether anything was installed.
+	InstallWebStack(ctx context.Context) (installed bool, err error)
+	// EnableApacheConf enables conf-available/xcp.conf and reloads Apache.
+	EnableApacheConf(ctx context.Context) error
 }
 
 // Options configure an install.
@@ -64,6 +69,7 @@ type Options struct {
 	IPs           []string // extra IPs for the certificate (the server's addresses)
 	AdminUser     string
 	AdminPassword string // empty: generate one and print it once
+	NoWeb         bool   // skip installing Apache and PHP-FPM
 	DryRun        bool
 	Out           io.Writer
 	Sys           System
@@ -103,6 +109,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"master key", in.masterKey},
 		{"TLS certificate", in.certificate},
 		{"systemd units", in.units},
+		{"web server (Apache + PHP-FPM)", in.web},
 		{"services", in.services},
 		{"first admin", in.admin},
 	}
@@ -348,6 +355,42 @@ func (in *installer) units(context.Context) error {
 		}
 		in.reload = in.reload || wrote
 		in.restart = in.restart || wrote
+	}
+	return nil
+}
+
+// ApacheConf includes the per-account virtual hosts the agent writes.
+const ApacheConf = "/etc/apache2/conf-available/xcp.conf"
+
+const apacheConfBody = "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
+	"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n"
+
+func (in *installer) web(ctx context.Context) error {
+	if in.o.NoWeb {
+		in.logf("    skipped (--no-web)")
+		return nil
+	}
+	if in.o.DryRun {
+		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers")
+		_, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
+		return err
+	}
+	installed, err := in.o.Sys.InstallWebStack(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		in.changed("installed apache2 and php-fpm")
+	}
+	if err := os.MkdirAll(in.path("/etc/apache2/conf-available"), 0o755); err != nil {
+		return err
+	}
+	wrote, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
+	if err != nil {
+		return err
+	}
+	if wrote || installed {
+		return in.o.Sys.EnableApacheConf(ctx)
 	}
 	return nil
 }

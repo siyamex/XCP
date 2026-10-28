@@ -49,6 +49,11 @@ Status: `todo` · `doing` · `done`.
   (not on WSL); `xcp-install` should offer to enable them on a real server.
 - Account job polling in the UI passes the job ID in the URL; replace with
   router search params once more pages need it.
+- PHP-FPM pools run in each version's shared php-fpm service, not in the
+  account's systemd slice, so CPU/memory limits do not cover PHP yet. Fix
+  with one FPM master per account (or per-pool cgroups) before production.
+- Only the distro's PHP (8.3 on Ubuntu 24.04) is installed; installing more
+  versions (Sury/Remi) is ADM-WEB-04's second half.
 
 ## P1 — MVP progress
 
@@ -56,8 +61,9 @@ Status: `todo` · `doing` · `done`.
 |---|---|---|---|---|
 | 1 | Packages + feature lists | ADM-PKG-01, ADM-PKG-02 | done | `internal/plans`: limits as JSON (null = unlimited), 24-feature catalog, Default list + package on first start, admin-only (403 otherwise), audit in same tx, in-use list cannot be deleted; API `/features`, `/feature-lists`, `/packages`; UI pages Packages + Feature lists. |
 | 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | done | `internal/accounts` + agent ops AccountEnsure / AccountSetSuspended / AccountDelete: Linux user (UID 10000+, marked `xcp account`; foreign users refused), home 0711 + public_html 0750 group www-data, systemd slice + login-session limits, quota where supported; create/update/suspend/unsuspend/password/terminate as jobs (in xcp-api, ADR-0003); UI list/create/detail with live job status. Verified end to end on the Ubuntu VM. |
-| 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | todo | |
+| 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | done | agent op SiteApply/SiteRemove/PHPVersions; configs rendered in the agent from typed fields (ADR-0004), checked with apachectl -t / php-fpm -t with rollback; one PHP-FPM pool per account running as the account user, open_basedir to its home, own tmp; suspended sites serve a notice and run no PHP; PHP version per account (package-allowed, installed); installer installs apache2 + php-fpm (`--no-web` to skip). Verified on the VM and in CI (`test/e2e/install/websites.py`). |
+| 4 | Domains (addon, sub, alias, redirects) | USR-DOM-01..07 | todo | next |
 
 ## Features done
 
-ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11.
+ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11, ADM-WEB-01 (Apache), ADM-WEB-04 (installed versions), USR-WEB-01.

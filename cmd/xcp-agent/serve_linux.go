@@ -34,7 +34,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath}
+	allowed := []string{agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath}
+	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
 	}
@@ -78,6 +79,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Accounts: &agent.Accounts{
 			Run: runner, HomesRoot: cfg.Paths.HomesRoot, UnitDir: "/etc/systemd/system",
 			WebGroup: "www-data", Services: agent.Systemctl{Run: runner},
+		},
+		Web: &agent.Web{
+			Run: runner, Services: agent.Systemctl{Run: runner}, HomesRoot: cfg.Paths.HomesRoot,
+			VhostDir: "/etc/apache2/xcp/vhosts", PHPDir: "/etc/php", SuspendedDir: "/var/www/xcp-suspended",
+			LogDir: "/var/log/apache2/xcp", WebUser: "www-data",
 		},
 		Version:  version.Version,
 		Hostname: hostname,

@@ -112,6 +112,7 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/password", access: authed, roles: adminOnly, h: s.setAccountPassword},
 		{method: "POST", path: "/api/v1/accounts/{id}/terminate", access: authed, roles: adminOnly, h: s.terminateAccount},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOnly, h: s.getJob},
+		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}
 	for _, rt := range s.routes {
 		s.mux.Handle(rt.method+" "+rt.path, s.wrap(rt))

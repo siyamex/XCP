@@ -29,6 +29,7 @@ type Fake struct {
 	dirs      []string
 	failCheck string // non-empty: validated writes fail with this output
 	accounts  fakeUsers
+	sites     fakeSites
 }
 
 type fakeFile struct {

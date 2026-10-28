@@ -1107,6 +1107,310 @@ func (x *AccountDeleteResponse) GetDeleted() bool {
 	return false
 }
 
+type SiteApplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Uid           uint32                 `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"`
+	Domains       []string               `protobuf:"bytes,3,rep,name=domains,proto3" json:"domains,omitempty"`                             // first is the primary domain; www. aliases are added
+	PhpVersion    string                 `protobuf:"bytes,4,opt,name=php_version,json=phpVersion,proto3" json:"php_version,omitempty"`     // "" = newest installed
+	Suspended     bool                   `protobuf:"varint,5,opt,name=suspended,proto3" json:"suspended,omitempty"`                        // serve the suspended notice and run no PHP
+	MaxChildren   uint32                 `protobuf:"varint,6,opt,name=max_children,json=maxChildren,proto3" json:"max_children,omitempty"` // PHP worker processes; 0 = default
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SiteApplyRequest) Reset() {
+	*x = SiteApplyRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SiteApplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SiteApplyRequest) ProtoMessage() {}
+
+func (x *SiteApplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SiteApplyRequest.ProtoReflect.Descriptor instead.
+func (*SiteApplyRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SiteApplyRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *SiteApplyRequest) GetUid() uint32 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+func (x *SiteApplyRequest) GetDomains() []string {
+	if x != nil {
+		return x.Domains
+	}
+	return nil
+}
+
+func (x *SiteApplyRequest) GetPhpVersion() string {
+	if x != nil {
+		return x.PhpVersion
+	}
+	return ""
+}
+
+func (x *SiteApplyRequest) GetSuspended() bool {
+	if x != nil {
+		return x.Suspended
+	}
+	return false
+}
+
+func (x *SiteApplyRequest) GetMaxChildren() uint32 {
+	if x != nil {
+		return x.MaxChildren
+	}
+	return 0
+}
+
+type SiteApplyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changed       bool                   `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	PhpVersion    string                 `protobuf:"bytes,2,opt,name=php_version,json=phpVersion,proto3" json:"php_version,omitempty"` // the version actually used
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SiteApplyResponse) Reset() {
+	*x = SiteApplyResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SiteApplyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SiteApplyResponse) ProtoMessage() {}
+
+func (x *SiteApplyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SiteApplyResponse.ProtoReflect.Descriptor instead.
+func (*SiteApplyResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SiteApplyResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+func (x *SiteApplyResponse) GetPhpVersion() string {
+	if x != nil {
+		return x.PhpVersion
+	}
+	return ""
+}
+
+type SiteRemoveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SiteRemoveRequest) Reset() {
+	*x = SiteRemoveRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SiteRemoveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SiteRemoveRequest) ProtoMessage() {}
+
+func (x *SiteRemoveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SiteRemoveRequest.ProtoReflect.Descriptor instead.
+func (*SiteRemoveRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SiteRemoveRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type SiteRemoveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changed       bool                   `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SiteRemoveResponse) Reset() {
+	*x = SiteRemoveResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SiteRemoveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SiteRemoveResponse) ProtoMessage() {}
+
+func (x *SiteRemoveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SiteRemoveResponse.ProtoReflect.Descriptor instead.
+func (*SiteRemoveResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SiteRemoveResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+type PHPVersionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PHPVersionsRequest) Reset() {
+	*x = PHPVersionsRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PHPVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PHPVersionsRequest) ProtoMessage() {}
+
+func (x *PHPVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PHPVersionsRequest.ProtoReflect.Descriptor instead.
+func (*PHPVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{21}
+}
+
+type PHPVersionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Versions      []string               `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PHPVersionsResponse) Reset() {
+	*x = PHPVersionsResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PHPVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PHPVersionsResponse) ProtoMessage() {}
+
+func (x *PHPVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PHPVersionsResponse.ProtoReflect.Descriptor instead.
+func (*PHPVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *PHPVersionsResponse) GetVersions() []string {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
 var File_xcp_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_xcp_agent_v1_agent_proto_rawDesc = "" +
@@ -1173,7 +1477,26 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x14AccountDeleteRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"1\n" +
 	"\x15AccountDeleteResponse\x12\x18\n" +
-	"\adeleted\x18\x01 \x01(\bR\adeleted*\xb6\x01\n" +
+	"\adeleted\x18\x01 \x01(\bR\adeleted\"\xbc\x01\n" +
+	"\x10SiteApplyRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x10\n" +
+	"\x03uid\x18\x02 \x01(\rR\x03uid\x12\x18\n" +
+	"\adomains\x18\x03 \x03(\tR\adomains\x12\x1f\n" +
+	"\vphp_version\x18\x04 \x01(\tR\n" +
+	"phpVersion\x12\x1c\n" +
+	"\tsuspended\x18\x05 \x01(\bR\tsuspended\x12!\n" +
+	"\fmax_children\x18\x06 \x01(\rR\vmaxChildren\"N\n" +
+	"\x11SiteApplyResponse\x12\x18\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\x12\x1f\n" +
+	"\vphp_version\x18\x02 \x01(\tR\n" +
+	"phpVersion\"/\n" +
+	"\x11SiteRemoveRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\".\n" +
+	"\x12SiteRemoveResponse\x12\x18\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\"\x14\n" +
+	"\x12PHPVersionsRequest\"1\n" +
+	"\x13PHPVersionsResponse\x12\x1a\n" +
+	"\bversions\x18\x01 \x03(\tR\bversions*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -1191,7 +1514,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"SHELL_NONE\x10\x01\x12\x10\n" +
 	"\fSHELL_JAILED\x10\x02\x12\x0e\n" +
 	"\n" +
-	"SHELL_FULL\x10\x032\xea\x05\n" +
+	"SHELL_FULL\x10\x032\xdd\a\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -1200,7 +1523,11 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x11FileRemoveManaged\x12&.xcp.agent.v1.FileRemoveManagedRequest\x1a'.xcp.agent.v1.FileRemoveManagedResponse\x12X\n" +
 	"\rAccountEnsure\x12\".xcp.agent.v1.AccountEnsureRequest\x1a#.xcp.agent.v1.AccountEnsureResponse\x12j\n" +
 	"\x13AccountSetSuspended\x12(.xcp.agent.v1.AccountSetSuspendedRequest\x1a).xcp.agent.v1.AccountSetSuspendedResponse\x12X\n" +
-	"\rAccountDelete\x12\".xcp.agent.v1.AccountDeleteRequest\x1a#.xcp.agent.v1.AccountDeleteResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\rAccountDelete\x12\".xcp.agent.v1.AccountDeleteRequest\x1a#.xcp.agent.v1.AccountDeleteResponse\x12L\n" +
+	"\tSiteApply\x12\x1e.xcp.agent.v1.SiteApplyRequest\x1a\x1f.xcp.agent.v1.SiteApplyResponse\x12O\n" +
+	"\n" +
+	"SiteRemove\x12\x1f.xcp.agent.v1.SiteRemoveRequest\x1a .xcp.agent.v1.SiteRemoveResponse\x12R\n" +
+	"\vPHPVersions\x12 .xcp.agent.v1.PHPVersionsRequest\x1a!.xcp.agent.v1.PHPVersionsResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -1215,7 +1542,7 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(ServiceActionKind)(0),              // 0: xcp.agent.v1.ServiceActionKind
 	(Validator)(0),                      // 1: xcp.agent.v1.Validator
@@ -1237,6 +1564,12 @@ var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(*AccountSetSuspendedResponse)(nil), // 17: xcp.agent.v1.AccountSetSuspendedResponse
 	(*AccountDeleteRequest)(nil),        // 18: xcp.agent.v1.AccountDeleteRequest
 	(*AccountDeleteResponse)(nil),       // 19: xcp.agent.v1.AccountDeleteResponse
+	(*SiteApplyRequest)(nil),            // 20: xcp.agent.v1.SiteApplyRequest
+	(*SiteApplyResponse)(nil),           // 21: xcp.agent.v1.SiteApplyResponse
+	(*SiteRemoveRequest)(nil),           // 22: xcp.agent.v1.SiteRemoveRequest
+	(*SiteRemoveResponse)(nil),          // 23: xcp.agent.v1.SiteRemoveResponse
+	(*PHPVersionsRequest)(nil),          // 24: xcp.agent.v1.PHPVersionsRequest
+	(*PHPVersionsResponse)(nil),         // 25: xcp.agent.v1.PHPVersionsResponse
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -1253,16 +1586,22 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	14, // 11: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
 	16, // 12: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
 	18, // 13: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
-	4,  // 14: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	6,  // 15: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	8,  // 16: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	10, // 17: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	12, // 18: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	15, // 19: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	17, // 20: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	19, // 21: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
+	20, // 14: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
+	22, // 15: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
+	24, // 16: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
+	4,  // 17: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	6,  // 18: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	8,  // 19: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	10, // 20: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	12, // 21: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	15, // 22: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	17, // 23: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	19, // 24: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	21, // 25: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	23, // 26: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	25, // 27: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	17, // [17:28] is the sub-list for method output_type
+	6,  // [6:17] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -1280,7 +1619,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   17,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

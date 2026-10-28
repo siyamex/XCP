@@ -109,6 +109,15 @@ func (s *Server) terminateAccount(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
+func (s *Server) listPHPVersions(w http.ResponseWriter, r *http.Request) error {
+	v, err := s.Accounts.PHPVersions(r.Context(), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": v})
+	return nil
+}
+
 type jobJSON struct {
 	ID         string          `json:"id"`
 	Kind       string          `json:"kind"`

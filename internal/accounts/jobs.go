@@ -71,6 +71,15 @@ func u64(v *int64) *uint64 {
 	return &x
 }
 
+// phpChildren derives the PHP worker count from the process limit: a quarter
+// of it, between 2 and 50 (10 when unlimited).
+func phpChildren(l plans.Limits) uint32 {
+	if l.Processes == nil {
+		return 10
+	}
+	return uint32(min(max(*l.Processes/4, 2), 50)) //nolint:gosec // G115: clamped to 2..50
+}
+
 func agentLimits(l plans.Limits) *agentv1.ResourceLimits {
 	return &agentv1.ResourceLimits{
 		CpuPercent: u32(l.CPUPercent), MemoryMb: u64(l.MemoryMB), Tasks: u32(l.Processes),
@@ -107,11 +116,25 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 	if err != nil {
 		return nil, s.fail(ctx, j, a, err)
 	}
-	r.Progress(70)
+	r.Progress(50)
 	_, err = s.agent.AccountSetSuspended(ctx, &agentv1.AccountSetSuspendedRequest{
 		Username: a.Username, Suspended: a.Status == store.AccountSuspended, Shell: shellOf(pk.Limits),
 	})
 	if err != nil {
+		return nil, s.fail(ctx, j, a, err)
+	}
+	r.Progress(70)
+	r.Logf("configuring the website (Apache + PHP-FPM)")
+	site, err := s.agent.SiteApply(ctx, &agentv1.SiteApplyRequest{
+		Username: a.Username, Uid: uint32(a.UID), Domains: []string{a.PrimaryDomain}, //nolint:gosec // G115: UID is 10000..59999
+		PhpVersion: a.PHPVersion, Suspended: a.Status == store.AccountSuspended, MaxChildren: phpChildren(pk.Limits),
+	})
+	website := "configured"
+	switch {
+	case status.Code(err) == codes.NotFound:
+		website = "skipped: no web server installed"
+		r.Logf("website %s", website)
+	case err != nil:
 		return nil, s.fail(ctx, j, a, err)
 	}
 	if a.Status == store.AccountCreating || a.Status == store.AccountError {
@@ -122,7 +145,10 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 	if !res.GetQuotaApplied() {
 		r.Logf("disk quota not applied: the home filesystem has no user quotas enabled")
 	}
-	return map[string]any{"created": res.GetCreated(), "quota_applied": res.GetQuotaApplied(), "home": res.GetHome()}, nil
+	return map[string]any{
+		"created": res.GetCreated(), "quota_applied": res.GetQuotaApplied(), "home": res.GetHome(),
+		"website": website, "php_version": site.GetPhpVersion(),
+	}, nil
 }
 
 // fail records the error on the account. On the last attempt (or a
@@ -147,6 +173,10 @@ func (s *Service) terminateJob(ctx context.Context, j *jobs.Job, r jobs.Reporter
 	}
 	if err != nil {
 		return nil, err
+	}
+	r.Logf("removing the website of %s", a.Username)
+	if _, err := s.agent.SiteRemove(ctx, &agentv1.SiteRemoveRequest{Username: a.Username}); err != nil && status.Code(err) != codes.NotFound {
+		return nil, permanentIfRefused(err)
 	}
 	r.Logf("removing Linux user %s and its home folder", a.Username)
 	res, err := s.agent.AccountDelete(ctx, &agentv1.AccountDeleteRequest{Username: a.Username})

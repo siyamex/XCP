@@ -3,7 +3,7 @@
 FROM ubuntu:24.04
 ENV container=docker
 RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv ca-certificates curl procps \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv ca-certificates curl procps python3 \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && find /etc/systemd/system /lib/systemd/system -path '*.wants/*' \( -name '*udev*' -o -name '*getty*' -o -name 'systemd-logind*' \) -delete
 STOPSIGNAL SIGRTMIN+3
