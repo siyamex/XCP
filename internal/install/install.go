@@ -111,8 +111,11 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"master key", in.masterKey},
 		{"TLS certificate", in.certificate},
 		{"systemd units", in.units},
-		{"web server (Apache + PHP-FPM)", in.web},
+		// Restart right after binaries and units: a later failure (the web
+		// step needs the network) must not leave the old binaries running,
+		// because a re-run sees the files unchanged and would not restart.
 		{"services", in.services},
+		{"web server (Apache + PHP-FPM)", in.web},
 		{"first admin", in.admin},
 	}
 	for _, s := range steps {

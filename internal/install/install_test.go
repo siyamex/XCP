@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ type fakeSys struct {
 	adminPW    string
 	mustChange bool
 	webDone    bool
+	webErr     error
 }
 
 func (f *fakeSys) EnsureSystemUser(_ context.Context, name, _ string) (bool, error) {
@@ -56,6 +58,9 @@ func (f *fakeSys) CreateFirstAdmin(_ context.Context, user, pw string, mustChang
 
 func (f *fakeSys) InstallWebStack(context.Context) (bool, error) {
 	f.calls = append(f.calls, "web install")
+	if f.webErr != nil {
+		return false, f.webErr
+	}
 	installed := !f.webDone
 	f.webDone = true
 	return installed, nil
@@ -161,8 +166,8 @@ func TestFirstInstall(t *testing.T) {
 		}
 	}
 	want := []string{
-		"useradd xcp", "web install", "a2ensite xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
-		"systemctl restart xcp-agent.service xcp-api.service", "health", "admin admin",
+		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
+		"systemctl restart xcp-agent.service xcp-api.service", "health", "web install", "a2ensite xcp", "admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
 		t.Fatalf("calls =\n%q\nwant\n%q", e.sys.calls, want)
@@ -206,6 +211,23 @@ func TestUpgradeRestartsServices(t *testing.T) {
 	}
 	if string(e.read(t, "/usr/sbin/xcp-api")) != "xcp-api v2" {
 		t.Fatal("binary not upgraded")
+	}
+}
+
+func TestWebFailureAfterUpgradeStillRestarts(t *testing.T) {
+	e := newEnv(t)
+	e.run(t, false)
+	writeBin(t, e, "xcp-api", "v2")
+	e.sys.webErr, e.sys.calls = errors.New("apt-get update: network down"), nil
+	_, err := Run(context.Background(), Options{
+		Root: e.root, BinDir: e.bin, Hostname: "panel.example.com", AdminUser: "admin", Out: io.Discard, Sys: e.sys,
+	})
+	if err == nil {
+		t.Fatal("web failure not reported")
+	}
+	// A re-run finds the binaries unchanged, so this is the only chance to restart.
+	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") {
+		t.Fatalf("old binaries left running after a failed web step: %q", e.sys.calls)
 	}
 }
 
