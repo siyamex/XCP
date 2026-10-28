@@ -120,7 +120,12 @@
     "bad_json": "The request was not valid.",
     "username_taken": "That username is already used.",
     "domain_taken": "Another account already uses this domain.",
-    "bad_status": "Not possible in the account's current status."
+    "bad_status": "Not possible in the account's current status.",
+    "verification_required": "Prove that you control this domain first (see below).",
+    "limit_reached": "Your package allows no more of these.",
+    "primary_domain": "The primary domain belongs to the account and cannot be removed.",
+    "has_dependents": "Remove its subdomains and aliases first.",
+    "redirect_exists": "This domain already has a redirect for that path."
   },
   "packages": {
     "title": "Packages",
@@ -246,11 +251,6 @@
     "terminateHelp": "This deletes the account, its Linux user and all files in its home folder. Type the username to confirm.",
     "terminateConfirm": "Type {{name}} to confirm",
     "terminated": "The account is being removed.",
-    "job": {
-      "running": "Working on it…",
-      "succeeded": "Done.",
-      "failed": "Failed: {{error}}"
-    },
     "statuses": {
       "creating": "Creating",
       "active": "Active",
@@ -260,5 +260,67 @@
     },
     "phpVersion": "PHP version",
     "phpDefault": "Server default ({{version}})"
+  },
+  "job": {
+    "running": "Working on it…",
+    "succeeded": "Done.",
+    "failed": "Failed: {{error}}"
+  },
+  "domains": {
+    "title": "Domains",
+    "noAccount": "This login has no hosting account.",
+    "name": "Domain",
+    "subName": "Subdomain",
+    "kind": "Type",
+    "docroot": "Folder",
+    "docrootHint": "Inside your home folder. Leave empty for the suggested one; it is created if missing.",
+    "canonical": "www",
+    "kinds": {
+      "primary": "Primary",
+      "addon": "Addon domain",
+      "sub": "Subdomain",
+      "alias": "Alias"
+    },
+    "help": {
+      "addon": "Another website with its own folder.",
+      "sub": "A name below one of your domains, such as blog.example.com, with its own folder.",
+      "alias": "Another name that shows the same website as one of your domains."
+    },
+    "under": "under {{name}}",
+    "showsSite": "shows {{name}}",
+    "parentSub": "Below",
+    "parentAlias": "Shows the site of",
+    "wildcardHint": "* covers every name below it",
+    "canonicals": {
+      "both": "Both work",
+      "www": "Always www.",
+      "bare": "Always without www."
+    },
+    "add": "Add domain",
+    "confirmDelete": "Remove {{name}}? Its files stay in your home folder.",
+    "verify": {
+      "intro": "Another account on this server uses a domain under the same name. To show that {{name}} is yours, add this DNS record where the domain is managed:",
+      "type": "Type",
+      "record": "Name",
+      "value": "Value",
+      "retry": "DNS changes can take a few minutes to appear. Then try again.",
+      "check": "Check and add"
+    },
+    "redirects": {
+      "title": "Redirects",
+      "empty": "No redirects yet.",
+      "domain": "Domain",
+      "path": "Path",
+      "target": "Destination URL",
+      "type": "Type",
+      "keepPath": "Keep the rest of the path (/old/page goes to destination/page)",
+      "add": "Add redirect",
+      "codes": {
+        "301": "301 permanent",
+        "302": "302 temporary",
+        "307": "307 temporary (keeps method)",
+        "308": "308 permanent (keeps method)"
+      }
+    }
   }
 }

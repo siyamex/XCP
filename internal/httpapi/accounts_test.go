@@ -59,11 +59,14 @@ func TestAccountsOverHTTP(t *testing.T) {
 		"package_id": pkgs.Items[0].ID, "password": rootPW,
 	}), 409, "username_taken")
 
-	// The account's own login is a "user": admin endpoints are closed to it.
+	// The account's own login is a "user": admin endpoints are closed to it,
+	// but it may follow its own account's jobs.
 	user := h.browser()
 	user.login("alice", rootPW)
 	wantProblem(t, user.do("GET", "/accounts", nil), 403, "forbidden")
-	wantProblem(t, user.do("GET", "/jobs/"+a.JobID, nil), 403, "forbidden")
+	if j := user.waitJob(t, a.JobID); j.AccountID != a.ID {
+		t.Fatalf("own job = %+v", j)
+	}
 
 	resp = admin.do("POST", "/accounts/"+a.ID+"/suspend", map[string]any{"reason": "abuse report"})
 	if resp.StatusCode != 202 {

@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -46,31 +48,63 @@ func knownPHPVersions() []string {
 
 var phpVersionRe = regexp.MustCompile(`^[5-9]\.[0-9]$`)
 
-// Site describes one account's website. The agent renders all config
+// Site describes one account's websites. The agent renders all config
 // itself from these fields (ADR-0004); callers never send config text.
 type Site struct {
 	Username    string
 	UID         uint32
-	Domains     []string // first one is the primary domain
-	PHPVersion  string   // "" = newest installed
+	Vhosts      []Vhost // the primary domain first
+	PHPVersion  string  // "" = newest installed
 	Suspended   bool
 	MaxChildren uint32 // PHP worker processes; 0 = default
 }
 
-// MaxSiteDomains bounds the domains of one site.
-const MaxSiteDomains = 200
+// Vhost is the website of one domain.
+type Vhost struct {
+	Name      string // "*.example.com" for a wildcard subdomain
+	DocRoot   string // relative to the home folder
+	Canonical string // "", CanonicalWWW or CanonicalBare
+	Redirects []Redirect
+}
+
+// Canonical host choices of a Vhost.
+const (
+	CanonicalWWW  = "www"  // redirect name to www.name
+	CanonicalBare = "bare" // redirect www.name to name
+)
+
+// Redirect sends requests for Path and everything below it to Target.
+type Redirect struct {
+	Path     string // "/" = the whole site
+	Target   string
+	Code     int
+	KeepPath bool // append the rest of the requested path to Target
+}
+
+// Bounds of one site.
+const (
+	MaxSiteDomains    = 200
+	MaxVhostRedirects = 100
+)
 
 // CheckSite validates a site request. The fake agent uses it too.
 func CheckSite(s Site) error {
 	if err := CheckAccount(s.Username, s.UID, ""); err != nil {
 		return err
 	}
-	if len(s.Domains) == 0 || len(s.Domains) > MaxSiteDomains {
+	if len(s.Vhosts) == 0 || len(s.Vhosts) > MaxSiteDomains {
 		return invalid("a site needs 1 to %d domains", MaxSiteDomains)
 	}
-	for _, d := range s.Domains {
-		if n, err := validate.Domain(d); err != nil || n != d {
-			return invalid("domain %q is not a normalised domain name", d)
+	names := map[string]bool{}
+	for _, v := range s.Vhosts {
+		if err := checkVhost(v); err != nil {
+			return err
+		}
+		for _, n := range hostNames(v.Name) {
+			if names[n] {
+				return invalid("domain %q is served twice", n)
+			}
+			names[n] = true
 		}
 	}
 	if s.PHPVersion != "" && !phpVersionRe.MatchString(s.PHPVersion) {
@@ -82,12 +116,62 @@ func CheckSite(s Site) error {
 	return nil
 }
 
+// hostNames are the host names a vhost answers to.
+func hostNames(name string) []string {
+	if strings.HasPrefix(name, "*.") {
+		return []string{name}
+	}
+	return []string{name, "www." + name}
+}
+
+func checkVhost(v Vhost) error {
+	if n, err := validate.WildcardDomain(v.Name); err != nil || n != v.Name {
+		return invalid("domain %q is not a normalised domain name", v.Name)
+	}
+	if d, err := validate.DocRoot(v.DocRoot); err != nil || d != v.DocRoot {
+		return invalid("document root %q of %s is not a clean folder below the home folder", v.DocRoot, v.Name)
+	}
+	switch v.Canonical {
+	case "":
+	case CanonicalWWW, CanonicalBare:
+		if strings.HasPrefix(v.Name, "*.") {
+			return invalid("wildcard domain %s has no www form", v.Name)
+		}
+	default:
+		return invalid("canonical %q of %s is not www or bare", v.Canonical, v.Name)
+	}
+	if len(v.Redirects) > MaxVhostRedirects {
+		return invalid("%s has more than %d redirects", v.Name, MaxVhostRedirects)
+	}
+	paths := map[string]bool{}
+	for _, r := range v.Redirects {
+		if p, err := validate.RedirectPath(r.Path); err != nil || p != r.Path {
+			return invalid("redirect path %q of %s is not a clean URL path", r.Path, v.Name)
+		}
+		if t, err := validate.RedirectTarget(r.Target); err != nil || t != r.Target {
+			return invalid("redirect target %q of %s is not a valid URL", r.Target, v.Name)
+		}
+		if err := validate.RedirectCode(r.Code); err != nil {
+			return invalid("redirect %s of %s: %v", r.Path, v.Name, err)
+		}
+		if r.KeepPath && strings.ContainsAny(r.Target, "?#") {
+			return invalid("redirect %s of %s keeps the path, so its target cannot have ? or #", r.Path, v.Name)
+		}
+		if paths[r.Path] {
+			return invalid("%s has two redirects for %s", v.Name, r.Path)
+		}
+		paths[r.Path] = true
+	}
+	return nil
+}
+
 // Web applies Apache virtual hosts and PHP-FPM pools.
 type Web struct {
 	Run          *execx.Runner
 	Services     ServiceManager
 	HomesRoot    string // /home
 	VhostDir     string // /etc/apache2/xcp/vhosts
+	WildcardDir  string // /etc/apache2/xcp/wildcards, included after VhostDir
 	PHPDir       string // /etc/php
 	SuspendedDir string // /var/www/xcp-suspended
 	LogDir       string // /var/log/apache2/xcp
@@ -117,30 +201,47 @@ func (w *Web) PHPVersions() []string {
 
 var (
 	vhostTmpl = template.Must(template.New("vhost").Parse(`# Managed by XCP. Do not edit: changes are overwritten.
+{{- range .Vhosts}}
 <VirtualHost *:80>
-    ServerName {{.Primary}}
-    ServerAlias {{range $i, $a := .Aliases}}{{if $i}} {{end}}{{$a}}{{end}}
-{{- if .Suspended}}
+    ServerName {{.ServerName}}
+    ServerAlias {{.Alias}}
+{{- if $.Suspended}}
     # Account suspended: every request gets the notice page.
-    DocumentRoot {{.SuspendedDir}}
-    <Directory {{.SuspendedDir}}>
+    DocumentRoot {{$.SuspendedDir}}
+    <Directory {{$.SuspendedDir}}>
         Require all granted
     </Directory>
-    AliasMatch "^/.*$" "{{.SuspendedDir}}/index.html"
+    AliasMatch "^/.*$" "{{$.SuspendedDir}}/index.html"
 {{- else}}
     DocumentRoot {{.DocRoot}}
+    # Symlinks in the home folder, the document root itself included, are
+    # followed only when the link and its target have the same owner.
+    <Directory {{$.Home}}>
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
+        Require all denied
+    </Directory>
     <Directory {{.DocRoot}}>
         Options -Indexes -ExecCGI -Includes +SymLinksIfOwnerMatch
         AllowOverride AuthConfig FileInfo Indexes Limit Options=Indexes,MultiViews,SymLinksIfOwnerMatch
         Require all granted
     </Directory>
     <FilesMatch "\.(php|phtml)$">
-        SetHandler "proxy:unix:{{.Socket}}|fcgi://localhost"
+        SetHandler "proxy:unix:{{$.Socket}}|fcgi://localhost"
     </FilesMatch>
+{{- with .Canonical}}
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^{{.From}}(:[0-9]+)?$ [NC]
+    RewriteRule ^ %{REQUEST_SCHEME}://{{.To}}%{REQUEST_URI} [R=301,L]
 {{- end}}
-    ErrorLog {{.LogDir}}/{{.Username}}.error.log
-    CustomLog {{.LogDir}}/{{.Username}}.access.log combined
+{{- range .Redirects}}
+    {{.}}
+{{- end}}
+{{- end}}
+    ErrorLog {{$.LogDir}}/{{$.Username}}.error.log
+    CustomLog {{$.LogDir}}/{{$.Username}}.access.log combined
 </VirtualHost>
+{{- end}}
 `))
 	poolTmpl = template.Must(template.New("pool").Parse(`; Managed by XCP. Do not edit: changes are overwritten.
 [xcp-{{.Username}}]
@@ -166,28 +267,78 @@ php_admin_flag[allow_url_include] = off
 
 type siteData struct {
 	Site
-	Primary, DocRoot, Home, Socket, SuspendedDir, LogDir, WebUser string
-	Aliases                                                       []string
+	Home, Socket, SuspendedDir, LogDir, WebUser string
+	Vhosts                                      []vhostData
 }
 
-// data prepares the template fields. The socket name includes the PHP
-// version: when a site switches version, the old FPM unlinks its socket on
-// reload, which must not be the new FPM's socket.
-func (w *Web) data(s Site) siteData {
+type vhostData struct {
+	ServerName, Alias, DocRoot string
+	Canonical                  *canonicalRule
+	Redirects                  []string // rendered directives
+}
+
+// canonicalRule redirects hosts matching the regex From to the host To.
+type canonicalRule struct{ From, To string }
+
+// data prepares the template fields for the wildcard or the other vhosts.
+// The socket name includes the PHP version: when a site switches version,
+// the old FPM unlinks its socket on reload, which must not be the new FPM's.
+func (w *Web) data(s Site, wildcards bool) siteData {
 	d := siteData{
-		Site: s, Primary: s.Domains[0], Home: path.Join(w.HomesRoot, s.Username),
+		Site: s, Home: path.Join(w.HomesRoot, s.Username),
 		Socket:       "/run/php/xcp-" + s.Username + "-" + s.PHPVersion + ".sock",
 		SuspendedDir: w.SuspendedDir, LogDir: w.LogDir, WebUser: w.WebUser,
 	}
-	d.DocRoot = d.Home + "/public_html"
-	d.Aliases = []string{"www." + s.Domains[0]}
-	for _, dom := range s.Domains[1:] {
-		d.Aliases = append(d.Aliases, dom, "www."+dom)
+	for _, v := range s.Vhosts {
+		if strings.HasPrefix(v.Name, "*.") == wildcards {
+			d.Vhosts = append(d.Vhosts, vhostOf(d.Home, v))
+		}
 	}
 	if d.MaxChildren == 0 {
 		d.MaxChildren = 10
 	}
 	return d
+}
+
+func vhostOf(home string, v Vhost) vhostData {
+	d := vhostData{ServerName: v.Name, Alias: "www." + v.Name, DocRoot: home + "/" + v.DocRoot}
+	if base, ok := strings.CutPrefix(v.Name, "*."); ok {
+		d.ServerName, d.Alias = "wildcard."+base, v.Name
+	}
+	switch v.Canonical {
+	case CanonicalWWW:
+		d.Canonical = &canonicalRule{From: regexp.QuoteMeta(v.Name), To: "www." + v.Name}
+	case CanonicalBare:
+		d.Canonical = &canonicalRule{From: regexp.QuoteMeta("www." + v.Name), To: v.Name}
+	}
+	rs := slices.Clone(v.Redirects)
+	// Longest path first: Apache uses the first redirect that matches.
+	slices.SortStableFunc(rs, func(a, b Redirect) int { return len(b.Path) - len(a.Path) })
+	for _, r := range rs {
+		d.Redirects = append(d.Redirects, redirectLine(r))
+	}
+	return d
+}
+
+// redirectLine renders a redirect for mod_alias. CheckSite has made sure
+// paths and targets hold no quotes, backslashes, spaces or '$'.
+func redirectLine(r Redirect) string {
+	switch {
+	case r.KeepPath && r.Path == "/":
+		// Redirect appends what follows the matched "/", so the target must end in "/".
+		t := r.Target
+		if !strings.HasSuffix(t, "/") {
+			t += "/"
+		}
+		return fmt.Sprintf(`Redirect %d "/" "%s"`, r.Code, t)
+	case r.KeepPath:
+		// Redirect appends what follows the path, starting with "/".
+		return fmt.Sprintf(`Redirect %d "%s" "%s"`, r.Code, r.Path, strings.TrimSuffix(r.Target, "/"))
+	case r.Path == "/":
+		return fmt.Sprintf(`RedirectMatch %d "^/" "%s"`, r.Code, r.Target)
+	default:
+		return fmt.Sprintf(`RedirectMatch %d "^%s(/.*)?$" "%s"`, r.Code, regexp.QuoteMeta(r.Path), r.Target)
+	}
 }
 
 func render(t *template.Template, d siteData) []byte {
@@ -236,8 +387,16 @@ func (w *Web) Apply(ctx context.Context, s Site) (SiteResult, error) {
 		return SiteResult{}, invalid("PHP %s is not installed (installed: %s)", version, strings.Join(installed, ", "))
 	}
 	s.PHPVersion = version
-	d := w.data(s)
-	files := []managedFile{{dir: w.VhostDir, name: s.Username + ".conf", content: render(vhostTmpl, d), unit: apacheUnit}}
+	d, wild := w.data(s, false), w.data(s, true)
+	files := []managedFile{
+		{dir: w.VhostDir, name: s.Username + ".conf", content: render(vhostTmpl, d), unit: apacheUnit},
+		// Wildcards load after every other vhost, so "*.example.com" never
+		// catches a name that another vhost (of any account) serves.
+		{dir: w.WildcardDir, name: s.Username + ".conf", unit: apacheUnit},
+	}
+	if len(wild.Vhosts) > 0 {
+		files[1].content = render(vhostTmpl, wild)
+	}
 	for _, v := range installed {
 		f := managedFile{dir: w.poolDir(v), name: "xcp-" + s.Username + ".conf", unit: fpmUnit(v)}
 		if v == version && !s.Suspended { // a suspended account runs no PHP at all
@@ -250,8 +409,74 @@ func (w *Web) Apply(ctx context.Context, s Site) (SiteResult, error) {
 	if err := w.ensureSupport(); err != nil {
 		return SiteResult{}, err
 	}
+	if err := w.ensureDocRoots(s); err != nil {
+		return SiteResult{}, err
+	}
 	changed, err := w.write(ctx, files, installed)
 	return SiteResult{Changed: changed, PHPVersion: version}, err
+}
+
+// ensureDocRoots creates missing document roots below the account's home,
+// through fsx (no symlinks followed): folders on the way get 0711 so the web
+// server can pass, the document root 0750 with the web server's group and a
+// placeholder page. Whatever exists already is left as it is.
+func (w *Web) ensureDocRoots(s Site) error {
+	uid := int(s.UID)
+	gid, webGID := uid, uid
+	if g, err := user.LookupGroup(s.Username); err == nil {
+		gid, _ = strconv.Atoi(g.Gid)
+	}
+	if g, err := user.LookupGroup(w.WebUser); err == nil {
+		webGID, _ = strconv.Atoi(g.Gid)
+	}
+	root, err := fsx.OpenRoot(filepath.Join(w.HomesRoot, s.Username))
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	for _, v := range s.Vhosts {
+		if err := makeDocRoot(root, v, uid, gid, webGID); err != nil {
+			return fmt.Errorf("document root %s of %s: %w", v.DocRoot, v.Name, err)
+		}
+	}
+	return nil
+}
+
+func makeDocRoot(root *fsx.Root, v Vhost, uid, gid, webGID int) error {
+	elems := strings.Split(v.DocRoot, "/")
+	for i := range elems {
+		rel := strings.Join(elems[:i+1], "/")
+		if _, err := root.Lstat(rel); err == nil {
+			continue
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		last := i == len(elems)-1
+		mode, group := fs.FileMode(0o711), gid
+		if last {
+			mode, group = 0o750, webGID
+		}
+		if err := root.Mkdir(rel, mode); err != nil {
+			return err
+		}
+		if err := root.Chmod(rel, mode); err != nil { // the umask must not reduce it
+			return err
+		}
+		if last {
+			page := rel + "/index.html"
+			if err := root.WriteFileAtomic(page, []byte(indexPage(strings.TrimPrefix(v.Name, "*."), v.DocRoot)), 0o644); err != nil {
+				return err
+			}
+			if err := root.Chown(page, uid, gid); err != nil {
+				return err
+			}
+		}
+		// Owned by root until here, so the user cannot interfere with the setup.
+		if err := root.Chown(rel, uid, group); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Remove deletes the site's vhost and pools.
@@ -263,7 +488,10 @@ func (w *Web) Remove(ctx context.Context, username string) (bool, error) {
 		return false, nil // nothing can have been written without Apache
 	}
 	installed := w.PHPVersions()
-	files := []managedFile{{dir: w.VhostDir, name: username + ".conf", unit: apacheUnit}}
+	files := []managedFile{
+		{dir: w.VhostDir, name: username + ".conf", unit: apacheUnit},
+		{dir: w.WildcardDir, name: username + ".conf", unit: apacheUnit},
+	}
 	for _, v := range installed {
 		files = append(files, managedFile{dir: w.poolDir(v), name: "xcp-" + username + ".conf", unit: fpmUnit(v)})
 	}
@@ -274,7 +502,7 @@ func (w *Web) Remove(ctx context.Context, username string) (bool, error) {
 
 // ensureSupport creates the vhost and log folders and the suspended page.
 func (w *Web) ensureSupport() error {
-	for _, dir := range []string{w.VhostDir, w.LogDir, w.SuspendedDir} {
+	for _, dir := range []string{w.VhostDir, w.WildcardDir, w.LogDir, w.SuspendedDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // G301: read by Apache
 			return err
 		}
@@ -317,6 +545,9 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 	}
 	for _, f := range files {
 		root, err := fsx.OpenRoot(f.dir)
+		if errors.Is(err, fs.ErrNotExist) && f.content == nil {
+			continue // nothing to remove
+		}
 		if err != nil {
 			restore()
 			return false, err

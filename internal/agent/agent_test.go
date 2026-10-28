@@ -225,8 +225,11 @@ func TestSliceBodyAndIndexPage(t *testing.T) {
 	if got := sliceBody(Limits{}); got != "[Slice]\n" {
 		t.Fatalf("unlimited slice = %q", got)
 	}
-	if p := indexPage("<b>x</b>"); strings.Contains(p, "<b>x</b>") {
-		t.Fatalf("domain not escaped: %s", p)
+	if p := indexPage("<b>x</b>", "domains/<i>"); strings.Contains(p, "<b>x</b>") || strings.Contains(p, "<i>") {
+		t.Fatalf("domain or folder not escaped: %s", p)
+	}
+	if p := indexPage("shop.example", "domains/shop.example"); !strings.Contains(p, "<code>domains/shop.example</code>") {
+		t.Fatalf("placeholder must name its folder: %s", p)
 	}
 	if ShellNone.path() != "/usr/sbin/nologin" || ShellFull.path() != "/bin/bash" {
 		t.Fatal("shell paths wrong")

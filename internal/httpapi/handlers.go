@@ -78,6 +78,7 @@ type meResponse struct {
 	TOTPEnabled        bool   `json:"totp_enabled"`
 	MustChangePassword bool   `json:"must_change_password"`
 	ImpersonatorID     string `json:"impersonator_id,omitempty"`
+	AccountID          string `json:"account_id,omitempty"` // a user login's hosting account
 	CSRFToken          string `json:"csrf_token"`
 }
 
@@ -86,7 +87,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) error {
 	writeJSON(w, http.StatusOK, meResponse{
 		ID: p.Login.ID, Username: p.Login.Username, Role: p.Login.Role, Email: p.Login.Email,
 		Locale: p.Login.Locale, TOTPEnabled: p.Login.TOTPEnabled(), MustChangePassword: p.Login.MustChangePassword,
-		ImpersonatorID: p.Session.ImpersonatorID, CSRFToken: auth.CSRFToken(sessionToken(r)),
+		ImpersonatorID: p.Session.ImpersonatorID, AccountID: p.Login.AccountID, CSRFToken: auth.CSRFToken(sessionToken(r)),
 	})
 	return nil
 }

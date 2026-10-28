@@ -257,6 +257,25 @@ func (s *Service) pkg(ctx context.Context, p *auth.Principal, id string) (*store
 	return pk, nil
 }
 
+// Entitlements returns a package's limits and the features of its feature
+// list, to enforce them on an account. It does no access check: callers
+// have authorised access to the account already.
+func (s *Service) Entitlements(ctx context.Context, packageID string) (Limits, []string, error) {
+	pk, err := s.db.PackageByID(ctx, packageID)
+	if err != nil {
+		return Limits{}, nil, err
+	}
+	p, err := toPackage(pk)
+	if err != nil {
+		return Limits{}, nil, err
+	}
+	fl, err := s.db.FeatureListByID(ctx, pk.FeatureListID)
+	if err != nil {
+		return Limits{}, nil, err
+	}
+	return p.Limits, fl.Features, nil
+}
+
 // GetPackage returns one of the caller's packages.
 func (s *Service) GetPackage(ctx context.Context, p *auth.Principal, id string) (Package, error) {
 	pk, err := s.pkg(ctx, p, id)

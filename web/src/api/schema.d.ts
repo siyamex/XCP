@@ -436,6 +436,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** List an account's domains, the primary first */
+        get: operations["listDomains"];
+        put?: never;
+        /**
+         * Add an addon domain, subdomain or alias
+         * @description `409 verification_required`: another account uses a domain under the
+         *     same registered domain. Publish the TXT record from
+         *     `GET /accounts/{id}/domain-verification` and try again.
+         *     Other 409 codes: `domain_taken`, `limit_reached`, `bad_status`.
+         */
+        post: operations["addDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/domain-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Whether adding a domain needs a TXT record, and which */
+        get: operations["getDomainVerification"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a domain's document root and canonical host */
+        put: operations["updateDomain"];
+        post?: never;
+        /**
+         * Remove a domain and its redirects (files stay)
+         * @description 409 codes: `primary_domain`, `has_dependents` (remove its subdomains and aliases first), `bad_status`.
+         */
+        delete: operations["deleteDomain"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/redirects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** List the redirects of an account's domains */
+        get: operations["listRedirects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/redirects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a redirect to a domain
+         * @description 409 codes: `redirect_exists`, `limit_reached` (100 per domain), `bad_status`.
+         */
+        post: operations["addRedirect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/redirects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a redirect */
+        delete: operations["deleteRedirect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/php-versions": {
         parameters: {
             query?: never;
@@ -460,7 +588,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Status of a background job (admins) */
+        /** Status of a background job (admins; users for their own account's jobs) */
         get: operations["getJob"];
         put?: never;
         post?: never;
@@ -498,6 +626,8 @@ export interface components {
             must_change_password: boolean;
             /** @description Set while an admin or reseller is logged in as this user */
             impersonator_id?: string;
+            /** @description The hosting account of a user login */
+            account_id?: string;
             csrf_token: string;
         };
         Session: {
@@ -639,6 +769,83 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             finished_at?: string;
+        };
+        JobRef: {
+            job_id: string;
+        };
+        Domain: {
+            id: string;
+            account_id: string;
+            /** @description ASCII (punycode); "*.example.com" for a wildcard subdomain */
+            name: string;
+            /** @description Unicode form of an internationalised name */
+            display_name: string;
+            /** @enum {string} */
+            kind: "primary" | "addon" | "sub" | "alias";
+            /** @description sub: the domain it is under; alias: the domain whose site it shows */
+            parent_id?: string;
+            parent_name?: string;
+            /** @description Relative to the home folder; for an alias */
+            docroot: string;
+            /**
+             * @description "" serves both names; www or bare redirects to that form
+             * @enum {string}
+             */
+            canonical: "" | "www" | "bare";
+            /** Format: date-time */
+            created_at: string;
+            /** @description Job started by this change */
+            job_id?: string;
+        };
+        DomainCreate: {
+            /** @enum {string} */
+            kind: "addon" | "sub" | "alias";
+            /** @description addon/alias: the domain; sub: the part before the parent ("blog", or "*" for a wildcard) */
+            name: string;
+            /** @description sub and alias: the account's primary or addon domain */
+            parent_id?: string;
+            /** @description addon and sub, relative to the home folder; "" = domains/<name> */
+            docroot?: string;
+        };
+        DomainUpdate: {
+            /** @description Must be "" for an alias */
+            docroot: string;
+            /** @enum {string} */
+            canonical: "" | "www" | "bare";
+        };
+        DomainVerification: {
+            name: string;
+            /** @description Another account uses a domain under the same registered domain */
+            required: boolean;
+            /** @description TXT record name to publish */
+            record: string;
+            /** @description TXT record value */
+            value: string;
+            /** @description The record is visible in DNS now */
+            verified: boolean;
+        };
+        Redirect: {
+            id: string;
+            domain_id: string;
+            domain: string;
+            /** @description "/" = the whole site */
+            path: string;
+            target: string;
+            /** @enum {integer} */
+            code: 301 | 302 | 307 | 308;
+            /** @description Append the rest of the requested path to the target */
+            keep_path: boolean;
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
+        RedirectCreate: {
+            path: string;
+            /** @description Absolute http(s) URL */
+            target: string;
+            /** @enum {integer} */
+            code: 301 | 302 | 307 | 308;
+            keep_path?: boolean;
         };
         Problem: {
             type: string;
@@ -1483,6 +1690,225 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listDomains: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The domains. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Domain"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    addDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainCreate"];
+            };
+        };
+        responses: {
+            /** @description Accepted; the websites are configured by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getDomainVerification: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verification state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainVerification"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainUpdate"];
+            };
+        };
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listRedirects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The redirects, by domain and path. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Redirect"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    addRedirect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedirectCreate"];
+            };
+        };
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Redirect"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteRedirect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };

@@ -41,8 +41,13 @@ type WebServer interface {
 ```
 - **Apache 2.4 (P1):** event MPM, `mod_proxy_fcgi` → PHP-FPM socket per
   account+version, `mod_http2`, `mod_remoteip`. One file per account:
-  `/etc/apache2/xcp/vhosts/<user>.conf`. Suspended accounts point to
-  the suspended page.
+  `/etc/apache2/xcp/vhosts/<user>.conf`, one `<VirtualHost>` per domain
+  (an alias is its own vhost with its domain's document root). Wildcard
+  subdomains go to `/etc/apache2/xcp/wildcards/<user>.conf`, included after
+  all other vhosts, so `*.example.com` never catches a name another vhost
+  serves. The include is a site (`sites-available/xcp.conf`), read after
+  `000-default`, so unknown host names never reach a customer's site.
+  Suspended accounts point to the suspended page.
 - **Nginx (P2):** `fastcgi_pass` to FPM. `.htaccess` is not supported; show a
   warning in the UI. Offer a converter for common rewrite rules (WordPress,
   Laravel presets).

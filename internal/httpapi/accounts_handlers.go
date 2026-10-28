@@ -132,12 +132,16 @@ type jobJSON struct {
 }
 
 func (s *Server) getJob(w http.ResponseWriter, r *http.Request) error {
-	if principal(r).Login.Role != store.RoleAdmin {
+	p := principal(r)
+	if p.Login.Role != store.RoleAdmin && p.Login.Role != store.RoleUser {
 		return apperr.ErrForbidden
 	}
 	j, err := s.Jobs.Get(r.Context(), r.PathValue("id"))
 	if err != nil {
 		return err
+	}
+	if p.Login.Role == store.RoleUser && (j.AccountID == "" || j.AccountID != p.Login.AccountID) {
+		return store.ErrNotFound // users see only their own account's jobs
 	}
 	writeJSON(w, http.StatusOK, jobJSON{
 		ID: j.ID, Kind: j.Kind, Status: string(j.Status), Progress: j.Progress, Attempts: j.Attempts,

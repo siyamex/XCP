@@ -91,6 +91,15 @@ func field(name, code, msg string) error {
 
 func ptr(v int64) *int64 { return &v }
 
+// PHPWorkers derives an account's PHP worker processes from its process
+// limit: a quarter of it, between 2 and 50 (10 when unlimited).
+func (l Limits) PHPWorkers() uint32 {
+	if l.Processes == nil {
+		return 10
+	}
+	return uint32(min(max(*l.Processes/4, 2), 50)) //nolint:gosec // G115: clamped to 2..50
+}
+
 // DefaultLimits are used for the "Default" package created on first start:
 // a reasonable small shared-hosting plan.
 func DefaultLimits() Limits {

@@ -219,7 +219,7 @@ func (a *Accounts) home(username string, uid int, domain string, created bool) e
 			return err
 		}
 		if d.name == "public_html" {
-			if err := root.WriteFileAtomic("public_html/index.html", []byte(indexPage(domain)), 0o644); err != nil {
+			if err := root.WriteFileAtomic("public_html/index.html", []byte(indexPage(domain, "public_html")), 0o644); err != nil {
 				return err
 			}
 			if err := root.Chown("public_html/index.html", uid, gid); err != nil {
@@ -238,14 +238,15 @@ func (a *Accounts) home(username string, uid int, domain string, created bool) e
 	return os.Chmod(home, 0o711) //nolint:gosec // G302: 0711 lets the web server traverse into public_html
 }
 
-func indexPage(domain string) string {
+// indexPage is the placeholder page of a new document root (relative to the home folder).
+func indexPage(domain, docRoot string) string {
 	name := html.EscapeString(domain)
 	if name == "" {
 		name = "This site"
 	}
 	return "<!doctype html>\n<meta charset=\"utf-8\">\n<title>" + name + "</title>\n" +
 		"<p style=\"font-family:sans-serif;margin:3em\"><b>" + name + "</b> is hosted with XCP. " +
-		"Upload your website to <code>public_html</code>.</p>\n"
+		"Upload your website to <code>" + html.EscapeString(docRoot) + "</code>.</p>\n"
 }
 
 // SliceName is the systemd slice that the account's services (PHP-FPM, cron, apps) run in.

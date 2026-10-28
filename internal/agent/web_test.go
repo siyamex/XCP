@@ -3,30 +3,80 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/siyamex/XCP/internal/fsx"
 )
 
 func testWeb() *Web {
 	return &Web{
-		HomesRoot: "/home", VhostDir: "/etc/apache2/xcp/vhosts", PHPDir: "/etc/php",
+		HomesRoot: "/home", VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", PHPDir: "/etc/php",
 		SuspendedDir: "/var/www/xcp-suspended", LogDir: "/var/log/apache2/xcp", WebUser: "www-data",
 	}
 }
 
+// demoSite has a primary domain with a canonical host and redirects, an
+// addon domain, and a wildcard subdomain.
+func demoSite() Site {
+	return Site{Username: "demo1", UID: 10000, PHPVersion: "8.3", Vhosts: []Vhost{
+		{Name: "demo1.example", DocRoot: "public_html", Canonical: CanonicalBare, Redirects: []Redirect{
+			{Path: "/old", Target: "https://demo1.example/new", Code: 301, KeepPath: true},
+			{Path: "/old/promo", Target: "https://shop.example/?ref=promo", Code: 302},
+		}},
+		{Name: "shop.example", DocRoot: "domains/shop.example"},
+		{Name: "*.demo1.example", DocRoot: "domains/_wildcard.demo1.example"},
+	}}
+}
+
 func TestVhostGolden(t *testing.T) {
-	w := testWeb()
-	got := string(render(vhostTmpl, w.data(Site{Username: "demo1", UID: 10000, Domains: []string{"demo1.example", "shop.example"}, PHPVersion: "8.3"})))
+	got := string(render(vhostTmpl, testWeb().data(demoSite(), false)))
 	want := `# Managed by XCP. Do not edit: changes are overwritten.
 <VirtualHost *:80>
     ServerName demo1.example
-    ServerAlias www.demo1.example shop.example www.shop.example
+    ServerAlias www.demo1.example
     DocumentRoot /home/demo1/public_html
+    # Symlinks in the home folder, the document root itself included, are
+    # followed only when the link and its target have the same owner.
+    <Directory /home/demo1>
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
+        Require all denied
+    </Directory>
     <Directory /home/demo1/public_html>
+        Options -Indexes -ExecCGI -Includes +SymLinksIfOwnerMatch
+        AllowOverride AuthConfig FileInfo Indexes Limit Options=Indexes,MultiViews,SymLinksIfOwnerMatch
+        Require all granted
+    </Directory>
+    <FilesMatch "\.(php|phtml)$">
+        SetHandler "proxy:unix:/run/php/xcp-demo1-8.3.sock|fcgi://localhost"
+    </FilesMatch>
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} ^www\.demo1\.example(:[0-9]+)?$ [NC]
+    RewriteRule ^ %{REQUEST_SCHEME}://demo1.example%{REQUEST_URI} [R=301,L]
+    RedirectMatch 302 "^/old/promo(/.*)?$" "https://shop.example/?ref=promo"
+    Redirect 301 "/old" "https://demo1.example/new"
+    ErrorLog /var/log/apache2/xcp/demo1.error.log
+    CustomLog /var/log/apache2/xcp/demo1.access.log combined
+</VirtualHost>
+<VirtualHost *:80>
+    ServerName shop.example
+    ServerAlias www.shop.example
+    DocumentRoot /home/demo1/domains/shop.example
+    # Symlinks in the home folder, the document root itself included, are
+    # followed only when the link and its target have the same owner.
+    <Directory /home/demo1>
+        Options SymLinksIfOwnerMatch
+        AllowOverride None
+        Require all denied
+    </Directory>
+    <Directory /home/demo1/domains/shop.example>
         Options -Indexes -ExecCGI -Includes +SymLinksIfOwnerMatch
         AllowOverride AuthConfig FileInfo Indexes Limit Options=Indexes,MultiViews,SymLinksIfOwnerMatch
         Require all granted
@@ -43,22 +93,56 @@ func TestVhostGolden(t *testing.T) {
 	}
 }
 
+func TestWildcardVhostsGoToTheirOwnFile(t *testing.T) {
+	got := string(render(vhostTmpl, testWeb().data(demoSite(), true)))
+	for _, must := range []string{"ServerName wildcard.demo1.example\n", "ServerAlias *.demo1.example\n", "DocumentRoot /home/demo1/domains/_wildcard.demo1.example\n"} {
+		if !strings.Contains(got, must) {
+			t.Errorf("wildcard vhosts lack %q:\n%s", must, got)
+		}
+	}
+	if strings.Count(got, "<VirtualHost") != 1 {
+		t.Errorf("wildcard file must hold only the wildcard vhost:\n%s", got)
+	}
+}
+
+func TestRedirectLines(t *testing.T) {
+	cases := map[Redirect]string{
+		{Path: "/", Target: "https://new.example", Code: 301, KeepPath: true}:             `Redirect 301 "/" "https://new.example/"`,
+		{Path: "/", Target: "https://new.example/x/", Code: 308, KeepPath: true}:          `Redirect 308 "/" "https://new.example/x/"`,
+		{Path: "/docs", Target: "https://new.example/manual/", Code: 307, KeepPath: true}: `Redirect 307 "/docs" "https://new.example/manual"`,
+		{Path: "/", Target: "https://new.example/?a=1&b=2", Code: 302}:                    `RedirectMatch 302 "^/" "https://new.example/?a=1&b=2"`,
+		{Path: "/a.b/c-d", Target: "http://x.example/", Code: 301}:                        `RedirectMatch 301 "^/a\.b/c-d(/.*)?$" "http://x.example/"`,
+	}
+	for r, want := range cases {
+		if got := redirectLine(r); got != want {
+			t.Errorf("redirectLine(%+v)\n got %s\nwant %s", r, got, want)
+		}
+	}
+}
+
 func TestSuspendedVhostServesNoticeOnly(t *testing.T) {
-	got := string(render(vhostTmpl, testWeb().data(Site{Username: "demo1", UID: 10000, Domains: []string{"demo1.example"}, Suspended: true})))
+	s := demoSite()
+	s.Suspended = true
+	got := string(render(vhostTmpl, testWeb().data(s, false)))
 	for _, must := range []string{`DocumentRoot /var/www/xcp-suspended`, `AliasMatch "^/.*$" "/var/www/xcp-suspended/index.html"`} {
 		if !strings.Contains(got, must) {
 			t.Errorf("suspended vhost lacks %q:\n%s", must, got)
 		}
 	}
-	for _, mustNot := range []string{"public_html", "proxy:unix"} {
+	for _, mustNot := range []string{"public_html", "proxy:unix", "Redirect", "Rewrite"} {
 		if strings.Contains(got, mustNot) {
 			t.Errorf("suspended vhost still serves the site (%q):\n%s", mustNot, got)
 		}
 	}
+	if strings.Count(got, "/var/www/xcp-suspended/index.html") != 2 {
+		t.Errorf("every domain must show the notice:\n%s", got)
+	}
 }
 
 func TestPoolGolden(t *testing.T) {
-	got := string(render(poolTmpl, testWeb().data(Site{Username: "demo1", UID: 10000, Domains: []string{"demo1.example"}, MaxChildren: 4, PHPVersion: "8.3"})))
+	s := demoSite()
+	s.MaxChildren = 4
+	got := string(render(poolTmpl, testWeb().data(s, false)))
 	want := `; Managed by XCP. Do not edit: changes are overwritten.
 [xcp-demo1]
 user = demo1
@@ -82,8 +166,59 @@ php_admin_flag[allow_url_include] = off
 	if got != want {
 		t.Fatalf("pool:\n%s\nwant:\n%s", got, want)
 	}
-	if def := string(render(poolTmpl, testWeb().data(Site{Username: "a", UID: 10000, Domains: []string{"a.example"}}))); !strings.Contains(def, "pm.max_children = 10") {
+	if def := string(render(poolTmpl, testWeb().data(Site{Username: "a", UID: 10000}, false))); !strings.Contains(def, "pm.max_children = 10") {
 		t.Fatal("default max_children should be 10")
+	}
+}
+
+func TestMakeDocRootCreatesOnlyWhatIsMissing(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("needs chown (Linux)")
+	}
+	home := t.TempDir()
+	root, err := fsx.OpenRoot(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	uid, gid := os.Getuid(), os.Getgid()
+	mode := func(rel string) fs.FileMode {
+		fi, err := os.Lstat(filepath.Join(home, rel))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fi.Mode().Perm()
+	}
+	if err := makeDocRoot(root, Vhost{Name: "*.shop.example", DocRoot: "domains/shop"}, uid, gid, gid); err != nil {
+		t.Fatal(err)
+	}
+	if mode("domains") != 0o711 || mode("domains/shop") != 0o750 {
+		t.Fatalf("modes: domains %v, docroot %v", mode("domains"), mode("domains/shop"))
+	}
+	if b, _ := os.ReadFile(filepath.Join(home, "domains/shop/index.html")); !strings.Contains(string(b), "<b>shop.example</b> is hosted") {
+		t.Fatalf("placeholder page = %q", b)
+	}
+
+	// What the user changed stays as it is.
+	os.Chmod(filepath.Join(home, "domains/shop"), 0o755)
+	os.Remove(filepath.Join(home, "domains/shop/index.html"))
+	if err := makeDocRoot(root, Vhost{Name: "shop.example", DocRoot: "domains/shop"}, uid, gid, gid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(home, "domains/shop/index.html")); mode("domains/shop") != 0o755 || err == nil {
+		t.Fatal("an existing document root was changed")
+	}
+
+	// A symlink on the way is refused, never followed.
+	elsewhere := t.TempDir()
+	if err := os.Symlink(elsewhere, filepath.Join(home, "link")); err != nil {
+		t.Fatal(err)
+	}
+	if err := makeDocRoot(root, Vhost{Name: "x.example", DocRoot: "link/www"}, uid, gid, gid); err == nil {
+		t.Fatal("document root created through a symlink")
+	}
+	if ents, _ := os.ReadDir(elsewhere); len(ents) != 0 {
+		t.Fatalf("wrote outside the home folder: %v", ents)
 	}
 }
 
@@ -169,18 +304,45 @@ func TestSiteReloadFailureRollsBackSoRetryReloads(t *testing.T) {
 }
 
 func TestCheckSite(t *testing.T) {
-	ok := Site{Username: "demo1", UID: 10000, Domains: []string{"demo1.example"}, PHPVersion: "8.3"}
-	if err := CheckSite(ok); err != nil {
+	if err := CheckSite(demoSite()); err != nil {
 		t.Fatal(err)
 	}
-	bad := map[string]Site{
-		"no domains":        {Username: "demo1", UID: 10000},
-		"unnormal domain":   {Username: "demo1", UID: 10000, Domains: []string{"Demo1.example"}},
-		"injection domain":  {Username: "demo1", UID: 10000, Domains: []string{"x.example\n    CustomLog \"|/bin/sh\" x"}},
-		"bad php version":   {Username: "demo1", UID: 10000, Domains: []string{"a.example"}, PHPVersion: "8.3; rm"},
-		"reserved username": {Username: "root", UID: 10000, Domains: []string{"a.example"}},
-		"too many children": {Username: "demo1", UID: 10000, Domains: []string{"a.example"}, MaxChildren: 201},
+	one := func(v Vhost) Site { return Site{Username: "demo1", UID: 10000, Vhosts: []Vhost{v}} }
+	web := func(name string) Vhost { return Vhost{Name: name, DocRoot: "public_html"} }
+	redirect := func(r Redirect) Site {
+		v := web("a.example")
+		v.Redirects = []Redirect{r}
+		return one(v)
 	}
+	tooMany := web("a.example")
+	for i := range MaxVhostRedirects + 1 {
+		tooMany.Redirects = append(tooMany.Redirects, Redirect{Path: fmt.Sprintf("/p%d", i), Target: "https://b.example/", Code: 301})
+	}
+	bad := map[string]Site{
+		"no domains":         {Username: "demo1", UID: 10000},
+		"unnormal domain":    one(web("Demo1.example")),
+		"injection domain":   one(web("x.example\n    CustomLog \"|/bin/sh\" x")),
+		"twice":              {Username: "demo1", UID: 10000, Vhosts: []Vhost{web("a.example"), web("a.example")}},
+		"www served twice":   {Username: "demo1", UID: 10000, Vhosts: []Vhost{web("a.example"), web("www.a.example")}},
+		"docroot outside":    one(Vhost{Name: "a.example", DocRoot: "../other/public_html"}),
+		"docroot tmp":        one(Vhost{Name: "a.example", DocRoot: "tmp"}),
+		"docroot unclean":    one(Vhost{Name: "a.example", DocRoot: "/public_html/"}),
+		"docroot injection":  one(Vhost{Name: "a.example", DocRoot: "x>\n<Directory /"}),
+		"bad canonical":      one(Vhost{Name: "a.example", DocRoot: "public_html", Canonical: "both"}),
+		"wildcard canonical": one(Vhost{Name: "*.a.example", DocRoot: "public_html", Canonical: CanonicalWWW}),
+		"target injection":   redirect(Redirect{Path: "/", Target: "https://b.example/\"\nCustomLog \"|/bin/sh\" x", Code: 301}),
+		"target backref":     redirect(Redirect{Path: "/x", Target: "https://b.example/$1", Code: 301}),
+		"path regex":         redirect(Redirect{Path: "/(.*)", Target: "https://b.example/", Code: 301}),
+		"bad code":           redirect(Redirect{Path: "/", Target: "https://b.example/", Code: 200}),
+		"keep with query":    redirect(Redirect{Path: "/", Target: "https://b.example/?a=1", Code: 301, KeepPath: true}),
+		"too many redirects": one(tooMany),
+		"bad php version":    {Username: "demo1", UID: 10000, Vhosts: []Vhost{web("a.example")}, PHPVersion: "8.3; rm"},
+		"reserved username":  {Username: "root", UID: 10000, Vhosts: []Vhost{web("a.example")}},
+		"too many children":  {Username: "demo1", UID: 10000, Vhosts: []Vhost{web("a.example")}, MaxChildren: 201},
+	}
+	dup := web("a.example")
+	dup.Redirects = []Redirect{{Path: "/x", Target: "https://b.example/", Code: 301}, {Path: "/x", Target: "https://c.example/", Code: 302}}
+	bad["two redirects for a path"] = one(dup)
 	for name, s := range bad {
 		if err := CheckSite(s); !errors.Is(err, ErrInvalidRequest) {
 			t.Errorf("%s: err = %v", name, err)

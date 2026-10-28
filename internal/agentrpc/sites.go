@@ -13,11 +13,31 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc/agentv1"
 )
 
+var canonicals = map[agentv1.Canonical]string{
+	agentv1.Canonical_CANONICAL_UNSPECIFIED: "",
+	agentv1.Canonical_CANONICAL_WWW:         agent.CanonicalWWW,
+	agentv1.Canonical_CANONICAL_BARE:        agent.CanonicalBare,
+}
+
 func siteFrom(req *agentv1.SiteApplyRequest) agent.Site {
-	return agent.Site{
-		Username: req.GetUsername(), UID: req.GetUid(), Domains: req.GetDomains(),
+	s := agent.Site{
+		Username: req.GetUsername(), UID: req.GetUid(),
 		PHPVersion: req.GetPhpVersion(), Suspended: req.GetSuspended(), MaxChildren: req.GetMaxChildren(),
 	}
+	for _, v := range req.GetVhosts() {
+		c, ok := canonicals[v.GetCanonical()]
+		if !ok {
+			c = "unknown" // refused by agent.CheckSite
+		}
+		vh := agent.Vhost{Name: v.GetName(), DocRoot: v.GetDocRoot(), Canonical: c}
+		for _, r := range v.GetRedirects() {
+			vh.Redirects = append(vh.Redirects, agent.Redirect{
+				Path: r.GetPath(), Target: r.GetTarget(), Code: int(r.GetCode()), KeepPath: r.GetKeepPath(),
+			})
+		}
+		s.Vhosts = append(s.Vhosts, vh)
+	}
+	return s
 }
 
 // SiteApply implements agentv1.AgentServiceServer.
@@ -63,9 +83,13 @@ func (f *Fake) Site(username string) (agent.Site, bool) {
 // SiteApply implements Client.
 func (f *Fake) SiteApply(_ context.Context, req *agentv1.SiteApplyRequest, _ ...grpc.CallOption) (*agentv1.SiteApplyResponse, error) {
 	f.mu.Lock()
-	f.record("SiteApply %s %v php=%q suspended=%v", req.GetUsername(), req.GetDomains(), req.GetPhpVersion(), req.GetSuspended())
-	f.mu.Unlock()
 	site := siteFrom(req)
+	names := make([]string, len(site.Vhosts))
+	for i, v := range site.Vhosts {
+		names[i] = v.Name
+	}
+	f.record("SiteApply %s %v php=%q suspended=%v", req.GetUsername(), names, req.GetPhpVersion(), req.GetSuspended())
+	f.mu.Unlock()
 	if err := agent.CheckSite(site); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}

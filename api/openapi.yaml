@@ -24,6 +24,12 @@ tags:
   - name: system
   - name: plans
   - name: accounts
+  - name: domains
+    description: |
+      An account's domains and redirects. Admins reach every admin-owned
+      account; a user login reaches only its own account (`account_id` in
+      `GET /me`), and only if its package's feature list has `domains`
+      (or `redirects` for redirects).
 
 paths:
   /health:
@@ -608,6 +614,176 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/domains:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [domains]
+      summary: List an account's domains, the primary first
+      operationId: listDomains
+      responses:
+        "200":
+          description: The domains.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Domain" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [domains]
+      summary: Add an addon domain, subdomain or alias
+      description: |
+        `409 verification_required`: another account uses a domain under the
+        same registered domain. Publish the TXT record from
+        `GET /accounts/{id}/domain-verification` and try again.
+        Other 409 codes: `domain_taken`, `limit_reached`, `bad_status`.
+      operationId: addDomain
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DomainCreate" }
+      responses:
+        "202":
+          description: Accepted; the websites are configured by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Domain" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/domain-verification:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [domains]
+      summary: Whether adding a domain needs a TXT record, and which
+      operationId: getDomainVerification
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The verification state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainVerification" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [domains]
+      summary: Change a domain's document root and canonical host
+      operationId: updateDomain
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DomainUpdate" }
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Domain" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [domains]
+      summary: Remove a domain and its redirects (files stay)
+      description: "409 codes: `primary_domain`, `has_dependents` (remove its subdomains and aliases first), `bad_status`."
+      operationId: deleteDomain
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/redirects:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [domains]
+      summary: List the redirects of an account's domains
+      operationId: listRedirects
+      responses:
+        "200":
+          description: The redirects, by domain and path.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Redirect" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/redirects:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [domains]
+      summary: Add a redirect to a domain
+      description: "409 codes: `redirect_exists`, `limit_reached` (100 per domain), `bad_status`."
+      operationId: addRedirect
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RedirectCreate" }
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Redirect" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /redirects/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [domains]
+      summary: Remove a redirect
+      operationId: deleteRedirect
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /server/php-versions:
     get:
       tags: [system]
@@ -630,7 +806,7 @@ paths:
   /jobs/{id}:
     get:
       tags: [system]
-      summary: Status of a background job (admins)
+      summary: Status of a background job (admins; users for their own account's jobs)
       operationId: getJob
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -708,6 +884,7 @@ components:
         totp_enabled: { type: boolean }
         must_change_password: { type: boolean }
         impersonator_id: { type: string, description: Set while an admin or reseller is logged in as this user }
+        account_id: { type: string, description: The hosting account of a user login }
         csrf_token: { type: string }
 
     Session:
@@ -853,6 +1030,80 @@ components:
         account_id: { type: string }
         created_at: { type: string, format: date-time }
         finished_at: { type: string, format: date-time }
+
+    JobRef:
+      type: object
+      required: [job_id]
+      properties:
+        job_id: { type: string }
+
+    Domain:
+      type: object
+      required: [id, account_id, name, display_name, kind, docroot, canonical, created_at]
+      properties:
+        id: { type: string }
+        account_id: { type: string }
+        name: { type: string, description: 'ASCII (punycode); "*.example.com" for a wildcard subdomain' }
+        display_name: { type: string, description: Unicode form of an internationalised name }
+        kind: { type: string, enum: [primary, addon, sub, alias] }
+        parent_id: { type: string, description: "sub: the domain it is under; alias: the domain whose site it shows" }
+        parent_name: { type: string }
+        docroot: { type: string, description: Relative to the home folder; for an alias, that of the site it shows }
+        canonical: { type: string, enum: ["", www, bare], description: '"" serves both names; www or bare redirects to that form' }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string, description: Job started by this change }
+
+    DomainCreate:
+      type: object
+      additionalProperties: false
+      required: [kind, name]
+      properties:
+        kind: { type: string, enum: [addon, sub, alias] }
+        name: { type: string, description: 'addon/alias: the domain; sub: the part before the parent ("blog", or "*" for a wildcard)' }
+        parent_id: { type: string, description: "sub and alias: the account's primary or addon domain" }
+        docroot: { type: string, description: 'addon and sub, relative to the home folder; "" = domains/<name>' }
+
+    DomainUpdate:
+      type: object
+      additionalProperties: false
+      required: [docroot, canonical]
+      properties:
+        docroot: { type: string, description: Must be "" for an alias }
+        canonical: { type: string, enum: ["", www, bare] }
+
+    DomainVerification:
+      type: object
+      required: [name, required, record, value, verified]
+      properties:
+        name: { type: string }
+        required: { type: boolean, description: Another account uses a domain under the same registered domain }
+        record: { type: string, description: TXT record name to publish }
+        value: { type: string, description: TXT record value }
+        verified: { type: boolean, description: The record is visible in DNS now }
+
+    Redirect:
+      type: object
+      required: [id, domain_id, domain, path, target, code, keep_path, created_at]
+      properties:
+        id: { type: string }
+        domain_id: { type: string }
+        domain: { type: string }
+        path: { type: string, description: '"/" = the whole site' }
+        target: { type: string }
+        code: { type: integer, enum: [301, 302, 307, 308] }
+        keep_path: { type: boolean, description: Append the rest of the requested path to the target }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    RedirectCreate:
+      type: object
+      additionalProperties: false
+      required: [path, target, code]
+      properties:
+        path: { type: string }
+        target: { type: string, description: Absolute http(s) URL }
+        code: { type: integer, enum: [301, 302, 307, 308] }
+        keep_path: { type: boolean }
 
     Problem:
       type: object

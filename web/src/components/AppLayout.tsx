@@ -23,7 +23,7 @@ const menus: Record<string, NavItem[]> = {
   ],
   user: [
     { key: "dashboard", to: "/" },
-    { key: "domains" }, { key: "email" }, { key: "databases" }, { key: "files" },
+    { key: "domains", to: "/domains" }, { key: "email" }, { key: "databases" }, { key: "files" },
     { key: "ssl" }, { key: "backups" },
     { key: "security", to: "/account/security" },
   ],

@@ -173,12 +173,39 @@ message AccountDeleteResponse {
 }
 
 message SiteApplyRequest {
+  reserved 3;
+  reserved "domains";
   string username = 1;
   uint32 uid = 2;
-  repeated string domains = 3;  // first is the primary domain; www. aliases are added
-  string php_version = 4;       // "" = newest installed
-  bool suspended = 5;           // serve the suspended notice and run no PHP
-  uint32 max_children = 6;      // PHP worker processes; 0 = default
+  string php_version = 4;   // "" = newest installed
+  bool suspended = 5;       // serve the suspended notice and run no PHP
+  uint32 max_children = 6;  // PHP worker processes; 0 = default
+  // One virtual host per domain, the primary domain first. Each also answers
+  // to www.<name>, except a wildcard ("*.example.com").
+  repeated VirtualHost vhosts = 7;
+}
+
+// VirtualHost is the website of one domain.
+message VirtualHost {
+  string name = 1;
+  string doc_root = 2;  // relative to the home folder; created when missing
+  Canonical canonical = 3;
+  repeated Redirect redirects = 4;
+}
+
+// Canonical is the host name a site sends its visitors to.
+enum Canonical {
+  CANONICAL_UNSPECIFIED = 0;  // none: serve name and www.name alike
+  CANONICAL_WWW = 1;          // redirect name to www.name
+  CANONICAL_BARE = 2;         // redirect www.name to name
+}
+
+// Redirect sends requests for a path (and everything below it) to a URL.
+message Redirect {
+  string path = 1;     // "/" = the whole site
+  string target = 2;   // absolute http(s) URL
+  uint32 code = 3;     // 301, 302, 307 or 308
+  bool keep_path = 4;  // append the rest of the requested path to target
 }
 
 message SiteApplyResponse {

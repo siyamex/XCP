@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { ErrorAlert } from "../components/ErrorAlert";
+import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { cn } from "../lib/cn";
+import { DomainsPanel } from "./DomainsPage";
 import { usePackages } from "./PackagesPage";
 
 type Account = components["schemas"]["Account"];
@@ -23,31 +25,6 @@ const statusStyle: Record<Status, string> = {
 export function StatusBadge({ status }: { status: Status }) {
   const { t } = useTranslation();
   return <span className={cn("rounded px-2 py-0.5 text-xs font-medium", statusStyle[status])}>{t(`accounts.statuses.${status}`)}</span>;
-}
-
-/** Polls a job until it finishes, then calls onDone once. */
-function useJob(jobId: string | undefined, onDone: () => void) {
-  const job = useQuery({
-    queryKey: ["jobs", jobId],
-    queryFn: () => unwrap(api.GET("/jobs/{id}", { params: { path: { id: jobId! } } })),
-    enabled: !!jobId,
-    refetchInterval: (q) => (q.state.data && ["succeeded", "failed", "canceled"].includes(q.state.data.status) ? false : 1000),
-  });
-  const finished = job.data && ["succeeded", "failed", "canceled"].includes(job.data.status);
-  useEffect(() => {
-    if (finished) onDone();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished]);
-  return job.data;
-}
-
-function JobNotice({ jobId, onDone }: { jobId?: string; onDone: () => void }) {
-  const { t } = useTranslation();
-  const job = useJob(jobId, onDone);
-  if (!jobId || !job) return null;
-  if (job.status === "succeeded") return <Alert kind="success">{t("accounts.job.succeeded")}</Alert>;
-  if (job.status === "failed") return <Alert>{t("accounts.job.failed", { error: job.error ?? "" })}</Alert>;
-  return <Alert kind="info">{t("accounts.job.running")} {job.progress > 0 && `${job.progress}%`}</Alert>;
 }
 
 export function AccountsPage() {
@@ -264,6 +241,8 @@ export function AccountDetailPage() {
           ))}
         </dl>
       </Card>
+
+      {(a.status === "active" || a.status === "suspended") && <DomainsPanel accountId={a.id} />}
 
       <Card>
         <CardTitle>{t("accounts.change")}</CardTitle>

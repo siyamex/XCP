@@ -17,6 +17,7 @@ import (
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
@@ -66,17 +67,20 @@ const (
 
 // Service manages accounts.
 type Service struct {
-	db    *store.DB
-	audit *audit.Recorder
-	auth  *auth.Service
-	plans *plans.Service
-	jobs  *jobs.Queue
-	agent agentrpc.Client
+	db      *store.DB
+	audit   *audit.Recorder
+	auth    *auth.Service
+	plans   *plans.Service
+	jobs    *jobs.Queue
+	agent   agentrpc.Client
+	domains *domains.Service
 }
 
 // NewService returns an accounts service.
-func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Service, q *jobs.Queue, ag agentrpc.Client) *Service {
-	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag}
+func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Service, q *jobs.Queue, ag agentrpc.Client,
+	dom *domains.Service,
+) *Service {
+	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom}
 }
 
 // scope returns the owner filter for p: admins manage admin-owned accounts
@@ -239,6 +243,12 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 			return err
 		}
 		if err := store.InsertAccount(ctx, tx, a); errors.Is(err, store.ErrConflict) {
+			return apperr.NewConflict("domain_taken", "another account already uses this domain")
+		} else if err != nil {
+			return err
+		}
+		primary := &store.Domain{ID: ids.New(), AccountID: a.ID, Name: domain, Kind: store.DomainPrimary, DocRoot: "public_html"}
+		if err := store.InsertDomain(ctx, tx, primary); errors.Is(err, store.ErrConflict) {
 			return apperr.NewConflict("domain_taken", "another account already uses this domain")
 		} else if err != nil {
 			return err

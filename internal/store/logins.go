@@ -79,6 +79,7 @@ type scanner interface{ Scan(...any) error }
 // querier is satisfied by *sql.DB and *sql.Tx.
 type querier interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 

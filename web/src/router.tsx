@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/re
 import { AppLayout } from "./components/AppLayout";
 import { AccountCreatePage, AccountDetailPage, AccountsPage } from "./pages/AccountsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { MyDomainsPage } from "./pages/DomainsPage";
 import { FeatureListsPage } from "./pages/FeatureListsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PackageEditPage, PackagesPage } from "./pages/PackagesPage";
@@ -22,12 +23,13 @@ const accountsRoute = createRoute({ getParentRoute: () => appRoute, path: "/acco
 const accountNewRoute = createRoute({ getParentRoute: () => appRoute, path: "/accounts/new", component: AccountCreatePage });
 const accountRoute = createRoute({ getParentRoute: () => appRoute, path: "/accounts/$accountId", component: AccountDetailPage });
 const featureListsRoute = createRoute({ getParentRoute: () => appRoute, path: "/feature-lists", component: FeatureListsPage });
+const domainsRoute = createRoute({ getParentRoute: () => appRoute, path: "/domains", component: MyDomainsPage });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
-    accountsRoute, accountNewRoute, accountRoute,
+    accountsRoute, accountNewRoute, accountRoute, domainsRoute,
   ]),
 ]);
 

@@ -371,7 +371,9 @@ func (in *installer) units(context.Context) error {
 const ApacheConf = "/etc/apache2/sites-available/xcp.conf"
 
 const apacheConfBody = "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
-	"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n"
+	"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n" +
+	"# Wildcard subdomains last, so they never catch a name another virtual host serves.\n" +
+	"IncludeOptional /etc/apache2/xcp/wildcards/*.conf\n"
 
 func (in *installer) web(ctx context.Context) error {
 	if in.o.NoWeb {

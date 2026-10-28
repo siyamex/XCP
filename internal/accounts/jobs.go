@@ -71,15 +71,6 @@ func u64(v *int64) *uint64 {
 	return &x
 }
 
-// phpChildren derives the PHP worker count from the process limit: a quarter
-// of it, between 2 and 50 (10 when unlimited).
-func phpChildren(l plans.Limits) uint32 {
-	if l.Processes == nil {
-		return 10
-	}
-	return uint32(min(max(*l.Processes/4, 2), 50)) //nolint:gosec // G115: clamped to 2..50
-}
-
 func agentLimits(l plans.Limits) *agentv1.ResourceLimits {
 	return &agentv1.ResourceLimits{
 		CpuPercent: u32(l.CPUPercent), MemoryMb: u64(l.MemoryMB), Tasks: u32(l.Processes),
@@ -124,11 +115,12 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 		return nil, s.fail(ctx, j, a, err)
 	}
 	r.Progress(70)
-	r.Logf("configuring the website (Apache + PHP-FPM)")
-	site, err := s.agent.SiteApply(ctx, &agentv1.SiteApplyRequest{
-		Username: a.Username, Uid: uint32(a.UID), Domains: []string{a.PrimaryDomain}, //nolint:gosec // G115: UID is 10000..59999
-		PhpVersion: a.PHPVersion, Suspended: a.Status == store.AccountSuspended, MaxChildren: phpChildren(pk.Limits),
-	})
+	req, err := s.domains.SiteRequest(ctx, a, pk.Limits)
+	if err != nil {
+		return nil, s.fail(ctx, j, a, err)
+	}
+	r.Logf("configuring the websites of %d domain(s) (Apache + PHP-FPM)", len(req.GetVhosts()))
+	site, err := s.agent.SiteApply(ctx, req)
 	website := "configured"
 	switch {
 	case status.Code(err) == codes.NotFound:

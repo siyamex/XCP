@@ -15,6 +15,7 @@ import (
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/secretbox"
@@ -67,11 +68,13 @@ func newEnv(t *testing.T) *env {
 	pkgs, _ := pl.ListPackages(ctx, admin)
 	fake := agentrpc.NewFake()
 	q := jobs.NewQueue(db)
-	svc := NewService(db, rec, au, pl, q, fake)
+	dom := domains.NewService(db, rec, pl, q, fake, domains.StaticTXT{}, []byte("test key"))
+	svc := NewService(db, rec, au, pl, q, fake, dom)
 
 	w := jobs.NewWorker(q, "test", log)
 	w.Poll = 10 * time.Millisecond
 	svc.RegisterJobs(w)
+	dom.RegisterJobs(w)
 	runCtx, stop := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() { w.Run(runCtx); close(done) }()
@@ -303,7 +306,8 @@ func TestWebsiteFollowsTheAccount(t *testing.T) {
 	e.waitStatus(t, a.ID, store.AccountActive)
 	site, ok := e.fake.Site("web1")
 	// Default package: 100 processes -> 25 PHP workers; newest installed PHP.
-	if !ok || site.Domains[0] != "web1.example" || site.PHPVersion != "8.3" || site.Suspended || site.MaxChildren != 25 {
+	if !ok || len(site.Vhosts) != 1 || site.Vhosts[0].Name != "web1.example" || site.Vhosts[0].DocRoot != "public_html" ||
+		site.PHPVersion != "8.3" || site.Suspended || site.MaxChildren != 25 {
 		t.Fatalf("site = %+v (%v)", site, ok)
 	}
 	if _, err := e.svc.Suspend(ctx, client, e.admin, a.ID, ""); err != nil {

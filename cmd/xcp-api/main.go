@@ -21,6 +21,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/config"
+	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/version"
@@ -79,10 +80,12 @@ func serve(args []string) error {
 	// Jobs run in this process for now (ADR-0003); the queue is persistent,
 	// so a separate xcp-worker can take over later without changes.
 	queue := jobs.NewQueue(a.DB)
-	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent)
+	doms := domains.NewService(a.DB, a.Audit, a.Plans, queue, agent, net.DefaultResolver, a.DomainKey)
+	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms)
 	host, _ := os.Hostname()
 	worker := jobs.NewWorker(queue, fmt.Sprintf("%s:%d", host, os.Getpid()), a.Log)
 	accts.RegisterJobs(worker)
+	doms.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -90,7 +93,7 @@ func serve(args []string) error {
 	}()
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

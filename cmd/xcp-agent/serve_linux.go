@@ -82,8 +82,9 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		},
 		Web: &agent.Web{
 			Run: runner, Services: agent.Systemctl{Run: runner}, HomesRoot: cfg.Paths.HomesRoot,
-			VhostDir: "/etc/apache2/xcp/vhosts", PHPDir: "/etc/php", SuspendedDir: "/var/www/xcp-suspended",
-			LogDir: "/var/log/apache2/xcp", WebUser: "www-data",
+			VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", PHPDir: "/etc/php",
+			SuspendedDir: "/var/www/xcp-suspended",
+			LogDir:       "/var/log/apache2/xcp", WebUser: "www-data",
 		},
 		Version:  version.Version,
 		Hostname: hostname,

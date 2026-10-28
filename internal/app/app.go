@@ -4,6 +4,8 @@ package app
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"log/slog"
 	"os"
 
@@ -24,6 +26,8 @@ type App struct {
 	Auth  *auth.Service
 	Audit *audit.Recorder
 	Plans *plans.Service
+	// DomainKey signs domain verification tokens (derived from the master key).
+	DomainKey []byte
 }
 
 // Open loads the config, opens (and migrates) the database and builds the
@@ -59,7 +63,18 @@ func Open(ctx context.Context, configPath string) (*App, error) {
 		db.Close()
 		return nil, err
 	}
-	return &App{Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec, Plans: plans.NewService(db, rec)}, nil
+	return &App{
+		Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec, Plans: plans.NewService(db, rec),
+		DomainKey: deriveKey(key, "domain-verification"),
+	}, nil
+}
+
+// deriveKey returns a subkey of the master key for one purpose, so the
+// master key itself is used only by secretbox.
+func deriveKey(master []byte, purpose string) []byte {
+	m := hmac.New(sha256.New, master)
+	m.Write([]byte("xcp subkey\x00" + purpose))
+	return m.Sum(nil)
 }
 
 // Close releases the database.

@@ -54,6 +54,19 @@ Status: `todo` · `doing` · `done`.
   with one FPM master per account (or per-pool cgroups) before production.
 - Only the distro's PHP (8.3 on Ubuntu 24.04) is installed; installing more
   versions (Sury/Remi) is ADM-WEB-04's second half.
+- Domains: the server's own host name is not reserved yet, so a user could
+  add it as a domain. Reserve it (and the ACME path) when the config learns
+  the host name with hostname certificates (SSL, task 6).
+- Domains: all vhosts of an account log to the same files; per-domain logs
+  (or `%v` in the format) are needed for per-domain bandwidth (`xcp-logd`).
+- Domains: "force HTTPS" (USR-DOM-05) needs certificates and an HTTPS vhost;
+  it arrives with SSL (task 6).
+- Apache serves static files as www-data, which reads every public_html.
+  Each vhost now allows symlinks in the home folder (document root
+  included) only with `SymLinksIfOwnerMatch`; found on the VM that a
+  document root swapped for a symlink was followed before. Apache's owner
+  check has a known check-then-open race, so stronger isolation is still
+  needed for production (per-account file serving or a kernel-level guard).
 
 ## P1 — MVP progress
 
@@ -62,8 +75,10 @@ Status: `todo` · `doing` · `done`.
 | 1 | Packages + feature lists | ADM-PKG-01, ADM-PKG-02 | done | `internal/plans`: limits as JSON (null = unlimited), 24-feature catalog, Default list + package on first start, admin-only (403 otherwise), audit in same tx, in-use list cannot be deleted; API `/features`, `/feature-lists`, `/packages`; UI pages Packages + Feature lists. |
 | 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | done | `internal/accounts` + agent ops AccountEnsure / AccountSetSuspended / AccountDelete: Linux user (UID 10000+, marked `xcp account`; foreign users refused), home 0711 + public_html 0750 group www-data, systemd slice + login-session limits, quota where supported; create/update/suspend/unsuspend/password/terminate as jobs (in xcp-api, ADR-0003); UI list/create/detail with live job status. Verified end to end on the Ubuntu VM. |
 | 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | done | agent op SiteApply/SiteRemove/PHPVersions; configs rendered in the agent from typed fields (ADR-0004), checked with apachectl -t / php-fpm -t with rollback; one PHP-FPM pool per account running as the account user, open_basedir to its home, own tmp; suspended sites serve a notice and run no PHP; PHP version per account (package-allowed, installed); installer installs apache2 + php-fpm (`--no-web` to skip). Verified on the VM and in CI (`test/e2e/install/websites.py`). |
-| 4 | Domains (addon, sub, alias, redirects) | USR-DOM-01..07 | todo | next |
+| 4 | Domains (addon, sub, alias, redirects) | USR-DOM-01..04, 06, 07; 05 without force HTTPS | done | `internal/domains` + tables `domains` (primary rows backfilled) and `redirects`: addon domains, subdomains (wildcard `*`), aliases, document root per domain (created by the agent if missing, through fsx, 0750 group www-data), www/bare canonical redirect, redirects 301/302/307/308 with or without the rest of the path; package limits (addon/sub/alias counts) and feature list (`domains`, `redirects`) for user logins; takeover protection: a user adding a name under a registered domain another account uses must publish a TXT record `_xcp-verify.<name>` (token derived from the master key). Every change runs job `site.apply`. Agent renders one vhost per domain, wildcards in a file loaded last. API `/accounts/{id}/domains`, `/domains/{id}`, redirects, `/domain-verification`; users reach their own account (`/me` has `account_id`) and its jobs. UI: Domains section on the account page and a Domains page for users. Verified on the VM (`websites.py`, 30 checks) and in the browser. Force HTTPS comes with SSL (task 6). |
+| 5 | DNS (PowerDNS, zones, editor) | ADM-DNS-01..03; USR-DNS-01..03 | todo | next |
 
 ## Features done
 
-ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11, ADM-WEB-01 (Apache), ADM-WEB-04 (installed versions), USR-WEB-01.
+ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11, ADM-WEB-01 (Apache), ADM-WEB-04 (installed versions), USR-WEB-01,
+USR-DOM-01, USR-DOM-02, USR-DOM-03, USR-DOM-04, USR-DOM-05 (without force HTTPS), USR-DOM-06, USR-DOM-07.
