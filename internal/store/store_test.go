@@ -135,7 +135,7 @@ func TestReadPoolIsReadOnlyAndForeignKeysOn(t *testing.T) {
 func TestTimeFormatSortsAsText(t *testing.T) {
 	a := FormatTime(time.Date(2026, 1, 2, 3, 4, 5, 6, time.FixedZone("x", 3600)))
 	b := FormatTime(time.Date(2026, 1, 2, 3, 4, 5, 7, time.FixedZone("x", 3600)))
-	if !(a < b) || len(a) != len(b) {
+	if a >= b || len(a) != len(b) {
 		t.Fatalf("%s / %s do not sort", a, b)
 	}
 	got, err := ParseTime(a)

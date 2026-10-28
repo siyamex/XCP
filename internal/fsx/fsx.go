@@ -27,17 +27,17 @@ const (
 )
 
 var (
-	// ErrInvalidPath: the relative path is malformed (absolute, "..", NUL, too long...).
+	// ErrInvalidPath means the relative path is malformed (absolute, "..", NUL, too long...).
 	ErrInvalidPath = errors.New("fsx: invalid path")
-	// ErrSymlink: a symlink was found where following it is not allowed.
+	// ErrSymlink means a symlink was found where following it is not allowed.
 	ErrSymlink = errors.New("fsx: symlink not allowed")
-	// ErrEscape: resolution tried to leave the root.
+	// ErrEscape means resolution tried to leave the root.
 	ErrEscape = errors.New("fsx: path escapes root")
-	// ErrRootOp: the operation is not allowed on the root directory itself.
+	// ErrRootOp means the operation is not allowed on the root directory itself.
 	ErrRootOp = errors.New("fsx: operation not allowed on root")
-	// ErrHardlink: refused to write through a file with several hard links while privileged.
+	// ErrHardlink means a write was refused through a file with several hard links while privileged.
 	ErrHardlink = errors.New("fsx: refusing to write multiply-linked file as root")
-	// ErrTooLarge: ReadFile limit exceeded.
+	// ErrTooLarge means the ReadFile limit was exceeded.
 	ErrTooLarge = errors.New("fsx: file too large")
 )
 
@@ -82,7 +82,7 @@ func CleanRel(rel string) (string, error) {
 	}
 	for _, elem := range strings.Split(rel, "/") {
 		if elem == ".." {
-			return "", fmt.Errorf("%w: contains ..", ErrInvalidPath)
+			return "", fmt.Errorf("%w: contains a \"..\" element", ErrInvalidPath)
 		}
 		if len(elem) > MaxNameLen {
 			return "", fmt.Errorf("%w: name longer than %d bytes", ErrInvalidPath, MaxNameLen)

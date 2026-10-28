@@ -28,11 +28,11 @@ const (
 )
 
 var (
-	// ErrLeaseLost: the job was canceled or its lease expired and another worker took it.
+	// ErrLeaseLost means the job was canceled or its lease expired and another worker took it.
 	ErrLeaseLost = errors.New("jobs: lease lost")
-	// ErrDuplicate: Enqueue with Unique found a queued or running job of the same kind and lock key.
+	// ErrDuplicate means Enqueue with Unique found a queued or running job of the same kind and lock key.
 	ErrDuplicate = errors.New("jobs: duplicate job already queued or running")
-	// ErrBadState: the job is not in a state that allows the operation.
+	// ErrBadState means the job is not in a state that allows the operation.
 	ErrBadState = errors.New("jobs: operation not allowed in current state")
 )
 
@@ -187,6 +187,7 @@ func (q *Queue) Claim(ctx context.Context, workerID string, kinds []string, leas
 			args = append(args, k)
 		}
 		args = append(args, now)
+		//nolint:gosec // G202: only "?" placeholders are concatenated; values are bound
 		row := tx.QueryRowContext(ctx, `UPDATE jobs SET status = 'running', locked_by = ?, locked_until = ?,
 			attempts = attempts + 1, started_at = COALESCE(started_at, ?)
 			WHERE id = (
@@ -212,7 +213,8 @@ func (q *Queue) Claim(ctx context.Context, workerID string, kinds []string, leas
 // owned runs an UPDATE that only applies while workerID still holds the job.
 func (q *Queue) owned(ctx context.Context, id, workerID, set string, args ...any) error {
 	args = append(args, id, workerID)
-	res, err := q.db.W.ExecContext(ctx, `UPDATE jobs SET `+set+` WHERE id = ? AND locked_by = ? AND status = 'running'`, args...)
+	// set is always a constant from this file; values are bound as args.
+	res, err := q.db.W.ExecContext(ctx, `UPDATE jobs SET `+set+` WHERE id = ? AND locked_by = ? AND status = 'running'`, args...) //nolint:gosec // G202
 	if err != nil {
 		return err
 	}

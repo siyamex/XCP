@@ -16,11 +16,13 @@ func TestRoutesMatchOpenAPISpec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	type operation struct {
+		Security *[]map[string][]string `yaml:"security"`
+	}
 	var spec struct {
 		Servers []struct{ URL string } `yaml:"servers"`
-		Paths   map[string]map[string]struct {
-			Security *[]map[string][]string `yaml:"security"`
-		} `yaml:"paths"`
+		// Path items also hold non-operation keys such as "parameters".
+		Paths map[string]map[string]yaml.Node `yaml:"paths"`
 	}
 	if err := yaml.Unmarshal(raw, &spec); err != nil {
 		t.Fatal(err)
@@ -30,10 +32,20 @@ func TestRoutesMatchOpenAPISpec(t *testing.T) {
 	}
 	prefix := spec.Servers[0].URL
 
+	methods := []string{"get", "put", "post", "delete", "patch", "head", "options"}
+	ops := map[string]operation{} // "GET /api/v1/x" -> operation
 	documented := map[string]bool{}
-	for path, ops := range spec.Paths {
-		for method := range ops {
-			documented[strings.ToUpper(method)+" "+prefix+path] = true
+	for path, item := range spec.Paths {
+		for key, node := range item {
+			if !slices.Contains(methods, key) {
+				continue
+			}
+			var op operation
+			if err := node.Decode(&op); err != nil {
+				t.Fatalf("%s %s: %v", key, path, err)
+			}
+			k := strings.ToUpper(key) + " " + prefix + path
+			ops[k], documented[k] = op, true
 		}
 	}
 	srv := New(Deps{})
@@ -45,7 +57,7 @@ func TestRoutesMatchOpenAPISpec(t *testing.T) {
 		}
 		delete(documented, key)
 
-		op := spec.Paths[strings.TrimPrefix(rt.path, prefix)][strings.ToLower(rt.method)]
+		op := ops[key]
 		isPublicInSpec := op.Security != nil && len(*op.Security) == 0
 		if (rt.access == public) != isPublicInSpec {
 			t.Errorf("%s: public=%v in code but security in spec says public=%v", key, rt.access == public, isPublicInSpec)

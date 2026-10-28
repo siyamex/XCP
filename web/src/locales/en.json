@@ -1,11 +1,24 @@
 {
-  "app": { "name": "XCP", "loading": "Loading…" },
+  "app": {
+    "name": "XCP",
+    "loading": "Loading…"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
     "continue": "Continue",
     "comingSoon": "Soon",
-    "current": "This device"
+    "current": "This device",
+    "edit": "Edit",
+    "delete": "Delete",
+    "new": "New",
+    "back": "Back",
+    "saved": "Saved.",
+    "unlimited": "Unlimited",
+    "confirmDelete": "Delete {{name}}? This cannot be undone.",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None"
   },
   "login": {
     "title": "Sign in",
@@ -34,11 +47,21 @@
     "files": "Files",
     "ssl": "SSL/TLS",
     "backups": "Backups",
-    "security": "Security"
+    "security": "Security",
+    "featureLists": "Feature lists"
   },
-  "role": { "admin": "Admin", "reseller": "Reseller", "user": "User", "subuser": "Team member" },
+  "role": {
+    "admin": "Admin",
+    "reseller": "Reseller",
+    "user": "User",
+    "subuser": "Team member"
+  },
   "topbar": {
-    "theme": { "light": "Light", "dark": "Dark", "system": "System" },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
     "logout": "Sign out"
   },
   "dashboard": {
@@ -89,6 +112,105 @@
     "csrf_failed": "Security check failed. Reload the page and try again.",
     "validation_failed": "Please check the highlighted fields.",
     "network": "Cannot reach the server.",
-    "unknown": "Something went wrong."
+    "unknown": "Something went wrong.",
+    "forbidden": "You do not have permission for this.",
+    "name_taken": "That name is already used.",
+    "in_use": "It is still in use and cannot be deleted.",
+    "not_found": "Not found.",
+    "bad_json": "The request was not valid."
+  },
+  "packages": {
+    "title": "Packages",
+    "new": "New package",
+    "edit": "Edit package",
+    "name": "Name",
+    "featureList": "Feature list",
+    "empty": "No packages yet.",
+    "unlimitedHint": "Leave a field empty for unlimited.",
+    "groups": {
+      "storage": "Storage and traffic",
+      "domains": "Domains",
+      "email": "Email",
+      "databases": "Databases, FTP and cron",
+      "resources": "Server resources",
+      "access": "Access"
+    },
+    "limits": {
+      "disk_mb": "Disk space (MB)",
+      "inodes": "Files (inodes)",
+      "bandwidth_mb": "Monthly traffic (MB)",
+      "addon_domains": "Addon domains",
+      "subdomains": "Subdomains",
+      "aliases": "Alias domains",
+      "mailboxes": "Mailboxes",
+      "mailbox_mb": "Max mailbox size (MB)",
+      "forwarders": "Forwarders",
+      "mail_per_hour": "Emails per hour",
+      "databases": "Databases",
+      "db_users": "Database users",
+      "ftp_accounts": "FTP accounts",
+      "cron_jobs": "Cron jobs",
+      "cpu_percent": "CPU (%, 100 = one core)",
+      "memory_mb": "Memory (MB)",
+      "processes": "Processes",
+      "io_mbps": "Disk I/O (MB/s)",
+      "shell": "Shell access",
+      "php_versions": "PHP versions",
+      "php_versions_hint": "Comma-separated, like 8.2, 8.3. Empty: all installed versions.",
+      "dedicated_ip": "Dedicated IP address"
+    },
+    "shell": {
+      "none": "No shell",
+      "jailed": "Jailed shell",
+      "full": "Full shell"
+    },
+    "columns": {
+      "disk": "Disk",
+      "traffic": "Traffic",
+      "domains": "Domains",
+      "mailboxes": "Mailboxes",
+      "databases": "Databases"
+    }
+  },
+  "featureLists": {
+    "title": "Feature lists",
+    "new": "New feature list",
+    "help": "A feature list decides which parts of the panel accounts on a package can use.",
+    "count": "{{count}} features"
+  },
+  "featureGroups": {
+    "domains": "Domains",
+    "email": "Email",
+    "databases": "Databases",
+    "files": "Files",
+    "web": "Web and PHP",
+    "advanced": "Advanced",
+    "stats": "Statistics"
+  },
+  "features": {
+    "domains": "Domains",
+    "redirects": "Redirects",
+    "dns_editor": "DNS zone editor",
+    "ssl": "SSL/TLS certificates",
+    "email": "Email accounts",
+    "webmail": "Webmail",
+    "spam_filter": "Spam filter",
+    "mysql": "MySQL/MariaDB",
+    "postgresql": "PostgreSQL",
+    "phpmyadmin": "phpMyAdmin",
+    "file_manager": "File manager",
+    "ftp": "FTP accounts",
+    "backups": "Backups",
+    "php_settings": "PHP settings",
+    "error_pages": "Custom error pages",
+    "hotlink_protection": "Hotlink protection",
+    "ip_blocker": "IP blocker",
+    "cron": "Cron jobs",
+    "ssh": "SSH access",
+    "terminal": "Web terminal",
+    "git": "Git deployment",
+    "apps": "App installer",
+    "stats": "Visitor statistics",
+    "logs": "Logs"
   }
 }

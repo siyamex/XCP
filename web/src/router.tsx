@@ -1,7 +1,9 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router";
 import { AppLayout } from "./components/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { FeatureListsPage } from "./pages/FeatureListsPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PackageEditPage, PackagesPage } from "./pages/PackagesPage";
 import { SecurityPage } from "./pages/SecurityPage";
 
 const rootRoute = createRootRoute({ component: Outlet });
@@ -13,7 +15,14 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", compo
 const dashboardRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: DashboardPage });
 const securityRoute = createRoute({ getParentRoute: () => appRoute, path: "/account/security", component: SecurityPage });
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([dashboardRoute, securityRoute])]);
+const packagesRoute = createRoute({ getParentRoute: () => appRoute, path: "/packages", component: PackagesPage });
+const packageEditRoute = createRoute({ getParentRoute: () => appRoute, path: "/packages/$packageId", component: PackageEditPage });
+const featureListsRoute = createRoute({ getParentRoute: () => appRoute, path: "/feature-lists", component: FeatureListsPage });
+
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  appRoute.addChildren([dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute]),
+]);
 
 export const router = createRouter({ routeTree });
 

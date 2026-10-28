@@ -144,8 +144,10 @@ func TestFirstInstall(t *testing.T) {
 			t.Errorf("unit %s not written", u)
 		}
 	}
-	want := []string{"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
-		"systemctl restart xcp-agent.service xcp-api.service", "health", "admin admin"}
+	want := []string{
+		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
+		"systemctl restart xcp-agent.service xcp-api.service", "health", "admin admin",
+	}
 	if !slices.Equal(e.sys.calls, want) {
 		t.Fatalf("calls =\n%q\nwant\n%q", e.sys.calls, want)
 	}

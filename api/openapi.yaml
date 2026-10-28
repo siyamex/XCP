@@ -22,6 +22,7 @@ tags:
   - name: auth
   - name: me
   - name: system
+  - name: plans
 
 paths:
   /health:
@@ -250,6 +251,188 @@ paths:
         "401": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /features:
+    get:
+      tags: [plans]
+      summary: The feature catalog (admins)
+      description: Every feature a feature list can turn on, in display order.
+      operationId: listFeatures
+      responses:
+        "200":
+          description: Features.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Feature" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /feature-lists:
+    get:
+      tags: [plans]
+      summary: List feature lists (admins)
+      operationId: listFeatureLists
+      responses:
+        "200":
+          description: Feature lists, by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/FeatureList" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [plans]
+      summary: Create a feature list
+      operationId: createFeatureList
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeatureListInput" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureList" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /feature-lists/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [plans]
+      summary: Get a feature list
+      operationId: getFeatureList
+      responses:
+        "200":
+          description: The feature list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureList" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [plans]
+      summary: Replace a feature list
+      operationId: updateFeatureList
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeatureListInput" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeatureList" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [plans]
+      summary: Delete a feature list
+      operationId: deleteFeatureList
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /packages:
+    get:
+      tags: [plans]
+      summary: List packages (admins)
+      operationId: listPackages
+      responses:
+        "200":
+          description: Packages, by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Package" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [plans]
+      summary: Create a package
+      operationId: createPackage
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackageInput" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Package" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /packages/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [plans]
+      summary: Get a package
+      operationId: getPackage
+      responses:
+        "200":
+          description: The package.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Package" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [plans]
+      summary: Replace a package
+      operationId: updatePackage
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackageInput" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Package" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [plans]
+      summary: Delete a package
+      operationId: deletePackage
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 security:
   - sessionCookie: []
 
@@ -329,6 +512,85 @@ components:
         last_seen_at: { type: string, format: date-time }
         current: { type: boolean }
 
+    Feature:
+      type: object
+      required: [key, group]
+      properties:
+        key: { type: string, examples: [email] }
+        group: { type: string, examples: [email] }
+
+    FeatureList:
+      type: object
+      required: [id, name, features, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    FeatureListInput:
+      type: object
+      additionalProperties: false
+      required: [name, features]
+      properties:
+        name: { type: string, maxLength: 64 }
+        features:
+          type: array
+          items: { type: string }
+
+    Limits:
+      type: object
+      additionalProperties: false
+      description: Resource limits. null means unlimited.
+      properties:
+        disk_mb: { type: [integer, "null"], minimum: 0, description: "Disk space in MB" }
+        inodes: { type: [integer, "null"], minimum: 0, description: "Number of files" }
+        bandwidth_mb: { type: [integer, "null"], minimum: 0, description: "Monthly traffic in MB" }
+        addon_domains: { type: [integer, "null"], minimum: 0, description: "Addon domains" }
+        subdomains: { type: [integer, "null"], minimum: 0, description: "Subdomains" }
+        aliases: { type: [integer, "null"], minimum: 0, description: "Alias (parked) domains" }
+        mailboxes: { type: [integer, "null"], minimum: 0, description: "Mailboxes" }
+        mailbox_mb: { type: [integer, "null"], minimum: 0, description: "Largest quota of one mailbox, MB" }
+        forwarders: { type: [integer, "null"], minimum: 0, description: "Mail forwarders" }
+        mail_per_hour: { type: [integer, "null"], minimum: 0, description: "Outgoing mails per hour" }
+        databases: { type: [integer, "null"], minimum: 0, description: "Databases" }
+        db_users: { type: [integer, "null"], minimum: 0, description: "Database users" }
+        ftp_accounts: { type: [integer, "null"], minimum: 0, description: "FTP accounts" }
+        cron_jobs: { type: [integer, "null"], minimum: 0, description: "Cron jobs" }
+        cpu_percent: { type: [integer, "null"], minimum: 0, description: "CPU, 100 = one core" }
+        memory_mb: { type: [integer, "null"], minimum: 0, description: "Memory in MB" }
+        processes: { type: [integer, "null"], minimum: 0, description: "Processes" }
+        io_mbps: { type: [integer, "null"], minimum: 0, description: "Disk I/O in MB/s" }
+        shell: { type: string, enum: [none, jailed, full] }
+        php_versions:
+          type: array
+          description: Allowed PHP versions; empty means all installed.
+          items: { type: string, pattern: "^[5-9]\\.[0-9]$" }
+        dedicated_ip: { type: boolean }
+
+    Package:
+      type: object
+      required: [id, name, feature_list_id, limits, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        feature_list_id: { type: string }
+        limits: { $ref: "#/components/schemas/Limits" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    PackageInput:
+      type: object
+      additionalProperties: false
+      required: [name, feature_list_id, limits]
+      properties:
+        name: { type: string, maxLength: 64 }
+        feature_list_id: { type: string }
+        limits: { $ref: "#/components/schemas/Limits" }
+
     Problem:
       type: object
       required: [type, title, status, code]
@@ -339,7 +601,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use]
         detail: { type: string }
         request_id: { type: string }
         errors:

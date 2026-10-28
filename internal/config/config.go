@@ -105,7 +105,7 @@ func Default() Config {
 		Agent: Agent{Socket: "/run/xcp/agent.sock", APIUser: "xcp"},
 		DB:    DB{Path: "/var/lib/xcp/xcp.db"},
 		Log:   Log{Level: "info", Format: "json"},
-		Paths: Paths{
+		Paths: Paths{ //nolint:gosec // G101: SecretsDir is a directory path, not a credential
 			StateDir:   "/var/lib/xcp",
 			RunDir:     "/run/xcp",
 			HomesRoot:  "/home",

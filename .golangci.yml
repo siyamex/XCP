@@ -40,9 +40,14 @@ linters:
         - G104 # covered by errcheck
 
   exclusions:
+    presets:
+      # Unchecked Close/Flush/Fprint* errors and other well-known false positives.
+      - std-error-handling
+      - common-false-positives
     rules:
+      # Tests fail loudly on their own; these linters only add noise there.
       - path: _test\.go
-        linters: [gosec, forbidigo]
+        linters: [gosec, forbidigo, errcheck, bodyclose, errorlint]
       - path: internal/fsx/
         linters: [forbidigo]
       - path: internal/store/

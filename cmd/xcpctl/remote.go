@@ -117,13 +117,16 @@ func (e *apiError) Error() string {
 	return msg
 }
 
-func (c *client) do(method, path string, body, out any) (*http.Response, error) {
+// do sends one API request and decodes the JSON reply into out. It returns
+// the response cookies; the body is always consumed and closed here.
+func (c *client) do(method, path string, body, out any) ([]*http.Cookie, error) {
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
 		rd = bytes.NewReader(b)
 	}
-	req, err := http.NewRequest(method, strings.TrimRight(c.s.Server, "/")+"/api/v1"+path, rd)
+	// The server URL is chosen by the operator running xcpctl.
+	req, err := http.NewRequest(method, strings.TrimRight(c.s.Server, "/")+"/api/v1"+path, rd) //nolint:gosec // G704: operator-supplied URL
 	if err != nil {
 		return nil, err
 	}
@@ -132,12 +135,12 @@ func (c *client) do(method, path string, body, out any) (*http.Response, error) 
 	}
 	req.Header.Set("User-Agent", "xcpctl")
 	if c.s.Token != "" {
-		req.AddCookie(&http.Cookie{Name: c.s.CookieName, Value: c.s.Token})
+		req.AddCookie(&http.Cookie{Name: c.s.CookieName, Value: c.s.Token}) //nolint:gosec // G124: request cookie; attributes only apply to Set-Cookie
 		if method != http.MethodGet {
 			req.Header.Set("X-CSRF-Token", c.s.CSRF)
 		}
 	}
-	resp, err := c.http.Do(req)
+	resp, err := c.http.Do(req) //nolint:gosec // G704: operator-supplied URL
 	if err != nil {
 		return nil, err
 	}
@@ -145,12 +148,12 @@ func (c *client) do(method, path string, body, out any) (*http.Response, error) 
 	if resp.StatusCode >= 400 {
 		ae := &apiError{Status: resp.StatusCode, Code: "http_error", Detail: resp.Status}
 		_ = json.NewDecoder(resp.Body).Decode(ae)
-		return resp, ae
+		return resp.Cookies(), ae
 	}
 	if out != nil {
-		return resp, json.NewDecoder(resp.Body).Decode(out)
+		return resp.Cookies(), json.NewDecoder(resp.Body).Decode(out)
 	}
-	return resp, nil
+	return resp.Cookies(), nil
 }
 
 func login(args []string, stdin io.Reader, out io.Writer) error {
@@ -192,11 +195,11 @@ func login(args []string, stdin io.Reader, out io.Writer) error {
 		MustChangePassword bool   `json:"must_change_password"`
 		CSRFToken          string `json:"csrf_token"`
 	}
-	resp, err := c.do("POST", "/auth/login", map[string]string{"username": *username, "password": password}, &res)
+	cookies, err := c.do("POST", "/auth/login", map[string]string{"username": *username, "password": password}, &res)
 	if err != nil {
 		return err
 	}
-	for _, ck := range resp.Cookies() {
+	for _, ck := range cookies {
 		if strings.HasSuffix(ck.Name, "xcp_session") && ck.Value != "" {
 			s.CookieName, s.Token = ck.Name, ck.Value
 		}
@@ -305,8 +308,9 @@ func logout(out io.Writer) error {
 		return err
 	}
 	if apiErr != nil {
+		// The local session is gone either way; report the server's answer but succeed.
 		fmt.Fprintln(out, "local session removed (server said:", apiErr.Error()+")")
-		return nil
+		return nil //nolint:nilerr // logout must succeed locally even if the server refused
 	}
 	fmt.Fprintln(out, "logged out")
 	return nil

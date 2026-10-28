@@ -22,6 +22,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
 )
@@ -45,7 +46,8 @@ func newHarness(t *testing.T) *harness {
 	t.Cleanup(func() { db.Close() })
 	box, _ := secretbox.New(bytes.Repeat([]byte{3}, secretbox.KeySize))
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc, err := auth.NewService(db, audit.NewRecorder(db), box, auth.Options{
+	rec := audit.NewRecorder(db)
+	svc, err := auth.NewService(db, rec, box, auth.Options{
 		SessionIdle: 30 * time.Minute, SessionMax: 12 * time.Hour,
 		Argon: auth.Argon2Params{Memory: 8 * 1024, Time: 1, Threads: 1}, Log: log,
 	})
@@ -55,7 +57,11 @@ func newHarness(t *testing.T) *harness {
 	if _, err := svc.CreateLogin(ctx, auth.Client{}, nil, auth.NewLogin{Username: "root", Password: rootPW, Role: store.RoleAdmin}); err != nil {
 		t.Fatal(err)
 	}
-	api := New(Deps{Auth: svc, Agent: agentrpc.NewFake(), Log: log})
+	pl := plans.NewService(db, rec)
+	if err := pl.EnsureDefaults(ctx); err != nil {
+		t.Fatal(err)
+	}
+	api := New(Deps{Auth: svc, Plans: pl, Agent: agentrpc.NewFake(), Log: log})
 	srv := httptest.NewServer(api)
 	t.Cleanup(srv.Close)
 	return &harness{t: t, srv: srv, auth: svc, api: api}

@@ -81,7 +81,7 @@ func (h *Hasher) Verify(ctx context.Context, password, encoded string) (ok, need
 		return false, false, err
 	}
 	defer h.release()
-	got := argon2.IDKey([]byte(password), salt, p.Time, p.Memory, p.Threads, uint32(len(want)))
+	got := argon2.IDKey([]byte(password), salt, p.Time, p.Memory, p.Threads, uint32(len(want))) //nolint:gosec // G115: decodeHash bounds len(want) to 16..64
 	ok = subtle.ConstantTimeCompare(got, want) == 1
 	return ok, ok && p != h.params, nil
 }

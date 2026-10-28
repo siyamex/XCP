@@ -67,12 +67,15 @@ func serve(args []string) error {
 	if a.Cfg.Agent.Fake {
 		a.Log.Warn("using the in-memory fake agent (agent.fake): nothing is changed on this system")
 	}
+	if err := a.Plans.EnsureDefaults(ctx); err != nil {
+		return fmt.Errorf("create default package: %w", err)
+	}
 	if n, err := a.DB.CountLogins(ctx); err == nil && n == 0 {
 		a.Log.Warn("no logins yet; create the first admin with: xcpctl admin create --username admin")
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

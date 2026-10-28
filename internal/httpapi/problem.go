@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
@@ -65,6 +66,7 @@ func toProblem(err error, log *slog.Logger) (Problem, http.Header) {
 		ve  *validate.Error
 		rl  *auth.RateLimitedError
 		mbe *http.MaxBytesError
+		cf  *apperr.Conflict
 	)
 	p := func(status int, code, detail string) Problem {
 		return Problem{Type: "about:blank", Title: http.StatusText(status), Status: status, Code: code, Detail: detail}
@@ -95,6 +97,10 @@ func toProblem(err error, log *slog.Logger) (Problem, http.Header) {
 		return p(http.StatusForbidden, "reauth_required", err.Error()), h
 	case errors.Is(err, auth.ErrTOTPState):
 		return p(http.StatusConflict, "totp_state", err.Error()), h
+	case errors.Is(err, apperr.ErrForbidden):
+		return p(http.StatusForbidden, "forbidden", err.Error()), h
+	case errors.As(err, &cf):
+		return p(http.StatusConflict, cf.Code, cf.Message), h
 	case errors.Is(err, store.ErrNotFound):
 		return p(http.StatusNotFound, "not_found", "not found"), h
 	}

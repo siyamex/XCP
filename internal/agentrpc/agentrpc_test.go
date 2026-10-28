@@ -143,7 +143,7 @@ func TestInterceptorRefusesOtherUIDs(t *testing.T) {
 
 // The fake must reject the same requests with the same codes as the real server.
 func TestFakeMatchesServerErrors(t *testing.T) {
-	real := startServer(t, 1001, 1001)
+	server := startServer(t, 1001, 1001)
 	fake := NewFake()
 	fakeDir := agent.DefaultManagedDirs[0]
 
@@ -184,7 +184,7 @@ func TestFakeMatchesServerErrors(t *testing.T) {
 	slashJoin := func(p ...string) string { return strings.Join(p, "/") }
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			wantCode(t, tc.call(real.client, real.managed, filepath.Join), tc.want)
+			wantCode(t, tc.call(server.client, server.managed, filepath.Join), tc.want)
 			wantCode(t, tc.call(fake, fakeDir, slashJoin), tc.want)
 		})
 	}

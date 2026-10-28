@@ -24,8 +24,10 @@ func TestRecordAndVerifyChain(t *testing.T) {
 	r, db := newRecorder(t)
 	ctx := context.Background()
 	for i, action := range []string{"auth.login", "account.create", "auth.logout"} {
-		err := r.Record(ctx, Event{ActorID: "L1", Action: action, Result: ResultOK, IP: "192.0.2.1",
-			Details: map[string]any{"n": i, "new_password": "hunter2", "nested": map[string]any{"api_token": "xcp_x"}}})
+		err := r.Record(ctx, Event{
+			ActorID: "L1", Action: action, Result: ResultOK, IP: "192.0.2.1",
+			Details: map[string]any{"n": i, "new_password": "hunter2", "nested": map[string]any{"api_token": "xcp_x"}},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}

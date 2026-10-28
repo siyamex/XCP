@@ -12,7 +12,7 @@ type NavItem = { key: string; to?: string };
 const menus: Record<string, NavItem[]> = {
   admin: [
     { key: "dashboard", to: "/" },
-    { key: "accounts" }, { key: "packages" }, { key: "resellers" },
+    { key: "accounts" }, { key: "packages", to: "/packages" }, { key: "featureLists", to: "/feature-lists" }, { key: "resellers" },
     { key: "dns" }, { key: "services" }, { key: "settings" },
     { key: "security", to: "/account/security" },
   ],

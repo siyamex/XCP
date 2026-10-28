@@ -102,8 +102,10 @@ func TestSessions(t *testing.T) {
 	now := time.Now().UTC()
 	mk := func(hash byte, login string, expires time.Time) {
 		t.Helper()
-		err := db.CreateSession(ctx, &Session{IDHash: []byte{hash}, LoginID: login, IP: "192.0.2.1", UserAgent: "test",
-			CreatedAt: now, LastSeenAt: now, ExpiresAt: expires})
+		err := db.CreateSession(ctx, &Session{
+			IDHash: []byte{hash}, LoginID: login, IP: "192.0.2.1", UserAgent: "test",
+			CreatedAt: now, LastSeenAt: now, ExpiresAt: expires,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}

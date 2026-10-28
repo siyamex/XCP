@@ -19,8 +19,9 @@ func New() string { return At(time.Now()) }
 func At(t time.Time) string {
 	var b [16]byte
 	ms := uint64(t.UnixMilli())
-	binary.BigEndian.PutUint16(b[0:2], uint16(ms>>32))
-	binary.BigEndian.PutUint32(b[2:6], uint32(ms))
+	// 48-bit timestamp split into 16 + 32 bits: the truncations are intended.
+	binary.BigEndian.PutUint16(b[0:2], uint16(ms>>32)) //nolint:gosec // G115: intended
+	binary.BigEndian.PutUint32(b[2:6], uint32(ms))     //nolint:gosec // G115: intended
 	if _, err := rand.Read(b[6:]); err != nil {
 		panic("ids: crypto/rand failed: " + err.Error()) // never happens on supported OSes
 	}
@@ -47,7 +48,8 @@ func Valid(s string) bool {
 	}
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if !(c >= '0' && c <= '9' || c >= 'A' && c <= 'Z') || c == 'I' || c == 'L' || c == 'O' || c == 'U' {
+		digit, upper := c >= '0' && c <= '9', c >= 'A' && c <= 'Z'
+		if !digit && !upper || c == 'I' || c == 'L' || c == 'O' || c == 'U' {
 			return false
 		}
 	}

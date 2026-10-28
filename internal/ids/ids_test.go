@@ -26,11 +26,11 @@ func TestKnownEncoding(t *testing.T) {
 	if got := encode([16]byte{}); got != "00000000000000000000000000" {
 		t.Fatalf("zero = %s", got)
 	}
-	var max [16]byte
-	for i := range max {
-		max[i] = 0xff
+	var ones [16]byte
+	for i := range ones {
+		ones[i] = 0xff
 	}
-	if got := encode(max); got != "7ZZZZZZZZZZZZZZZZZZZZZZZZZ" {
+	if got := encode(ones); got != "7ZZZZZZZZZZZZZZZZZZZZZZZZZ" {
 		t.Fatalf("max = %s", got)
 	}
 }

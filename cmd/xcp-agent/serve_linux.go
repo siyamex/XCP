@@ -48,7 +48,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		dirs = agent.DefaultManagedDirs
 	}
 	for _, d := range dirs {
-		if err := os.MkdirAll(d, 0o755); err != nil {
+		// Services (Apache, nginx) must read generated configs, so these stay world-readable.
+		if err := os.MkdirAll(d, 0o755); err != nil { //nolint:gosec // G301: see above
 			return fmt.Errorf("create managed dir: %w", err)
 		}
 	}
@@ -127,7 +128,7 @@ func listenSocket(path string, gid uint32) (net.Listener, error) {
 	if err := os.Chown(dir, 0, int(gid)); err != nil {
 		return nil, err
 	}
-	if err := os.Chmod(dir, 0o750); err != nil {
+	if err := os.Chmod(dir, 0o750); err != nil { //nolint:gosec // G302: directory, group must traverse
 		return nil, err
 	}
 	// Remove a stale socket from a previous run, but never anything else.
@@ -143,7 +144,7 @@ func listenSocket(path string, gid uint32) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := errors.Join(os.Chown(path, 0, int(gid)), os.Chmod(path, 0o660)); err != nil {
+	if err := errors.Join(os.Chown(path, 0, int(gid)), os.Chmod(path, 0o660)); err != nil { //nolint:gosec // G302: socket must be group-writable for the API user
 		lis.Close()
 		return nil, err
 	}

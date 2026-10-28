@@ -11,6 +11,7 @@ import (
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/config"
 	"github.com/siyamex/XCP/internal/logging"
+	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
 )
@@ -22,6 +23,7 @@ type App struct {
 	DB    *store.DB
 	Auth  *auth.Service
 	Audit *audit.Recorder
+	Plans *plans.Service
 }
 
 // Open loads the config, opens (and migrates) the database and builds the
@@ -57,7 +59,7 @@ func Open(ctx context.Context, configPath string) (*App, error) {
 		db.Close()
 		return nil, err
 	}
-	return &App{Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec}, nil
+	return &App{Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec, Plans: plans.NewService(db, rec)}, nil
 }
 
 // Close releases the database.

@@ -221,6 +221,104 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The feature catalog (admins)
+         * @description Every feature a feature list can turn on, in display order.
+         */
+        get: operations["listFeatures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feature-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List feature lists (admins) */
+        get: operations["listFeatureLists"];
+        put?: never;
+        /** Create a feature list */
+        post: operations["createFeatureList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feature-lists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get a feature list */
+        get: operations["getFeatureList"];
+        /** Replace a feature list */
+        put: operations["updateFeatureList"];
+        post?: never;
+        /** Delete a feature list */
+        delete: operations["deleteFeatureList"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List packages (admins) */
+        get: operations["listPackages"];
+        put?: never;
+        /** Create a package */
+        post: operations["createPackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/packages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get a package */
+        get: operations["getPackage"];
+        /** Replace a package */
+        put: operations["updatePackage"];
+        post?: never;
+        /** Delete a package */
+        delete: operations["deletePackage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -261,6 +359,84 @@ export interface components {
             last_seen_at: string;
             current: boolean;
         };
+        Feature: {
+            /** @example email */
+            key: string;
+            /** @example email */
+            group: string;
+        };
+        FeatureList: {
+            id: string;
+            name: string;
+            features: string[];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        FeatureListInput: {
+            name: string;
+            features: string[];
+        };
+        /** @description Resource limits. null means unlimited. */
+        Limits: {
+            /** @description Disk space in MB */
+            disk_mb?: number | null;
+            /** @description Number of files */
+            inodes?: number | null;
+            /** @description Monthly traffic in MB */
+            bandwidth_mb?: number | null;
+            /** @description Addon domains */
+            addon_domains?: number | null;
+            /** @description Subdomains */
+            subdomains?: number | null;
+            /** @description Alias (parked) domains */
+            aliases?: number | null;
+            /** @description Mailboxes */
+            mailboxes?: number | null;
+            /** @description Largest quota of one mailbox, MB */
+            mailbox_mb?: number | null;
+            /** @description Mail forwarders */
+            forwarders?: number | null;
+            /** @description Outgoing mails per hour */
+            mail_per_hour?: number | null;
+            /** @description Databases */
+            databases?: number | null;
+            /** @description Database users */
+            db_users?: number | null;
+            /** @description FTP accounts */
+            ftp_accounts?: number | null;
+            /** @description Cron jobs */
+            cron_jobs?: number | null;
+            /** @description CPU, 100 = one core */
+            cpu_percent?: number | null;
+            /** @description Memory in MB */
+            memory_mb?: number | null;
+            /** @description Processes */
+            processes?: number | null;
+            /** @description Disk I/O in MB/s */
+            io_mbps?: number | null;
+            /** @enum {string} */
+            shell?: "none" | "jailed" | "full";
+            /** @description Allowed PHP versions; empty means all installed. */
+            php_versions?: string[];
+            dedicated_ip?: boolean;
+        };
+        Package: {
+            id: string;
+            name: string;
+            feature_list_id: string;
+            limits: components["schemas"]["Limits"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PackageInput: {
+            name: string;
+            feature_list_id: string;
+            limits: components["schemas"]["Limits"];
+        };
         Problem: {
             type: string;
             title: string;
@@ -275,6 +451,9 @@ export interface components {
              * @example rate_limited
              * @example validation_failed
              * @example password_change_required
+             * @example forbidden
+             * @example name_taken
+             * @example in_use
              */
             code: string;
             detail?: string;
@@ -604,6 +783,277 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listFeatures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Features. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Feature"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    listFeatureLists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Feature lists, by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["FeatureList"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    createFeatureList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureListInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureList"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getFeatureList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The feature list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureList"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateFeatureList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureListInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureList"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteFeatureList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Packages, by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Package"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    createPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The package. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    updatePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Package"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deletePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };
     };

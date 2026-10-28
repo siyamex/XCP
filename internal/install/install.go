@@ -36,7 +36,7 @@ var Binaries = map[string]string{
 // Well-known paths (without Options.Root).
 const (
 	ConfigFile = "/etc/xcp/xcp.toml"
-	SecretsDir = "/etc/xcp/secrets"
+	SecretsDir = "/etc/xcp/secrets" //nolint:gosec // G101: a directory path, not a credential
 	SSLDir     = "/etc/xcp/ssl"
 	CertFile   = SSLDir + "/panel.crt"
 	KeyFile    = SSLDir + "/panel.key"
@@ -237,8 +237,9 @@ func (in *installer) writeFile(p string, data []byte, mode fs.FileMode, own owne
 	if in.o.DryRun {
 		return true, nil
 	}
+	// full is Options.Root joined with one of this package's constant paths.
 	tmp := full + ".xcp-install.tmp"
-	if err := os.WriteFile(tmp, data, mode); err != nil { //nolint:forbidigo // installer writes system files as root
+	if err := os.WriteFile(tmp, data, mode); err != nil { //nolint:forbidigo,gosec // installer writes system files as root; G703 see above
 		return false, err
 	}
 	if err := os.Chmod(tmp, mode); err != nil {

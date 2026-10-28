@@ -32,7 +32,7 @@ var (
 	ErrTOTPState          = errors.New("two-factor authentication is not in the right state for this")
 )
 
-// RateLimitedError: too many failures; try again after RetryAfter.
+// RateLimitedError means too many failures; try again after RetryAfter.
 type RateLimitedError struct{ RetryAfter time.Duration }
 
 func (e *RateLimitedError) Error() string {
@@ -294,8 +294,11 @@ func (s *Service) Logout(ctx context.Context, c Client, token string) error {
 		return nil
 	}
 	sess, err := s.db.SessionByHash(ctx, hashToken(token))
-	if err != nil {
+	if errors.Is(err, store.ErrNotFound) {
 		return nil // already gone
+	}
+	if err != nil {
+		return err
 	}
 	if err := s.db.DeleteSession(ctx, sess.IDHash); err != nil {
 		return err

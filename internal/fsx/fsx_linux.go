@@ -35,7 +35,7 @@ func (s sysRoot) close() error { return unix.Close(s.fd) }
 
 // open resolves rel strictly beneath the root.
 func (s sysRoot) open(rel string, flags int, perm fs.FileMode) (int, error) {
-	how := unix.OpenHow{Flags: uint64(flags | unix.O_CLOEXEC), Resolve: resolveFlags}
+	how := unix.OpenHow{Flags: uint64(flags | unix.O_CLOEXEC), Resolve: resolveFlags} //nolint:gosec // G115: open flags are non-negative
 	if flags&(unix.O_CREAT|unix.O_TMPFILE) != 0 {
 		how.Mode = uint64(perm.Perm())
 	}
@@ -46,7 +46,7 @@ func (s sysRoot) open(rel string, flags int, perm fs.FileMode) (int, error) {
 		if err == nil {
 			return fd, nil
 		}
-		if err != unix.EAGAIN && err != unix.EINTR {
+		if !errors.Is(err, unix.EAGAIN) && !errors.Is(err, unix.EINTR) {
 			break
 		}
 	}
@@ -130,7 +130,7 @@ func (s sysRoot) remove(rel string) error {
 	}
 	defer unix.Close(dfd)
 	err = unix.Unlinkat(dfd, base, 0)
-	if err == unix.EISDIR {
+	if errors.Is(err, unix.EISDIR) {
 		err = unix.Unlinkat(dfd, base, unix.AT_REMOVEDIR)
 	}
 	return err

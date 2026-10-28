@@ -38,7 +38,7 @@ var ValidatorCommands = map[Validator]execx.Cmd{
 	ValidatorPostfix: {Path: "/usr/sbin/postfix", Args: []string{"check"}},
 }
 
-// ValidationFailedError: the new file failed its validator and the previous
+// ValidationFailedError means the new file failed its validator and the previous
 // state was restored.
 type ValidationFailedError struct {
 	Output string

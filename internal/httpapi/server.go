@@ -8,17 +8,22 @@ import (
 	"net/http"
 	"net/url"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/siyamex/XCP/internal/agentrpc"
+	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/ids"
+	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/store"
 )
 
 // Deps are the services the HTTP layer needs.
 type Deps struct {
 	Auth  *auth.Service
+	Plans *plans.Service
 	Agent agentrpc.Client
 	Log   *slog.Logger
 	// SecureCookies is false only in local development over plain HTTP
@@ -44,8 +49,13 @@ type route struct {
 	access       access
 	// allowMustChange lets a login with a forced password change use the route.
 	allowMustChange bool
-	h               handlerFunc
+	// roles limits an authenticated route to these login roles (empty: any role).
+	roles []string
+	h     handlerFunc
 }
+
+// adminOnly limits a route to admins (resellers join for their own packages in P2).
+var adminOnly = []string{store.RoleAdmin}
 
 // Server is the xcp-api HTTP handler.
 type Server struct {
@@ -76,6 +86,18 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/me/2fa/setup", access: authed, h: s.setup2FA},
 		{method: "POST", path: "/api/v1/me/2fa/confirm", access: authed, h: s.confirm2FA},
 		{method: "POST", path: "/api/v1/me/2fa/disable", access: authed, h: s.disable2FA},
+
+		{method: "GET", path: "/api/v1/features", access: authed, roles: adminOnly, h: s.listFeatures},
+		{method: "GET", path: "/api/v1/feature-lists", access: authed, roles: adminOnly, h: s.listFeatureLists},
+		{method: "POST", path: "/api/v1/feature-lists", access: authed, roles: adminOnly, h: s.createFeatureList},
+		{method: "GET", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.getFeatureList},
+		{method: "PUT", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.updateFeatureList},
+		{method: "DELETE", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.deleteFeatureList},
+		{method: "GET", path: "/api/v1/packages", access: authed, roles: adminOnly, h: s.listPackages},
+		{method: "POST", path: "/api/v1/packages", access: authed, roles: adminOnly, h: s.createPackage},
+		{method: "GET", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.getPackage},
+		{method: "PUT", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.updatePackage},
+		{method: "DELETE", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.deletePackage},
 	}
 	for _, rt := range s.routes {
 		s.mux.Handle(rt.method+" "+rt.path, s.wrap(rt))
@@ -198,6 +220,9 @@ func (s *Server) guard(r *http.Request, rt route) (*http.Request, error) {
 		if err != nil {
 			return r, err
 		}
+		if len(rt.roles) > 0 && !slices.Contains(rt.roles, p.Login.Role) {
+			return r, apperr.ErrForbidden
+		}
 		if p.Login.MustChangePassword && !rt.allowMustChange {
 			return r, errMustChangePwd
 		}
@@ -221,15 +246,16 @@ func sameOrigin(r *http.Request) bool {
 	return true
 }
 
+// setSessionCookie: Secure is false only in plain-HTTP local development (api.insecure_dev_http).
 func (s *Server) setSessionCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure depends on dev mode, see above
 		Name: s.cookieName, Value: token, Path: "/",
 		HttpOnly: true, Secure: s.SecureCookies, SameSite: http.SameSiteLaxMode,
 	})
 }
 
 func (s *Server) clearSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure depends on dev mode
 		Name: s.cookieName, Value: "", Path: "/", MaxAge: -1,
 		HttpOnly: true, Secure: s.SecureCookies, SameSite: http.SameSiteLaxMode,
 	})

@@ -28,7 +28,7 @@ func (s *Server) spa() http.Handler {
 					// Vite puts a content hash in every asset name, so they never change.
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 				}
-				http.ServeFileFS(w, r, s.UI, name)
+				http.ServeFileFS(w, r, s.UI, name) //nolint:gosec // G703: name is cleaned and fs.FS cannot leave its root
 				return
 			}
 			if strings.HasPrefix(name, "assets/") {

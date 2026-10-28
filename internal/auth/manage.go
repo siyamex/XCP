@@ -24,7 +24,7 @@ type TOTPSetup struct {
 }
 
 // BeginTOTP creates a pending secret. 2FA is not active until ConfirmTOTP.
-func (s *Service) BeginTOTP(ctx context.Context, c Client, p *Principal) (TOTPSetup, error) {
+func (s *Service) BeginTOTP(ctx context.Context, _ Client, p *Principal) (TOTPSetup, error) {
 	if p.Login.TOTPEnabled() {
 		return TOTPSetup{}, ErrTOTPState
 	}
@@ -175,9 +175,11 @@ func (s *Service) CreateLogin(ctx context.Context, c Client, actor *Principal, i
 		ID: ids.New(), Username: username, Role: in.Role, PasswordHash: hash, Email: email,
 		OwnerID: in.OwnerID, AccountID: in.AccountID, MustChangePassword: in.MustChangePassword,
 	}
-	ev := audit.Event{IP: c.IP, UserAgent: c.UserAgent, RequestID: c.RequestID, Action: "login.create",
+	ev := audit.Event{
+		IP: c.IP, UserAgent: c.UserAgent, RequestID: c.RequestID, Action: "login.create",
 		Result: audit.ResultOK, TargetType: "login", TargetID: l.ID, AccountID: l.AccountID,
-		Details: map[string]any{"username": username, "role": in.Role}}
+		Details: map[string]any{"username": username, "role": in.Role},
+	}
 	if actor != nil {
 		ev.ActorID, ev.ImpersonatorID, ev.Role = actor.Login.ID, actor.Session.ImpersonatorID, actor.Login.Role
 	} else {

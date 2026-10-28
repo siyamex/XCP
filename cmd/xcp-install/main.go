@@ -135,16 +135,27 @@ func osField(osRelease, key string) string {
 	return ""
 }
 
-// serverIPs lists global unicast addresses for the certificate and summary.
+// serverIPs lists global unicast addresses of interfaces that are up and not
+// loopback, for the certificate and summary. (Some systems, like WSL, put a
+// non-127 address on the loopback interface; it is not reachable from outside.)
 func serverIPs() []string {
-	addrs, err := net.InterfaceAddrs()
+	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil
 	}
 	var out []string
-	for _, a := range addrs {
-		if n, ok := a.(*net.IPNet); ok && n.IP.IsGlobalUnicast() && !n.IP.IsLinkLocalUnicast() {
-			out = append(out, n.IP.String())
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, a := range addrs {
+			if n, ok := a.(*net.IPNet); ok && n.IP.IsGlobalUnicast() && !n.IP.IsLinkLocalUnicast() {
+				out = append(out, n.IP.String())
+			}
 		}
 	}
 	return out

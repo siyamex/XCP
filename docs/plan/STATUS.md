@@ -26,6 +26,11 @@ Status: `todo` · `doing` · `done`.
   `peercred_linux_test.go`) pass on Linux (run in CI, and locally with
   Docker: `make test-linux`).
 - `make e2e-install` installs into Ubuntu 24.04 with systemd in Docker.
+- 2026-10-27: installed and tested on an Ubuntu 24.04 WSL2 VM (systemd as
+  PID 1): first install, browser journey (forced password change, 2FA
+  setup, re-login with 2FA), services auto-start when the VM starts,
+  systemd restarts a SIGKILLed xcp-api in ~4 s, binary upgrade through the
+  installer keeps all data, re-run changes nothing.
   Docker cannot test disk quotas, real DNS or public TLS: P1 needs a VM or VPS.
 
 ## Follow-ups noted during P0
@@ -37,6 +42,14 @@ Status: `todo` · `doing` · `done`.
   Playwright suite to `test/e2e/` with the first P1 UI pages.
 - Frontend has no ESLint yet.
 
+## P1 — MVP progress
+
+| Order | Task | Feature IDs | Status | Notes |
+|---|---|---|---|---|
+| 1 | Packages + feature lists | ADM-PKG-01, ADM-PKG-02 | done | `internal/plans`: limits as JSON (null = unlimited), 24-feature catalog, Default list + package on first start, admin-only (403 otherwise), audit in same tx, in-use list cannot be deleted; API `/features`, `/feature-lists`, `/packages`; UI pages Packages + Feature lists. |
+| 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | todo | next |
+| 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | todo | |
+
 ## Features done
 
-None yet (features start in P1).
+ADM-PKG-01, ADM-PKG-02.

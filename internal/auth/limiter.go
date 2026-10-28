@@ -28,8 +28,8 @@ type limitEntry struct {
 const maxLimiterEntries = 100_000
 
 // NewLimiter locks a key for lockFor after max failures within window.
-func NewLimiter(max int, window, lockFor time.Duration) *Limiter {
-	return &Limiter{entries: map[string]*limitEntry{}, max: max, window: window, lockFor: lockFor, now: time.Now}
+func NewLimiter(maxFailures int, window, lockFor time.Duration) *Limiter {
+	return &Limiter{entries: map[string]*limitEntry{}, max: maxFailures, window: window, lockFor: lockFor, now: time.Now}
 }
 
 // Allowed reports whether key may try again, and if not, for how long it is locked.
