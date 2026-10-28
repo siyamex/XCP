@@ -185,3 +185,47 @@ func TestFilesRollBackWhenValidationFails(t *testing.T) {
 		t.Fatal("file not restored after failed removal validation")
 	}
 }
+
+func TestCheckAccount(t *testing.T) {
+	if err := CheckAccount("alice", 10000, "example.com"); err != nil {
+		t.Fatal(err)
+	}
+	bad := map[string]struct {
+		user   string
+		uid    uint32
+		domain string
+	}{
+		"reserved name":   {"root", 10000, ""},
+		"bad name":        {"Alice", 10000, ""},
+		"system uid":      {"alice", 999, ""},
+		"uid too high":    {"alice", 60000, ""},
+		"unnormal domain": {"alice", 10000, "Example.COM"},
+		"bad domain":      {"alice", 10000, "exa mple.com"},
+	}
+	for name, tc := range bad {
+		if err := CheckAccount(tc.user, tc.uid, tc.domain); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+}
+
+func TestSliceBodyAndIndexPage(t *testing.T) {
+	cpu, mem, tasks := uint32(150), uint64(512), uint32(64)
+	got := sliceBody(Limits{CPUPercent: &cpu, MemoryMB: &mem, Tasks: &tasks})
+	want := "[Slice]\nCPUQuota=150%\nMemoryMax=512M\nTasksMax=64\n"
+	if got != want {
+		t.Fatalf("sliceBody =\n%s\nwant\n%s", got, want)
+	}
+	if got := sliceBody(Limits{}); got != "[Slice]\n" {
+		t.Fatalf("unlimited slice = %q", got)
+	}
+	if p := indexPage("<b>x</b>"); strings.Contains(p, "<b>x</b>") {
+		t.Fatalf("domain not escaped: %s", p)
+	}
+	if ShellNone.path() != "/usr/sbin/nologin" || ShellFull.path() != "/bin/bash" {
+		t.Fatal("shell paths wrong")
+	}
+	if SliceName("alice") != "xcp-u-alice.slice" {
+		t.Fatal("slice name")
+	}
+}

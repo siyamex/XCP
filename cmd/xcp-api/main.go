@@ -17,10 +17,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/siyamex/XCP/internal/accounts"
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/config"
 	"github.com/siyamex/XCP/internal/httpapi"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/version"
 	"github.com/siyamex/XCP/web"
 )
@@ -74,8 +76,21 @@ func serve(args []string) error {
 		a.Log.Warn("no logins yet; create the first admin with: xcpctl admin create --username admin")
 	}
 
+	// Jobs run in this process for now (ADR-0003); the queue is persistent,
+	// so a separate xcp-worker can take over later without changes.
+	queue := jobs.NewQueue(a.DB)
+	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent)
+	host, _ := os.Hostname()
+	worker := jobs.NewWorker(queue, fmt.Sprintf("%s:%d", host, os.Getpid()), a.Log)
+	accts.RegisterJobs(worker)
+	workerDone := make(chan struct{})
+	go func() {
+		defer close(workerDone)
+		_ = worker.Run(ctx)
+	}()
+
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})
@@ -112,7 +127,10 @@ func serve(args []string) error {
 	a.Log.Info("xcp-api shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+	err = srv.Shutdown(shutdownCtx)
+	stop()       // also stops the worker if the server failed on its own
+	<-workerDone // let running jobs finish and record their result
+	return err
 }
 
 // requireLoopback stops plain-HTTP dev mode from ever listening on a public address.

@@ -23,6 +23,7 @@ tags:
   - name: me
   - name: system
   - name: plans
+  - name: accounts
 
 paths:
   /health:
@@ -433,6 +434,195 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts:
+    get:
+      tags: [accounts]
+      summary: List hosting accounts (admins)
+      operationId: listAccounts
+      parameters:
+        - { name: search, in: query, schema: { type: string }, description: Part of a username or domain }
+        - { name: status, in: query, schema: { type: string, enum: [creating, active, suspended, terminating, error] } }
+      responses:
+        "200":
+          description: Accounts, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Account" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [accounts]
+      summary: Create a hosting account
+      description: Creates the account and its login; a job then creates the Linux user (status creating, then active).
+      operationId: createAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountCreate" }
+      responses:
+        "202":
+          description: Created; setup continues in the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [accounts]
+      summary: Get an account
+      operationId: getAccount
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [accounts]
+      summary: Change package and contact email
+      operationId: updateAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountUpdate" }
+      responses:
+        "202":
+          description: Saved; limits are re-applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/suspend:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [accounts]
+      summary: Suspend an account
+      operationId: suspendAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason: { type: string, maxLength: 500 }
+      responses:
+        "202":
+          description: Accepted; the change runs as the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/unsuspend:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [accounts]
+      summary: Unsuspend an account
+      operationId: unsuspendAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Accepted; the change runs as the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/password:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [accounts]
+      summary: Set the account login's password
+      operationId: setAccountPassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [password]
+              properties:
+                password: { type: string, minLength: 10 }
+                must_change: { type: boolean }
+      responses:
+        "204": { description: Done. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/terminate:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [accounts]
+      summary: Terminate (delete) an account
+      operationId: terminateAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirm]
+              properties:
+                confirm: { type: string, description: Must equal the username }
+      responses:
+        "202":
+          description: Accepted; the change runs as the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /jobs/{id}:
+    get:
+      tags: [system]
+      summary: Status of a background job (admins)
+      operationId: getJob
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The job.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "404": { $ref: "#/components/responses/Problem" }
+
 security:
   - sessionCookie: []
 
@@ -591,6 +781,57 @@ components:
         feature_list_id: { type: string }
         limits: { $ref: "#/components/schemas/Limits" }
 
+    Account:
+      type: object
+      required: [id, username, uid, primary_domain, email, package_id, package_name, status, status_detail, created_at, updated_at]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        uid: { type: integer }
+        primary_domain: { type: string }
+        email: { type: string }
+        package_id: { type: string }
+        package_name: { type: string }
+        status: { type: string, enum: [creating, active, suspended, terminating, error] }
+        status_detail: { type: string, description: Suspension reason or last error }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        job_id: { type: string, description: Job started by this change }
+
+    AccountCreate:
+      type: object
+      additionalProperties: false
+      required: [username, domain, package_id, password]
+      properties:
+        username: { type: string, pattern: "^[a-z][a-z0-9]{0,15}$" }
+        domain: { type: string }
+        package_id: { type: string }
+        email: { type: string }
+        password: { type: string, minLength: 10 }
+
+    AccountUpdate:
+      type: object
+      additionalProperties: false
+      required: [package_id, email]
+      properties:
+        package_id: { type: string }
+        email: { type: string }
+
+    Job:
+      type: object
+      required: [id, kind, status, progress, attempts, created_at]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, canceled] }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        attempts: { type: integer }
+        error: { type: string }
+        result: { type: object, additionalProperties: true }
+        account_id: { type: string }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+
     Problem:
       type: object
       required: [type, title, status, code]
@@ -601,7 +842,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status]
         detail: { type: string }
         request_id: { type: string }
         errors:

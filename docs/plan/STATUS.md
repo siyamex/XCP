@@ -41,15 +41,23 @@ Status: `todo` · `doing` · `done`.
 - The browser smoke test used in task 9 was a throwaway script; add a real
   Playwright suite to `test/e2e/` with the first P1 UI pages.
 - Frontend has no ESLint yet.
+- Found on the VM: systemd's `RestrictSUIDSGID=` makes `openat2()` fail with
+  ENOSYS, which broke all fsx file access in xcp-agent. Removed it from the
+  agent unit; `xcpctl doctor` now makes the agent write a file, so the CI
+  installer test catches this class of problem.
+- Disk quotas are applied only where the home filesystem has user quotas
+  (not on WSL); `xcp-install` should offer to enable them on a real server.
+- Account job polling in the UI passes the job ID in the URL; replace with
+  router search params once more pages need it.
 
 ## P1 — MVP progress
 
 | Order | Task | Feature IDs | Status | Notes |
 |---|---|---|---|---|
 | 1 | Packages + feature lists | ADM-PKG-01, ADM-PKG-02 | done | `internal/plans`: limits as JSON (null = unlimited), 24-feature catalog, Default list + package on first start, admin-only (403 otherwise), audit in same tx, in-use list cannot be deleted; API `/features`, `/feature-lists`, `/packages`; UI pages Packages + Feature lists. |
-| 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | todo | next |
+| 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | done | `internal/accounts` + agent ops AccountEnsure / AccountSetSuspended / AccountDelete: Linux user (UID 10000+, marked `xcp account`; foreign users refused), home 0711 + public_html 0750 group www-data, systemd slice + login-session limits, quota where supported; create/update/suspend/unsuspend/password/terminate as jobs (in xcp-api, ADR-0003); UI list/create/detail with live job status. Verified end to end on the Ubuntu VM. |
 | 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | todo | |
 
 ## Features done
 
-ADM-PKG-01, ADM-PKG-02.
+ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11.

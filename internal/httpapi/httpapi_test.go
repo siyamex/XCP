@@ -19,9 +19,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/siyamex/XCP/internal/accounts"
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
@@ -61,7 +63,17 @@ func newHarness(t *testing.T) *harness {
 	if err := pl.EnsureDefaults(ctx); err != nil {
 		t.Fatal(err)
 	}
-	api := New(Deps{Auth: svc, Plans: pl, Agent: agentrpc.NewFake(), Log: log})
+	q := jobs.NewQueue(db)
+	fake := agentrpc.NewFake()
+	acc := accounts.NewService(db, rec, svc, pl, q, fake)
+	w := jobs.NewWorker(q, "test", log)
+	w.Poll = 10 * time.Millisecond
+	acc.RegisterJobs(w)
+	runCtx, stopWorker := context.WithCancel(ctx)
+	workerDone := make(chan struct{})
+	go func() { w.Run(runCtx); close(workerDone) }()
+	t.Cleanup(func() { stopWorker(); <-workerDone })
+	api := New(Deps{Auth: svc, Plans: pl, Accounts: acc, Jobs: q, Agent: fake, Log: log})
 	srv := httptest.NewServer(api)
 	t.Cleanup(srv.Close)
 	return &harness{t: t, srv: srv, auth: svc, api: api}

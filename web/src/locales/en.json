@@ -117,7 +117,10 @@
     "name_taken": "That name is already used.",
     "in_use": "It is still in use and cannot be deleted.",
     "not_found": "Not found.",
-    "bad_json": "The request was not valid."
+    "bad_json": "The request was not valid.",
+    "username_taken": "That username is already used.",
+    "domain_taken": "Another account already uses this domain.",
+    "bad_status": "Not possible in the account's current status."
   },
   "packages": {
     "title": "Packages",
@@ -212,5 +215,48 @@
     "apps": "App installer",
     "stats": "Visitor statistics",
     "logs": "Logs"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "new": "New account",
+    "search": "Search username or domain",
+    "allStatuses": "All statuses",
+    "empty": "No accounts yet.",
+    "username": "Username",
+    "usernameHint": "Lowercase letters and digits, starting with a letter. This is also the Linux user name.",
+    "domain": "Primary domain",
+    "package": "Package",
+    "email": "Contact email (optional)",
+    "password": "Password for the account's login",
+    "generate": "Generate",
+    "created": "Created",
+    "uid": "Linux UID",
+    "details": "Details",
+    "status": "Status",
+    "change": "Change package",
+    "saveChanges": "Save changes",
+    "suspend": "Suspend",
+    "suspendReason": "Reason (shown to staff)",
+    "unsuspend": "Unsuspend",
+    "resetPassword": "Reset password",
+    "newPassword": "New password",
+    "mustChange": "Require a new password at next login",
+    "passwordSet": "Password changed. The account was signed out everywhere.",
+    "terminate": "Terminate account",
+    "terminateHelp": "This deletes the account, its Linux user and all files in its home folder. Type the username to confirm.",
+    "terminateConfirm": "Type {{name}} to confirm",
+    "terminated": "The account is being removed.",
+    "job": {
+      "running": "Working on it…",
+      "succeeded": "Done.",
+      "failed": "Failed: {{error}}"
+    },
+    "statuses": {
+      "creating": "Creating",
+      "active": "Active",
+      "suspended": "Suspended",
+      "terminating": "Terminating",
+      "error": "Error"
+    }
   }
 }

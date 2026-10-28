@@ -78,6 +78,8 @@ const (
 	ActionStop    Action = "stop"
 	ActionRestart Action = "restart"
 	ActionReload  Action = "reload"
+	// ActionDaemonReload reloads systemd's unit files; the unit is ignored.
+	ActionDaemonReload Action = "daemon-reload"
 )
 
 // UnitStatus is the state of a systemd unit.
@@ -117,6 +119,9 @@ func (s Systemctl) Status(ctx context.Context, unit string) (UnitStatus, error) 
 // Do implements ServiceManager.
 func (s Systemctl) Do(ctx context.Context, unit string, a Action) error {
 	switch a {
+	case ActionDaemonReload:
+		_, err := s.Run.Run(ctx, execx.Cmd{Path: SystemctlPath, Args: []string{"daemon-reload"}})
+		return err
 	case ActionStart, ActionStop, ActionRestart, ActionReload:
 	default:
 		return invalid("unknown action %q", a)

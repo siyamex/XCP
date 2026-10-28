@@ -116,6 +116,18 @@ func nullable(s string) any {
 
 // Enqueue adds a job and returns its ID.
 func (q *Queue) Enqueue(ctx context.Context, kind string, payload any, opt EnqueueOptions) (string, error) {
+	var id string
+	err := q.db.Tx(ctx, func(tx *sql.Tx) error {
+		var err error
+		id, err = q.EnqueueTx(ctx, tx, kind, payload, opt)
+		return err
+	})
+	return id, err
+}
+
+// EnqueueTx adds a job inside tx, so it is only queued if the change that
+// needs it commits.
+func (q *Queue) EnqueueTx(ctx context.Context, tx *sql.Tx, kind string, payload any, opt EnqueueOptions) (string, error) {
 	if kind == "" {
 		return "", errors.New("jobs: kind is required")
 	}
@@ -131,7 +143,7 @@ func (q *Queue) Enqueue(ctx context.Context, kind string, payload any, opt Enque
 		opt.RunAfter = now
 	}
 	id := ids.At(now)
-	err = q.db.Tx(ctx, func(tx *sql.Tx) error {
+	err = func() error {
 		if opt.Unique {
 			var n int
 			err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM jobs WHERE kind = ? AND COALESCE(lock_key, '') = ?
@@ -148,7 +160,7 @@ func (q *Queue) Enqueue(ctx context.Context, kind string, payload any, opt Enque
 			id, kind, string(b), opt.MaxAttempts, store.FormatTime(opt.RunAfter),
 			nullable(opt.LockKey), nullable(opt.AccountID), nullable(opt.CreatedBy), store.FormatTime(now))
 		return err
-	})
+	}()
 	if err != nil {
 		return "", err
 	}

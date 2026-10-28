@@ -16,7 +16,9 @@ UMask=0022
 PrivateTmp=yes
 ProtectKernelModules=yes
 ProtectKernelTunables=yes
-RestrictSUIDSGID=yes
+# No RestrictSUIDSGID: systemd implements it by making openat2() fail with
+# ENOSYS, and internal/fsx needs openat2 for symlink-safe file access. The
+# agent never creates setuid files (fsx refuses those mode bits).
 LockPersonality=yes
 RestrictRealtime=yes
 SystemCallArchitectures=native

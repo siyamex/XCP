@@ -28,6 +28,7 @@ type Fake struct {
 	registry  *agent.ServiceRegistry
 	dirs      []string
 	failCheck string // non-empty: validated writes fail with this output
+	accounts  fakeUsers
 }
 
 type fakeFile struct {

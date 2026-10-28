@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
 
@@ -127,5 +128,31 @@ func TestRootRefusesWritingHardlinkedFile(t *testing.T) {
 	defer r.Close()
 	if _, err := r.OpenFile("hl", os.O_WRONLY, 0); !errors.Is(err, ErrHardlink) {
 		t.Fatalf("err = %v, want ErrHardlink", err)
+	}
+}
+
+func TestChownNeverFollowsSymlinks(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("chown to another user needs root")
+	}
+	r, outside := attackSetup(t)
+	target := filepath.Join(outside, "secret.txt")
+	before, _ := os.Stat(target)
+	if err := r.Chown("link-file", 4242, 4242); err != nil {
+		t.Fatalf("chown of the symlink itself: %v", err)
+	}
+	if err := r.Chown("link-out/secret.txt", 4242, 4242); !errors.Is(err, ErrSymlink) {
+		t.Fatalf("chown through a symlinked dir: err = %v, want ErrSymlink", err)
+	}
+	after, _ := os.Stat(target)
+	if after.Sys().(*syscall.Stat_t).Uid != before.Sys().(*syscall.Stat_t).Uid {
+		t.Fatal("the file outside the root changed owner")
+	}
+	if err := r.Chown("real/file.txt", 4242, 4243); err != nil {
+		t.Fatal(err)
+	}
+	fi, _ := r.Lstat("real/file.txt")
+	if st := fi.Sys().(*syscall.Stat_t); st.Uid != 4242 || st.Gid != 4243 {
+		t.Fatalf("owner = %d:%d", st.Uid, st.Gid)
 	}
 }

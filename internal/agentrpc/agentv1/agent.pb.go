@@ -138,6 +138,58 @@ func (Validator) EnumDescriptor() ([]byte, []int) {
 	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{1}
 }
 
+type Shell int32
+
+const (
+	Shell_SHELL_UNSPECIFIED Shell = 0 // treated as none
+	Shell_SHELL_NONE        Shell = 1 // no interactive login
+	Shell_SHELL_JAILED      Shell = 2 // jailed shell (bash until the jail exists, P3)
+	Shell_SHELL_FULL        Shell = 3
+)
+
+// Enum value maps for Shell.
+var (
+	Shell_name = map[int32]string{
+		0: "SHELL_UNSPECIFIED",
+		1: "SHELL_NONE",
+		2: "SHELL_JAILED",
+		3: "SHELL_FULL",
+	}
+	Shell_value = map[string]int32{
+		"SHELL_UNSPECIFIED": 0,
+		"SHELL_NONE":        1,
+		"SHELL_JAILED":      2,
+		"SHELL_FULL":        3,
+	}
+)
+
+func (x Shell) Enum() *Shell {
+	p := new(Shell)
+	*p = x
+	return p
+}
+
+func (x Shell) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Shell) Descriptor() protoreflect.EnumDescriptor {
+	return file_xcp_agent_v1_agent_proto_enumTypes[2].Descriptor()
+}
+
+func (Shell) Type() protoreflect.EnumType {
+	return &file_xcp_agent_v1_agent_proto_enumTypes[2]
+}
+
+func (x Shell) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Shell.Descriptor instead.
+func (Shell) EnumDescriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{2}
+}
+
 type PingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -658,6 +710,403 @@ func (x *FileRemoveManagedResponse) GetChanged() bool {
 	return false
 }
 
+// Unset fields mean unlimited.
+type ResourceLimits struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CpuPercent    *uint32                `protobuf:"varint,1,opt,name=cpu_percent,json=cpuPercent,proto3,oneof" json:"cpu_percent,omitempty"` // 100 = one core
+	MemoryMb      *uint64                `protobuf:"varint,2,opt,name=memory_mb,json=memoryMb,proto3,oneof" json:"memory_mb,omitempty"`
+	Tasks         *uint32                `protobuf:"varint,3,opt,name=tasks,proto3,oneof" json:"tasks,omitempty"`                 // processes and threads
+	DiskMb        *uint64                `protobuf:"varint,4,opt,name=disk_mb,json=diskMb,proto3,oneof" json:"disk_mb,omitempty"` // filesystem quota, where supported
+	Inodes        *uint64                `protobuf:"varint,5,opt,name=inodes,proto3,oneof" json:"inodes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResourceLimits) Reset() {
+	*x = ResourceLimits{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceLimits) ProtoMessage() {}
+
+func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceLimits.ProtoReflect.Descriptor instead.
+func (*ResourceLimits) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ResourceLimits) GetCpuPercent() uint32 {
+	if x != nil && x.CpuPercent != nil {
+		return *x.CpuPercent
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetMemoryMb() uint64 {
+	if x != nil && x.MemoryMb != nil {
+		return *x.MemoryMb
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetTasks() uint32 {
+	if x != nil && x.Tasks != nil {
+		return *x.Tasks
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetDiskMb() uint64 {
+	if x != nil && x.DiskMb != nil {
+		return *x.DiskMb
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetInodes() uint64 {
+	if x != nil && x.Inodes != nil {
+		return *x.Inodes
+	}
+	return 0
+}
+
+type AccountEnsureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"` // validated like an XCP username
+	Uid           uint32                 `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"`          // 10000..59999, chosen by the panel
+	Shell         Shell                  `protobuf:"varint,3,opt,name=shell,proto3,enum=xcp.agent.v1.Shell" json:"shell,omitempty"`
+	Limits        *ResourceLimits        `protobuf:"bytes,4,opt,name=limits,proto3" json:"limits,omitempty"`
+	PrimaryDomain string                 `protobuf:"bytes,5,opt,name=primary_domain,json=primaryDomain,proto3" json:"primary_domain,omitempty"` // shown on the default index page
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountEnsureRequest) Reset() {
+	*x = AccountEnsureRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountEnsureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountEnsureRequest) ProtoMessage() {}
+
+func (x *AccountEnsureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountEnsureRequest.ProtoReflect.Descriptor instead.
+func (*AccountEnsureRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AccountEnsureRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AccountEnsureRequest) GetUid() uint32 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+func (x *AccountEnsureRequest) GetShell() Shell {
+	if x != nil {
+		return x.Shell
+	}
+	return Shell_SHELL_UNSPECIFIED
+}
+
+func (x *AccountEnsureRequest) GetLimits() *ResourceLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
+func (x *AccountEnsureRequest) GetPrimaryDomain() string {
+	if x != nil {
+		return x.PrimaryDomain
+	}
+	return ""
+}
+
+type AccountEnsureResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Created       bool                   `protobuf:"varint,1,opt,name=created,proto3" json:"created,omitempty"`                               // the Linux user was created by this call
+	QuotaApplied  bool                   `protobuf:"varint,2,opt,name=quota_applied,json=quotaApplied,proto3" json:"quota_applied,omitempty"` // false when the filesystem has no quota support
+	Home          string                 `protobuf:"bytes,3,opt,name=home,proto3" json:"home,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountEnsureResponse) Reset() {
+	*x = AccountEnsureResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountEnsureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountEnsureResponse) ProtoMessage() {}
+
+func (x *AccountEnsureResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountEnsureResponse.ProtoReflect.Descriptor instead.
+func (*AccountEnsureResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AccountEnsureResponse) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
+func (x *AccountEnsureResponse) GetQuotaApplied() bool {
+	if x != nil {
+		return x.QuotaApplied
+	}
+	return false
+}
+
+func (x *AccountEnsureResponse) GetHome() string {
+	if x != nil {
+		return x.Home
+	}
+	return ""
+}
+
+type AccountSetSuspendedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Suspended     bool                   `protobuf:"varint,2,opt,name=suspended,proto3" json:"suspended,omitempty"`
+	Shell         Shell                  `protobuf:"varint,3,opt,name=shell,proto3,enum=xcp.agent.v1.Shell" json:"shell,omitempty"` // restored on unsuspend
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountSetSuspendedRequest) Reset() {
+	*x = AccountSetSuspendedRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountSetSuspendedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountSetSuspendedRequest) ProtoMessage() {}
+
+func (x *AccountSetSuspendedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountSetSuspendedRequest.ProtoReflect.Descriptor instead.
+func (*AccountSetSuspendedRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AccountSetSuspendedRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AccountSetSuspendedRequest) GetSuspended() bool {
+	if x != nil {
+		return x.Suspended
+	}
+	return false
+}
+
+func (x *AccountSetSuspendedRequest) GetShell() Shell {
+	if x != nil {
+		return x.Shell
+	}
+	return Shell_SHELL_UNSPECIFIED
+}
+
+type AccountSetSuspendedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountSetSuspendedResponse) Reset() {
+	*x = AccountSetSuspendedResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountSetSuspendedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountSetSuspendedResponse) ProtoMessage() {}
+
+func (x *AccountSetSuspendedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountSetSuspendedResponse.ProtoReflect.Descriptor instead.
+func (*AccountSetSuspendedResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{14}
+}
+
+type AccountDeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountDeleteRequest) Reset() {
+	*x = AccountDeleteRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountDeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountDeleteRequest) ProtoMessage() {}
+
+func (x *AccountDeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountDeleteRequest.ProtoReflect.Descriptor instead.
+func (*AccountDeleteRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AccountDeleteRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type AccountDeleteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Deleted       bool                   `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"` // false if the user did not exist
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountDeleteResponse) Reset() {
+	*x = AccountDeleteResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountDeleteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountDeleteResponse) ProtoMessage() {}
+
+func (x *AccountDeleteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountDeleteResponse.ProtoReflect.Descriptor instead.
+func (*AccountDeleteResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AccountDeleteResponse) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
+}
+
 var File_xcp_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_xcp_agent_v1_agent_proto_rawDesc = "" +
@@ -691,7 +1140,40 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x125\n" +
 	"\tvalidator\x18\x02 \x01(\x0e2\x17.xcp.agent.v1.ValidatorR\tvalidator\"5\n" +
 	"\x19FileRemoveManagedResponse\x12\x18\n" +
-	"\achanged\x18\x01 \x01(\bR\achanged*\xb6\x01\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\"\xed\x01\n" +
+	"\x0eResourceLimits\x12$\n" +
+	"\vcpu_percent\x18\x01 \x01(\rH\x00R\n" +
+	"cpuPercent\x88\x01\x01\x12 \n" +
+	"\tmemory_mb\x18\x02 \x01(\x04H\x01R\bmemoryMb\x88\x01\x01\x12\x19\n" +
+	"\x05tasks\x18\x03 \x01(\rH\x02R\x05tasks\x88\x01\x01\x12\x1c\n" +
+	"\adisk_mb\x18\x04 \x01(\x04H\x03R\x06diskMb\x88\x01\x01\x12\x1b\n" +
+	"\x06inodes\x18\x05 \x01(\x04H\x04R\x06inodes\x88\x01\x01B\x0e\n" +
+	"\f_cpu_percentB\f\n" +
+	"\n" +
+	"_memory_mbB\b\n" +
+	"\x06_tasksB\n" +
+	"\n" +
+	"\b_disk_mbB\t\n" +
+	"\a_inodes\"\xcc\x01\n" +
+	"\x14AccountEnsureRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x10\n" +
+	"\x03uid\x18\x02 \x01(\rR\x03uid\x12)\n" +
+	"\x05shell\x18\x03 \x01(\x0e2\x13.xcp.agent.v1.ShellR\x05shell\x124\n" +
+	"\x06limits\x18\x04 \x01(\v2\x1c.xcp.agent.v1.ResourceLimitsR\x06limits\x12%\n" +
+	"\x0eprimary_domain\x18\x05 \x01(\tR\rprimaryDomain\"j\n" +
+	"\x15AccountEnsureResponse\x12\x18\n" +
+	"\acreated\x18\x01 \x01(\bR\acreated\x12#\n" +
+	"\rquota_applied\x18\x02 \x01(\bR\fquotaApplied\x12\x12\n" +
+	"\x04home\x18\x03 \x01(\tR\x04home\"\x81\x01\n" +
+	"\x1aAccountSetSuspendedRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1c\n" +
+	"\tsuspended\x18\x02 \x01(\bR\tsuspended\x12)\n" +
+	"\x05shell\x18\x03 \x01(\x0e2\x13.xcp.agent.v1.ShellR\x05shell\"\x1d\n" +
+	"\x1bAccountSetSuspendedResponse\"2\n" +
+	"\x14AccountDeleteRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"1\n" +
+	"\x15AccountDeleteResponse\x12\x18\n" +
+	"\adeleted\x18\x01 \x01(\bR\adeleted*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -702,13 +1184,23 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x15VALIDATOR_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10VALIDATOR_APACHE\x10\x01\x12\x13\n" +
 	"\x0fVALIDATOR_NGINX\x10\x02\x12\x15\n" +
-	"\x11VALIDATOR_POSTFIX\x10\x032\xca\x03\n" +
+	"\x11VALIDATOR_POSTFIX\x10\x03*P\n" +
+	"\x05Shell\x12\x15\n" +
+	"\x11SHELL_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\n" +
+	"SHELL_NONE\x10\x01\x12\x10\n" +
+	"\fSHELL_JAILED\x10\x02\x12\x0e\n" +
+	"\n" +
+	"SHELL_FULL\x10\x032\xea\x05\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
 	"\rServiceAction\x12\".xcp.agent.v1.ServiceActionRequest\x1a#.xcp.agent.v1.ServiceActionResponse\x12a\n" +
 	"\x10FileWriteManaged\x12%.xcp.agent.v1.FileWriteManagedRequest\x1a&.xcp.agent.v1.FileWriteManagedResponse\x12d\n" +
-	"\x11FileRemoveManaged\x12&.xcp.agent.v1.FileRemoveManagedRequest\x1a'.xcp.agent.v1.FileRemoveManagedResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\x11FileRemoveManaged\x12&.xcp.agent.v1.FileRemoveManagedRequest\x1a'.xcp.agent.v1.FileRemoveManagedResponse\x12X\n" +
+	"\rAccountEnsure\x12\".xcp.agent.v1.AccountEnsureRequest\x1a#.xcp.agent.v1.AccountEnsureResponse\x12j\n" +
+	"\x13AccountSetSuspended\x12(.xcp.agent.v1.AccountSetSuspendedRequest\x1a).xcp.agent.v1.AccountSetSuspendedResponse\x12X\n" +
+	"\rAccountDelete\x12\".xcp.agent.v1.AccountDeleteRequest\x1a#.xcp.agent.v1.AccountDeleteResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -722,41 +1214,58 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_xcp_agent_v1_agent_proto_rawDescData
 }
 
-var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
-	(ServiceActionKind)(0),            // 0: xcp.agent.v1.ServiceActionKind
-	(Validator)(0),                    // 1: xcp.agent.v1.Validator
-	(*PingRequest)(nil),               // 2: xcp.agent.v1.PingRequest
-	(*PingResponse)(nil),              // 3: xcp.agent.v1.PingResponse
-	(*ServiceStatusRequest)(nil),      // 4: xcp.agent.v1.ServiceStatusRequest
-	(*ServiceStatusResponse)(nil),     // 5: xcp.agent.v1.ServiceStatusResponse
-	(*ServiceActionRequest)(nil),      // 6: xcp.agent.v1.ServiceActionRequest
-	(*ServiceActionResponse)(nil),     // 7: xcp.agent.v1.ServiceActionResponse
-	(*FileWriteManagedRequest)(nil),   // 8: xcp.agent.v1.FileWriteManagedRequest
-	(*FileWriteManagedResponse)(nil),  // 9: xcp.agent.v1.FileWriteManagedResponse
-	(*FileRemoveManagedRequest)(nil),  // 10: xcp.agent.v1.FileRemoveManagedRequest
-	(*FileRemoveManagedResponse)(nil), // 11: xcp.agent.v1.FileRemoveManagedResponse
+	(ServiceActionKind)(0),              // 0: xcp.agent.v1.ServiceActionKind
+	(Validator)(0),                      // 1: xcp.agent.v1.Validator
+	(Shell)(0),                          // 2: xcp.agent.v1.Shell
+	(*PingRequest)(nil),                 // 3: xcp.agent.v1.PingRequest
+	(*PingResponse)(nil),                // 4: xcp.agent.v1.PingResponse
+	(*ServiceStatusRequest)(nil),        // 5: xcp.agent.v1.ServiceStatusRequest
+	(*ServiceStatusResponse)(nil),       // 6: xcp.agent.v1.ServiceStatusResponse
+	(*ServiceActionRequest)(nil),        // 7: xcp.agent.v1.ServiceActionRequest
+	(*ServiceActionResponse)(nil),       // 8: xcp.agent.v1.ServiceActionResponse
+	(*FileWriteManagedRequest)(nil),     // 9: xcp.agent.v1.FileWriteManagedRequest
+	(*FileWriteManagedResponse)(nil),    // 10: xcp.agent.v1.FileWriteManagedResponse
+	(*FileRemoveManagedRequest)(nil),    // 11: xcp.agent.v1.FileRemoveManagedRequest
+	(*FileRemoveManagedResponse)(nil),   // 12: xcp.agent.v1.FileRemoveManagedResponse
+	(*ResourceLimits)(nil),              // 13: xcp.agent.v1.ResourceLimits
+	(*AccountEnsureRequest)(nil),        // 14: xcp.agent.v1.AccountEnsureRequest
+	(*AccountEnsureResponse)(nil),       // 15: xcp.agent.v1.AccountEnsureResponse
+	(*AccountSetSuspendedRequest)(nil),  // 16: xcp.agent.v1.AccountSetSuspendedRequest
+	(*AccountSetSuspendedResponse)(nil), // 17: xcp.agent.v1.AccountSetSuspendedResponse
+	(*AccountDeleteRequest)(nil),        // 18: xcp.agent.v1.AccountDeleteRequest
+	(*AccountDeleteResponse)(nil),       // 19: xcp.agent.v1.AccountDeleteResponse
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
 	1,  // 1: xcp.agent.v1.FileWriteManagedRequest.validator:type_name -> xcp.agent.v1.Validator
 	1,  // 2: xcp.agent.v1.FileRemoveManagedRequest.validator:type_name -> xcp.agent.v1.Validator
-	2,  // 3: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
-	4,  // 4: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
-	6,  // 5: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
-	8,  // 6: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
-	10, // 7: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
-	3,  // 8: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	5,  // 9: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	7,  // 10: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	9,  // 11: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	11, // 12: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	2,  // 3: xcp.agent.v1.AccountEnsureRequest.shell:type_name -> xcp.agent.v1.Shell
+	13, // 4: xcp.agent.v1.AccountEnsureRequest.limits:type_name -> xcp.agent.v1.ResourceLimits
+	2,  // 5: xcp.agent.v1.AccountSetSuspendedRequest.shell:type_name -> xcp.agent.v1.Shell
+	3,  // 6: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
+	5,  // 7: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
+	7,  // 8: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
+	9,  // 9: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
+	11, // 10: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
+	14, // 11: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
+	16, // 12: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
+	18, // 13: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
+	4,  // 14: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	6,  // 15: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	8,  // 16: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	10, // 17: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	12, // 18: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	15, // 19: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	17, // 20: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	19, // 21: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_xcp_agent_v1_agent_proto_init() }
@@ -764,13 +1273,14 @@ func file_xcp_agent_v1_agent_proto_init() {
 	if File_xcp_agent_v1_agent_proto != nil {
 		return
 	}
+	file_xcp_agent_v1_agent_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   10,
+			NumEnums:      3,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

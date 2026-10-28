@@ -87,6 +87,8 @@ func (s sysRoot) chmod(rel string, mode fs.FileMode) error {
 	return s.root.Chmod(rel, mode)
 }
 
+func (s sysRoot) chown(rel string, uid, gid int) error { return s.root.Lchown(rel, uid, gid) }
+
 func (s sysRoot) writeFileAtomic(rel string, data []byte, perm fs.FileMode) (err error) {
 	if err := s.noSymlink(rel); err != nil {
 		return err

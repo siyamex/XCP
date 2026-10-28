@@ -12,20 +12,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/siyamex/XCP/internal/accounts"
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/ids"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
 )
 
 // Deps are the services the HTTP layer needs.
 type Deps struct {
-	Auth  *auth.Service
-	Plans *plans.Service
-	Agent agentrpc.Client
-	Log   *slog.Logger
+	Auth     *auth.Service
+	Plans    *plans.Service
+	Accounts *accounts.Service
+	Jobs     *jobs.Queue
+	Agent    agentrpc.Client
+	Log      *slog.Logger
 	// SecureCookies is false only in local development over plain HTTP
 	// (api.insecure_dev_http); it also controls HSTS.
 	SecureCookies bool
@@ -98,6 +102,16 @@ func New(d Deps) *Server {
 		{method: "GET", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.getPackage},
 		{method: "PUT", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.updatePackage},
 		{method: "DELETE", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.deletePackage},
+
+		{method: "GET", path: "/api/v1/accounts", access: authed, roles: adminOnly, h: s.listAccounts},
+		{method: "POST", path: "/api/v1/accounts", access: authed, roles: adminOnly, h: s.createAccount},
+		{method: "GET", path: "/api/v1/accounts/{id}", access: authed, roles: adminOnly, h: s.getAccount},
+		{method: "PUT", path: "/api/v1/accounts/{id}", access: authed, roles: adminOnly, h: s.updateAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/suspend", access: authed, roles: adminOnly, h: s.suspendAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/unsuspend", access: authed, roles: adminOnly, h: s.unsuspendAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/password", access: authed, roles: adminOnly, h: s.setAccountPassword},
+		{method: "POST", path: "/api/v1/accounts/{id}/terminate", access: authed, roles: adminOnly, h: s.terminateAccount},
+		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOnly, h: s.getJob},
 	}
 	for _, rt := range s.routes {
 		s.mux.Handle(rt.method+" "+rt.path, s.wrap(rt))

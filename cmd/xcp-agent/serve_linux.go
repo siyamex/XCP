@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SystemctlPath}
+	allowed := []string{agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath}
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
 	}
@@ -74,7 +74,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Registry: agent.NewServiceRegistry(agent.UbuntuServices()),
 			Manager:  agent.Systemctl{Run: runner},
 		},
-		Files:    files,
+		Files: files,
+		Accounts: &agent.Accounts{
+			Run: runner, HomesRoot: cfg.Paths.HomesRoot, UnitDir: "/etc/systemd/system",
+			WebGroup: "www-data", Services: agent.Systemctl{Run: runner},
+		},
 		Version:  version.Version,
 		Hostname: hostname,
 		Log:      log,

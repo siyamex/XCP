@@ -28,11 +28,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentService_Ping_FullMethodName              = "/xcp.agent.v1.AgentService/Ping"
-	AgentService_ServiceStatus_FullMethodName     = "/xcp.agent.v1.AgentService/ServiceStatus"
-	AgentService_ServiceAction_FullMethodName     = "/xcp.agent.v1.AgentService/ServiceAction"
-	AgentService_FileWriteManaged_FullMethodName  = "/xcp.agent.v1.AgentService/FileWriteManaged"
-	AgentService_FileRemoveManaged_FullMethodName = "/xcp.agent.v1.AgentService/FileRemoveManaged"
+	AgentService_Ping_FullMethodName                = "/xcp.agent.v1.AgentService/Ping"
+	AgentService_ServiceStatus_FullMethodName       = "/xcp.agent.v1.AgentService/ServiceStatus"
+	AgentService_ServiceAction_FullMethodName       = "/xcp.agent.v1.AgentService/ServiceAction"
+	AgentService_FileWriteManaged_FullMethodName    = "/xcp.agent.v1.AgentService/FileWriteManaged"
+	AgentService_FileRemoveManaged_FullMethodName   = "/xcp.agent.v1.AgentService/FileRemoveManaged"
+	AgentService_AccountEnsure_FullMethodName       = "/xcp.agent.v1.AgentService/AccountEnsure"
+	AgentService_AccountSetSuspended_FullMethodName = "/xcp.agent.v1.AgentService/AccountSetSuspended"
+	AgentService_AccountDelete_FullMethodName       = "/xcp.agent.v1.AgentService/AccountDelete"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -51,6 +54,15 @@ type AgentServiceClient interface {
 	FileWriteManaged(ctx context.Context, in *FileWriteManagedRequest, opts ...grpc.CallOption) (*FileWriteManagedResponse, error)
 	// FileRemoveManaged removes a generated config file (same rules as write).
 	FileRemoveManaged(ctx context.Context, in *FileRemoveManagedRequest, opts ...grpc.CallOption) (*FileRemoveManagedResponse, error)
+	// AccountEnsure creates or updates the Linux side of a hosting account:
+	// user and group, home folder layout, resource limits (systemd slice) and
+	// disk quota where the filesystem supports it. Idempotent.
+	AccountEnsure(ctx context.Context, in *AccountEnsureRequest, opts ...grpc.CallOption) (*AccountEnsureResponse, error)
+	// AccountSetSuspended locks or unlocks an account's Linux user.
+	AccountSetSuspended(ctx context.Context, in *AccountSetSuspendedRequest, opts ...grpc.CallOption) (*AccountSetSuspendedResponse, error)
+	// AccountDelete stops the user's processes and removes the Linux user, its
+	// home folder and its slice. It refuses users that XCP did not create.
+	AccountDelete(ctx context.Context, in *AccountDeleteRequest, opts ...grpc.CallOption) (*AccountDeleteResponse, error)
 }
 
 type agentServiceClient struct {
@@ -111,6 +123,36 @@ func (c *agentServiceClient) FileRemoveManaged(ctx context.Context, in *FileRemo
 	return out, nil
 }
 
+func (c *agentServiceClient) AccountEnsure(ctx context.Context, in *AccountEnsureRequest, opts ...grpc.CallOption) (*AccountEnsureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountEnsureResponse)
+	err := c.cc.Invoke(ctx, AgentService_AccountEnsure_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) AccountSetSuspended(ctx context.Context, in *AccountSetSuspendedRequest, opts ...grpc.CallOption) (*AccountSetSuspendedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountSetSuspendedResponse)
+	err := c.cc.Invoke(ctx, AgentService_AccountSetSuspended_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) AccountDelete(ctx context.Context, in *AccountDeleteRequest, opts ...grpc.CallOption) (*AccountDeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountDeleteResponse)
+	err := c.cc.Invoke(ctx, AgentService_AccountDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -127,6 +169,15 @@ type AgentServiceServer interface {
 	FileWriteManaged(context.Context, *FileWriteManagedRequest) (*FileWriteManagedResponse, error)
 	// FileRemoveManaged removes a generated config file (same rules as write).
 	FileRemoveManaged(context.Context, *FileRemoveManagedRequest) (*FileRemoveManagedResponse, error)
+	// AccountEnsure creates or updates the Linux side of a hosting account:
+	// user and group, home folder layout, resource limits (systemd slice) and
+	// disk quota where the filesystem supports it. Idempotent.
+	AccountEnsure(context.Context, *AccountEnsureRequest) (*AccountEnsureResponse, error)
+	// AccountSetSuspended locks or unlocks an account's Linux user.
+	AccountSetSuspended(context.Context, *AccountSetSuspendedRequest) (*AccountSetSuspendedResponse, error)
+	// AccountDelete stops the user's processes and removes the Linux user, its
+	// home folder and its slice. It refuses users that XCP did not create.
+	AccountDelete(context.Context, *AccountDeleteRequest) (*AccountDeleteResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -151,6 +202,15 @@ func (UnimplementedAgentServiceServer) FileWriteManaged(context.Context, *FileWr
 }
 func (UnimplementedAgentServiceServer) FileRemoveManaged(context.Context, *FileRemoveManagedRequest) (*FileRemoveManagedResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FileRemoveManaged not implemented")
+}
+func (UnimplementedAgentServiceServer) AccountEnsure(context.Context, *AccountEnsureRequest) (*AccountEnsureResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AccountEnsure not implemented")
+}
+func (UnimplementedAgentServiceServer) AccountSetSuspended(context.Context, *AccountSetSuspendedRequest) (*AccountSetSuspendedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AccountSetSuspended not implemented")
+}
+func (UnimplementedAgentServiceServer) AccountDelete(context.Context, *AccountDeleteRequest) (*AccountDeleteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AccountDelete not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -263,6 +323,60 @@ func _AgentService_FileRemoveManaged_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_AccountEnsure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountEnsureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).AccountEnsure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_AccountEnsure_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).AccountEnsure(ctx, req.(*AccountEnsureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_AccountSetSuspended_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountSetSuspendedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).AccountSetSuspended(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_AccountSetSuspended_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).AccountSetSuspended(ctx, req.(*AccountSetSuspendedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_AccountDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccountDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).AccountDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_AccountDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).AccountDelete(ctx, req.(*AccountDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -289,6 +403,18 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FileRemoveManaged",
 			Handler:    _AgentService_FileRemoveManaged_Handler,
+		},
+		{
+			MethodName: "AccountEnsure",
+			Handler:    _AgentService_AccountEnsure_Handler,
+		},
+		{
+			MethodName: "AccountSetSuspended",
+			Handler:    _AgentService_AccountSetSuspended_Handler,
+		},
+		{
+			MethodName: "AccountDelete",
+			Handler:    _AgentService_AccountDelete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

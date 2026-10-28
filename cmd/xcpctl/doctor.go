@@ -144,7 +144,16 @@ func checkAgent(cfg config.Agent) checkResult {
 	if err != nil {
 		return checkResult{"agent", statusFail, fmt.Sprintf("%s: %v (is xcp-agent running?)", cfg.Socket, err)}
 	}
-	return checkResult{"agent", statusOK, fmt.Sprintf("xcp-agent %s on %s", p.GetVersion(), p.GetHostname())}
+	// A real write exercises the agent's safe file access (openat2) inside its
+	// systemd sandbox, which a ping alone would not.
+	const probe = "/etc/xcp/generated/doctor-probe"
+	if _, err := c.FileWriteManaged(ctx, &agentv1.FileWriteManagedRequest{Path: probe, Content: []byte("ok\n"), Mode: 0o644}); err != nil {
+		return checkResult{"agent", statusFail, fmt.Sprintf("xcp-agent %s answers, but cannot write files: %v", p.GetVersion(), err)}
+	}
+	if _, err := c.FileRemoveManaged(ctx, &agentv1.FileRemoveManagedRequest{Path: probe}); err != nil {
+		return checkResult{"agent", statusFail, fmt.Sprintf("xcp-agent cannot remove files: %v", err)}
+	}
+	return checkResult{"agent", statusOK, fmt.Sprintf("xcp-agent %s on %s (file access OK)", p.GetVersion(), p.GetHostname())}
 }
 
 func checkAPI(cfg config.Config) checkResult {

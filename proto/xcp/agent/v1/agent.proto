@@ -29,6 +29,18 @@ service AgentService {
 
   // FileRemoveManaged removes a generated config file (same rules as write).
   rpc FileRemoveManaged(FileRemoveManagedRequest) returns (FileRemoveManagedResponse);
+
+  // AccountEnsure creates or updates the Linux side of a hosting account:
+  // user and group, home folder layout, resource limits (systemd slice) and
+  // disk quota where the filesystem supports it. Idempotent.
+  rpc AccountEnsure(AccountEnsureRequest) returns (AccountEnsureResponse);
+
+  // AccountSetSuspended locks or unlocks an account's Linux user.
+  rpc AccountSetSuspended(AccountSetSuspendedRequest) returns (AccountSetSuspendedResponse);
+
+  // AccountDelete stops the user's processes and removes the Linux user, its
+  // home folder and its slice. It refuses users that XCP did not create.
+  rpc AccountDelete(AccountDeleteRequest) returns (AccountDeleteResponse);
 }
 
 message PingRequest {}
@@ -100,4 +112,50 @@ message FileRemoveManagedRequest {
 
 message FileRemoveManagedResponse {
   bool changed = 1;  // false if the file did not exist
+}
+
+enum Shell {
+  SHELL_UNSPECIFIED = 0;  // treated as none
+  SHELL_NONE = 1;         // no interactive login
+  SHELL_JAILED = 2;       // jailed shell (bash until the jail exists, P3)
+  SHELL_FULL = 3;
+}
+
+// Unset fields mean unlimited.
+message ResourceLimits {
+  optional uint32 cpu_percent = 1;  // 100 = one core
+  optional uint64 memory_mb = 2;
+  optional uint32 tasks = 3;        // processes and threads
+  optional uint64 disk_mb = 4;      // filesystem quota, where supported
+  optional uint64 inodes = 5;
+}
+
+message AccountEnsureRequest {
+  string username = 1;        // validated like an XCP username
+  uint32 uid = 2;             // 10000..59999, chosen by the panel
+  Shell shell = 3;
+  ResourceLimits limits = 4;
+  string primary_domain = 5;  // shown on the default index page
+}
+
+message AccountEnsureResponse {
+  bool created = 1;        // the Linux user was created by this call
+  bool quota_applied = 2;  // false when the filesystem has no quota support
+  string home = 3;
+}
+
+message AccountSetSuspendedRequest {
+  string username = 1;
+  bool suspended = 2;
+  Shell shell = 3;  // restored on unsuspend
+}
+
+message AccountSetSuspendedResponse {}
+
+message AccountDeleteRequest {
+  string username = 1;
+}
+
+message AccountDeleteResponse {
+  bool deleted = 1;  // false if the user did not exist
 }

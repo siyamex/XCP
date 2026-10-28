@@ -181,7 +181,14 @@ func SavePackage(ctx context.Context, q querier, p *Package, insert bool) error 
 	return err
 }
 
-// DeletePackage removes a package. (Accounts using it are checked once accounts exist.)
+// DeletePackage removes a package. It fails with ErrInUse while accounts use it.
 func DeletePackage(ctx context.Context, q querier, id string) error {
+	n, err := PackageInUse(ctx, q, id)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return ErrInUse
+	}
 	return execOne(ctx, q, `DELETE FROM packages WHERE id = ?`, id)
 }

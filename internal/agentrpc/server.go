@@ -20,6 +20,7 @@ type Server struct {
 
 	Services agent.Services
 	Files    *agent.Files
+	Accounts *agent.Accounts
 	Version  string
 	Hostname string
 	Log      *slog.Logger
@@ -106,6 +107,8 @@ func (s *Server) toStatus(err error) error {
 	switch {
 	case errors.Is(err, agent.ErrInvalidRequest):
 		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, agent.ErrNotOurUser):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, agent.ErrNotInstalled):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.As(err, &vf):

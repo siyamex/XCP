@@ -323,12 +323,16 @@ func (s *Service) DeletePackage(ctx context.Context, c auth.Client, p *auth.Prin
 	if err != nil {
 		return err
 	}
-	return s.db.Tx(ctx, func(tx *sql.Tx) error {
+	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
 		if err := store.DeletePackage(ctx, tx, id); err != nil {
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "package.delete", "package", id, map[string]any{"name": pk.Name}))
 	})
+	if errors.Is(err, store.ErrInUse) {
+		return apperr.NewConflict("in_use", "accounts still use this package; move them to another package first")
+	}
+	return err
 }
 
 // EnsureDefaults creates the "Default" feature list and package on a new

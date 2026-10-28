@@ -168,6 +168,17 @@ func (s sysRoot) chmod(rel string, mode fs.FileMode) error {
 	return unix.Fchmodat(unix.AT_FDCWD, "/proc/self/fd/"+strconv.Itoa(fd), uint32(mode.Perm()), 0)
 }
 
+func (s sysRoot) chown(rel string, uid, gid int) error {
+	// O_PATH|O_NOFOLLOW gives an fd for the entry itself, even a symlink;
+	// fchownat with AT_EMPTY_PATH then changes exactly that inode.
+	fd, err := s.open(rel, unix.O_PATH|unix.O_NOFOLLOW, 0)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(fd)
+	return unix.Fchownat(fd, "", uid, gid, unix.AT_EMPTY_PATH)
+}
+
 func (s sysRoot) writeFileAtomic(rel string, data []byte, perm fs.FileMode) (err error) {
 	dfd, base, err := s.parent(rel, unix.O_RDONLY)
 	if err != nil {
@@ -219,7 +230,8 @@ func mapErr(err error) error {
 	case errors.Is(err, unix.EXDEV):
 		return ErrEscape
 	case errors.Is(err, unix.ENOSYS):
-		return errors.New("fsx: openat2 not supported (Linux 5.6+ required)")
+		return errors.New("fsx: openat2 is unavailable: kernel older than 5.6, or blocked by a seccomp filter " +
+			"(systemd's RestrictSUIDSGID= does this)")
 	}
 	return err // unix.Errno already matches fs.ErrNotExist, fs.ErrExist, fs.ErrPermission
 }

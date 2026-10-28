@@ -237,6 +237,16 @@ func (r *Root) Chmod(rel string, mode fs.FileMode) error {
 	return pathErr("chmod", c, r.sys.chmod(c, mode))
 }
 
+// Chown sets the owner of rel (or of the root itself for "."). It never
+// follows a symlink: a symlink's own owner is changed, not its target's.
+func (r *Root) Chown(rel string, uid, gid int) error {
+	c, err := CleanRel(rel)
+	if err != nil {
+		return pathErr("chown", rel, err)
+	}
+	return pathErr("chown", c, r.sys.chown(c, uid, gid))
+}
+
 // WriteFileAtomic writes data to a temp file in the same directory, fsyncs it,
 // and renames it over rel, so readers see the old or the new content, never half.
 func (r *Root) WriteFileAtomic(rel string, data []byte, perm fs.FileMode) error {

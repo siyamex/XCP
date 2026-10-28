@@ -130,6 +130,15 @@ func hashRecoveryCode(normalized string) []byte {
 	return h[:]
 }
 
+// HashPassword validates a new password against the policy and hashes it,
+// for callers that create logins inside their own transaction.
+func (s *Service) HashPassword(ctx context.Context, password string) (string, error) {
+	if err := validate.WithField(validate.Password(password), "password"); err != nil {
+		return "", err
+	}
+	return s.hasher.Hash(ctx, password)
+}
+
 // NewLogin describes a login to create.
 type NewLogin struct {
 	Username           string
