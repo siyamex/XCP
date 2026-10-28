@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -54,11 +55,12 @@ type System interface {
 	// CreateFirstAdmin runs `xcpctl admin create --if-none`; it reports whether a login was created.
 	CreateFirstAdmin(ctx context.Context, username, password string, mustChange bool) (created bool, err error)
 	WaitHealthy(ctx context.Context, url string, caPEM []byte) error
-	// InstallWebStack installs Apache and PHP-FPM and enables the Apache
-	// modules XCP needs. It reports whether anything was installed.
+	// InstallWebStack installs Apache and PHP-FPM, enables the Apache modules
+	// XCP needs and makes sure both services run at boot and now. It reports
+	// whether anything was installed.
 	InstallWebStack(ctx context.Context) (installed bool, err error)
-	// EnableApacheConf enables conf-available/xcp.conf and reloads Apache.
-	EnableApacheConf(ctx context.Context) error
+	// EnableApacheSite enables sites-available/xcp.conf and reloads Apache.
+	EnableApacheSite(ctx context.Context) error
 }
 
 // Options configure an install.
@@ -359,8 +361,11 @@ func (in *installer) units(context.Context) error {
 	return nil
 }
 
-// ApacheConf includes the per-account virtual hosts the agent writes.
-const ApacheConf = "/etc/apache2/conf-available/xcp.conf"
+// ApacheConf includes the per-account virtual hosts the agent writes. It is
+// a site, not a conf: Apache reads sites-enabled after conf-enabled and in
+// name order, so 000-default stays the default host and a request for an
+// unknown name never lands on a customer's site.
+const ApacheConf = "/etc/apache2/sites-available/xcp.conf"
 
 const apacheConfBody = "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
 	"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n"
@@ -371,7 +376,7 @@ func (in *installer) web(ctx context.Context) error {
 		return nil
 	}
 	if in.o.DryRun {
-		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers")
+		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers, start both")
 		_, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
 		return err
 	}
@@ -382,7 +387,8 @@ func (in *installer) web(ctx context.Context) error {
 	if installed {
 		in.changed("installed apache2 and php-fpm")
 	}
-	if err := os.MkdirAll(in.path("/etc/apache2/conf-available"), 0o755); err != nil {
+	// Apache's own config folder: world-readable like the rest of /etc/apache2.
+	if err := os.MkdirAll(in.path(path.Dir(ApacheConf)), 0o755); err != nil { //nolint:gosec // G301: see above
 		return err
 	}
 	wrote, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
@@ -390,7 +396,7 @@ func (in *installer) web(ctx context.Context) error {
 		return err
 	}
 	if wrote || installed {
-		return in.o.Sys.EnableApacheConf(ctx)
+		return in.o.Sys.EnableApacheSite(ctx)
 	}
 	return nil
 }

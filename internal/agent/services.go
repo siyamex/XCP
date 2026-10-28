@@ -78,6 +78,8 @@ const (
 	ActionStop    Action = "stop"
 	ActionRestart Action = "restart"
 	ActionReload  Action = "reload"
+	// ActionReloadOrRestart reloads a running unit and starts a stopped one.
+	ActionReloadOrRestart Action = "reload-or-restart"
 	// ActionDaemonReload reloads systemd's unit files; the unit is ignored.
 	ActionDaemonReload Action = "daemon-reload"
 )
@@ -122,7 +124,7 @@ func (s Systemctl) Do(ctx context.Context, unit string, a Action) error {
 	case ActionDaemonReload:
 		_, err := s.Run.Run(ctx, execx.Cmd{Path: SystemctlPath, Args: []string{"daemon-reload"}})
 		return err
-	case ActionStart, ActionStop, ActionRestart, ActionReload:
+	case ActionStart, ActionStop, ActionRestart, ActionReload, ActionReloadOrRestart:
 	default:
 		return invalid("unknown action %q", a)
 	}

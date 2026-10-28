@@ -49,7 +49,10 @@ func TestParseShow(t *testing.T) {
 	}
 }
 
-type fakeManager struct{ calls []string }
+type fakeManager struct {
+	calls []string
+	fail  string // unit whose actions fail
+}
 
 func (m *fakeManager) Status(_ context.Context, unit string) (UnitStatus, error) {
 	m.calls = append(m.calls, "status "+unit)
@@ -58,6 +61,9 @@ func (m *fakeManager) Status(_ context.Context, unit string) (UnitStatus, error)
 
 func (m *fakeManager) Do(_ context.Context, unit string, a Action) error {
 	m.calls = append(m.calls, string(a)+" "+unit)
+	if unit == m.fail {
+		return errors.New(unit + " failed")
+	}
 	return nil
 }
 

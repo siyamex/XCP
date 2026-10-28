@@ -61,8 +61,8 @@ func (f *fakeSys) InstallWebStack(context.Context) (bool, error) {
 	return installed, nil
 }
 
-func (f *fakeSys) EnableApacheConf(context.Context) error {
-	f.calls = append(f.calls, "a2enconf xcp")
+func (f *fakeSys) EnableApacheSite(context.Context) error {
+	f.calls = append(f.calls, "a2ensite xcp")
 	return nil
 }
 
@@ -161,7 +161,7 @@ func TestFirstInstall(t *testing.T) {
 		}
 	}
 	want := []string{
-		"useradd xcp", "web install", "a2enconf xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
+		"useradd xcp", "web install", "a2ensite xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
 		"systemctl restart xcp-agent.service xcp-api.service", "health", "admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {

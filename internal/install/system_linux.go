@@ -27,7 +27,7 @@ const (
 	xcpctlPath    = "/usr/bin/xcpctl"
 	aptGetPath    = "/usr/bin/apt-get"
 	a2enmodPath   = "/usr/sbin/a2enmod"
-	a2enconfPath  = "/usr/sbin/a2enconf"
+	a2ensitePath  = "/usr/sbin/a2ensite"
 )
 
 // LinuxSystem is the real System for Ubuntu/Debian.
@@ -37,7 +37,7 @@ type LinuxSystem struct {
 
 // NewLinuxSystem returns the production System.
 func NewLinuxSystem() (*LinuxSystem, error) {
-	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath, aptGetPath, a2enmodPath, a2enconfPath)
+	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath, aptGetPath, a2enmodPath, a2ensitePath)
 	if err != nil {
 		return nil, err
 	}
@@ -120,13 +120,22 @@ func (s *LinuxSystem) WaitHealthy(ctx context.Context, url string, caPEM []byte)
 	return fmt.Errorf("xcp-api did not become healthy at %s: %w (see: journalctl -u xcp-api)", url, last)
 }
 
+// fpmUnits returns the systemd units of the installed PHP-FPM versions.
+func fpmUnits() []string {
+	var units []string
+	bins, _ := filepath.Glob("/usr/sbin/php-fpm[0-9]*")
+	for _, b := range bins {
+		units = append(units, "php"+strings.TrimPrefix(filepath.Base(b), "php-fpm")+"-fpm.service")
+	}
+	return units
+}
+
 // webStackInstalled reports whether Apache and at least one PHP-FPM exist.
 func webStackInstalled() bool {
 	if _, err := os.Stat("/usr/sbin/apachectl"); err != nil {
 		return false
 	}
-	m, _ := filepath.Glob("/usr/sbin/php-fpm[0-9]*")
-	return len(m) > 0
+	return len(fpmUnits()) > 0
 }
 
 // InstallWebStack implements System.
@@ -134,12 +143,17 @@ func (s *LinuxSystem) InstallWebStack(ctx context.Context) (bool, error) {
 	installed := false
 	if !webStackInstalled() {
 		env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
-		if _, err := s.run.Run(ctx, execx.Cmd{Path: aptGetPath, Args: []string{"update", "-q"}, Env: env, Timeout: 10 * time.Minute}); err != nil {
+		// On a freshly booted server unattended-upgrades often holds the
+		// package lock for a few minutes: wait for it instead of failing.
+		lock := []string{"-o", "DPkg::Lock::Timeout=600"}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: append(lock, "update", "-q"), Env: env, Timeout: 20 * time.Minute,
+		}); err != nil {
 			return false, fmt.Errorf("apt-get update: %w", err)
 		}
 		if _, err := s.run.Run(ctx, execx.Cmd{
-			Path: aptGetPath, Args: []string{"install", "-y", "-q", "--no-install-recommends", "apache2", "php-fpm"},
-			Env: env, Timeout: 20 * time.Minute,
+			Path: aptGetPath, Args: append(lock, "install", "-y", "-q", "--no-install-recommends", "apache2", "php-fpm"),
+			Env: env, Timeout: 30 * time.Minute,
 		}); err != nil {
 			return false, fmt.Errorf("apt-get install apache2 php-fpm: %w", err)
 		}
@@ -148,16 +162,15 @@ func (s *LinuxSystem) InstallWebStack(ctx context.Context) (bool, error) {
 	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enmodPath, Args: []string{"-q", "proxy_fcgi", "setenvif", "rewrite", "headers"}}); err != nil {
 		return installed, fmt.Errorf("a2enmod: %w", err)
 	}
-	return installed, nil
+	// Packages normally start their services, but not where a policy-rc.d
+	// forbids it (containers, some images), and an admin may have stopped one.
+	return installed, s.Systemctl(ctx, append([]string{"enable", "--now", "apache2.service"}, fpmUnits()...)...)
 }
 
-// EnableApacheConf implements System.
-func (s *LinuxSystem) EnableApacheConf(ctx context.Context) error {
-	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enconfPath, Args: []string{"-q", "xcp"}}); err != nil {
-		return fmt.Errorf("a2enconf xcp: %w", err)
-	}
-	if err := s.Systemctl(ctx, "enable", "--now", "apache2.service"); err != nil {
-		return err
+// EnableApacheSite implements System.
+func (s *LinuxSystem) EnableApacheSite(ctx context.Context) error {
+	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2ensitePath, Args: []string{"-q", "xcp"}}); err != nil {
+		return fmt.Errorf("a2ensite xcp: %w", err)
 	}
 	return s.Systemctl(ctx, "reload-or-restart", "apache2.service")
 }

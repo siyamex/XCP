@@ -77,6 +77,8 @@ st, body = site("site1.xcp.test")
 check(st == 200 and "site1.xcp.test</b> is hosted with XCP" in body, "site1 default page served by Apache", f"{st} {body[:80]}")
 st, body = site("www.site2.xcp.test")
 check(st == 200 and "site2.xcp.test" in body, "www alias of site2 works", f"{st} {body[:80]}")
+st, body = site("unknown.example")
+check("hosted with XCP" not in body, "an unknown host name does not get a customer's site", body[:80])
 
 as_user("site1", "/home/site1/public_html/whoami.php",
         "<?php echo posix_getpwuid(posix_geteuid())['name'], '|', @file_get_contents('/etc/passwd') === false ? 'passwd-blocked' : 'PASSWD-READABLE', '|', ini_get('open_basedir');")

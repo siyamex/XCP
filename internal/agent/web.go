@@ -92,14 +92,21 @@ type Web struct {
 	SuspendedDir string // /var/www/xcp-suspended
 	LogDir       string // /var/log/apache2/xcp
 	WebUser      string // www-data
-	mu           sync.Mutex
+	// Check validates the written configuration; nil runs "apachectl -t"
+	// and "php-fpmX.Y -t" for every installed version.
+	Check func(ctx context.Context, phpVersions []string) error
+	mu    sync.Mutex
+}
+
+func (w *Web) poolDir(version string) string {
+	return filepath.Join(w.PHPDir, version, "fpm", "pool.d")
 }
 
 // PHPVersions returns the installed PHP-FPM versions, oldest first.
 func (w *Web) PHPVersions() []string {
 	var out []string
 	for _, v := range knownPHPVersions() {
-		if _, err := os.Stat(filepath.Join(w.PHPDir, v, "fpm", "pool.d")); err == nil {
+		if _, err := os.Stat(w.poolDir(v)); err == nil {
 			if _, err := os.Stat("/usr/sbin/php-fpm" + v); err == nil {
 				out = append(out, v)
 			}
@@ -163,10 +170,14 @@ type siteData struct {
 	Aliases                                                       []string
 }
 
+// data prepares the template fields. The socket name includes the PHP
+// version: when a site switches version, the old FPM unlinks its socket on
+// reload, which must not be the new FPM's socket.
 func (w *Web) data(s Site) siteData {
 	d := siteData{
 		Site: s, Primary: s.Domains[0], Home: path.Join(w.HomesRoot, s.Username),
-		Socket: "/run/php/xcp-" + s.Username + ".sock", SuspendedDir: w.SuspendedDir, LogDir: w.LogDir, WebUser: w.WebUser,
+		Socket:       "/run/php/xcp-" + s.Username + "-" + s.PHPVersion + ".sock",
+		SuspendedDir: w.SuspendedDir, LogDir: w.LogDir, WebUser: w.WebUser,
 	}
 	d.DocRoot = d.Home + "/public_html"
 	d.Aliases = []string{"www." + s.Domains[0]}
@@ -191,7 +202,12 @@ func render(t *template.Template, d siteData) []byte {
 type managedFile struct {
 	dir, name string
 	content   []byte // nil = must not exist
+	unit      string // the service that reads it
 }
+
+const apacheUnit = "apache2.service"
+
+func fpmUnit(version string) string { return "php" + version + "-fpm.service" }
 
 // SiteResult reports what Apply did.
 type SiteResult struct {
@@ -219,10 +235,11 @@ func (w *Web) Apply(ctx context.Context, s Site) (SiteResult, error) {
 	if !slices.Contains(installed, version) {
 		return SiteResult{}, invalid("PHP %s is not installed (installed: %s)", version, strings.Join(installed, ", "))
 	}
+	s.PHPVersion = version
 	d := w.data(s)
-	files := []managedFile{{dir: w.VhostDir, name: s.Username + ".conf", content: render(vhostTmpl, d)}}
+	files := []managedFile{{dir: w.VhostDir, name: s.Username + ".conf", content: render(vhostTmpl, d), unit: apacheUnit}}
 	for _, v := range installed {
-		f := managedFile{dir: filepath.Join(w.PHPDir, v, "fpm", "pool.d"), name: "xcp-" + s.Username + ".conf"}
+		f := managedFile{dir: w.poolDir(v), name: "xcp-" + s.Username + ".conf", unit: fpmUnit(v)}
 		if v == version && !s.Suspended { // a suspended account runs no PHP at all
 			f.content = render(poolTmpl, d)
 		}
@@ -246,9 +263,9 @@ func (w *Web) Remove(ctx context.Context, username string) (bool, error) {
 		return false, nil // nothing can have been written without Apache
 	}
 	installed := w.PHPVersions()
-	files := []managedFile{{dir: w.VhostDir, name: username + ".conf"}}
+	files := []managedFile{{dir: w.VhostDir, name: username + ".conf", unit: apacheUnit}}
 	for _, v := range installed {
-		files = append(files, managedFile{dir: filepath.Join(w.PHPDir, v, "fpm", "pool.d"), name: "xcp-" + username + ".conf"})
+		files = append(files, managedFile{dir: w.poolDir(v), name: "xcp-" + username + ".conf", unit: fpmUnit(v)})
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -275,7 +292,7 @@ func (w *Web) ensureSupport() error {
 		"<p style=\"font-family:sans-serif;margin:3em\">This website is currently suspended.</p>\n"), 0o644)
 }
 
-// write applies files, validates, rolls back on failure and reloads.
+// write applies files, validates, reloads, and rolls back on failure.
 func (w *Web) write(ctx context.Context, files []managedFile, installed []string) (bool, error) {
 	type prev struct {
 		f       managedFile
@@ -283,7 +300,7 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 		existed bool
 	}
 	var done []prev
-	changed := false
+	var changed []managedFile
 	restore := func() {
 		for _, p := range done {
 			root, err := fsx.OpenRoot(p.f.dir)
@@ -326,22 +343,52 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 			return false, err
 		}
 		done = append(done, prev{f, old, existed})
-		changed = true
+		changed = append(changed, f)
 	}
-	if !changed {
+	if len(changed) == 0 {
 		return false, nil
 	}
-	if err := w.check(ctx, installed); err != nil {
+	check := w.Check
+	if check == nil {
+		check = w.check
+	}
+	if err := check(ctx, installed); err != nil {
 		restore()
 		return false, err
 	}
-	// PHP-FPM first, so the socket exists before Apache sends requests to it.
-	for _, v := range installed {
-		if err := w.Services.Do(ctx, "php"+v+"-fpm.service", ActionReload); err != nil {
-			return true, fmt.Errorf("reload php%s-fpm: %w", v, err)
+	// reload-or-restart also starts a service that is not running.
+	var reloaded []string
+	for _, unit := range reloadOrder(changed) {
+		if err := w.Services.Do(ctx, unit, ActionReloadOrRestart); err != nil {
+			// Put the old files back so that a retry writes and reloads
+			// again, and let what was already reloaded read them again.
+			restore()
+			for _, u := range reloaded {
+				_ = w.Services.Do(ctx, u, ActionReloadOrRestart)
+			}
+			return false, fmt.Errorf("reload %s: %w", unit, err)
+		}
+		reloaded = append(reloaded, unit)
+	}
+	return true, nil
+}
+
+// reloadOrder lists the services to reload for the changed files: PHP-FPM
+// versions with a new or changed pool first, so their sockets exist before
+// Apache uses them, then Apache, then the versions that only lost a pool.
+func reloadOrder(changed []managedFile) []string {
+	var gained, apache, lost []string
+	for _, f := range changed {
+		switch {
+		case f.unit == apacheUnit:
+			apache = []string{apacheUnit}
+		case f.content != nil:
+			gained = append(gained, f.unit)
+		default:
+			lost = append(lost, f.unit)
 		}
 	}
-	return true, w.Services.Do(ctx, "apache2.service", ActionReload)
+	return slices.Concat(gained, apache, lost)
 }
 
 // check runs Apache's and PHP-FPM's own configuration tests.
