@@ -97,8 +97,16 @@ type WebServer interface {
 
 ## 5. DNS (PowerDNS Authoritative)
 - Backend: `gsqlite3` (or `lmdb`), managed **only** through the PowerDNS HTTP
-  API from `xcp-api`/agent. The panel DB is the source of truth; `DNSZoneApply`
-  pushes the full zone (RRset replace).
+  API, which listens on localhost; only xcp-agent has its key
+  (`/etc/xcp/secrets/pdns-api-key`). The panel DB is the source of truth;
+  `DNSZoneApply` sends the full zone and the agent changes only the RRsets
+  that differ, in one PATCH. The zone's NS records come from the server's DNS
+  settings and the agent keeps the SOA.
+- PowerDNS listens on 127.0.0.1, ::1 and the server's own addresses, not on
+  0.0.0.0, because systemd-resolved holds 127.0.0.53:53.
+- A zone the DNS server does not have yet (made before PowerDNS was
+  installed, or while it was down) is applied by the `dns.sync` job, every
+  5 minutes and at xcp-api start.
 - SOA serial auto-increment (date-based), NOTIFY to secondaries.
 - DNSSEC through the PowerDNS API (`cryptokeys`), DS shown to the user.
 - **BIND driver (P4):** zone files + `rndc reload`, `named-checkzone` validation.

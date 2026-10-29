@@ -167,6 +167,34 @@ func (s *LinuxSystem) InstallWebStack(ctx context.Context) (bool, error) {
 	return installed, s.Systemctl(ctx, append([]string{"enable", "--now", "apache2.service"}, fpmUnits()...)...)
 }
 
+// pdnsSchema comes with pdns-backend-sqlite3.
+const pdnsSchema = "/usr/share/pdns-backend-sqlite3/schema/schema.sqlite3.sql"
+
+// InstallDNSServer implements System.
+func (s *LinuxSystem) InstallDNSServer(ctx context.Context) (bool, error) {
+	if _, err := os.Stat("/usr/sbin/pdns_server"); err == nil {
+		if _, err := os.Stat(pdnsSchema); err == nil {
+			return false, nil
+		}
+	}
+	env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: []string{"-o", "DPkg::Lock::Timeout=600", "update", "-q"}, Env: env, Timeout: 20 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get update: %w", err)
+	}
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: []string{"-o", "DPkg::Lock::Timeout=600", "install", "-y", "-q", "--no-install-recommends", "pdns-server", "pdns-backend-sqlite3"},
+		Env: env, Timeout: 30 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get install pdns-server pdns-backend-sqlite3: %w", err)
+	}
+	return true, nil
+}
+
+// PDNSSchema implements System.
+func (s *LinuxSystem) PDNSSchema() ([]byte, error) { return os.ReadFile(pdnsSchema) }
+
 // EnableApacheSite implements System.
 func (s *LinuxSystem) EnableApacheSite(ctx context.Context) error {
 	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2ensitePath, Args: []string{"-q", "xcp"}}); err != nil {

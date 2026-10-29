@@ -17,8 +17,10 @@ docker cp "$OUT/." "$NAME:/opt/xcp/"
 docker exec "$NAME" sh -c 'chmod +x /opt/xcp/* && until systemctl is-system-running --wait >/dev/null 2>&1 || [ "$(systemctl is-system-running)" = degraded ]; do sleep 1; done'
 echo "== install"; docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
 echo "== doctor";  docker exec "$NAME" xcpctl doctor
-echo "== websites (accounts, Apache, PHP-FPM, isolation)"
-docker cp test/e2e/install/websites.py "$NAME:/opt/xcp/websites.py"
+for f in xcpe2e.py websites.py dns.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
 echo "e2e test password 42" | docker exec -i "$NAME" xcpctl admin create --username e2etest
+echo "== websites (accounts, domains, Apache, PHP-FPM, isolation)"
 docker exec "$NAME" python3 /opt/xcp/websites.py
+echo "== DNS (PowerDNS zones, records)"
+docker exec "$NAME" python3 /opt/xcp/dns.py
 echo "== re-run";  docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example | grep -E "changed|no admin|installed"

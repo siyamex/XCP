@@ -23,6 +23,7 @@ type fakeSys struct {
 	mustChange bool
 	webDone    bool
 	webErr     error
+	dnsDone    bool
 }
 
 func (f *fakeSys) EnsureSystemUser(_ context.Context, name, _ string) (bool, error) {
@@ -69,6 +70,17 @@ func (f *fakeSys) InstallWebStack(context.Context) (bool, error) {
 func (f *fakeSys) EnableApacheSite(context.Context) error {
 	f.calls = append(f.calls, "a2ensite xcp")
 	return nil
+}
+
+func (f *fakeSys) InstallDNSServer(context.Context) (bool, error) {
+	f.calls = append(f.calls, "dns install")
+	installed := !f.dnsDone
+	f.dnsDone = true
+	return installed, nil
+}
+
+func (f *fakeSys) PDNSSchema() ([]byte, error) {
+	return []byte("CREATE TABLE domains (id INTEGER PRIMARY KEY, name TEXT NOT NULL);"), nil
 }
 
 func (f *fakeSys) WaitHealthy(_ context.Context, _ string, ca []byte) error {
@@ -138,6 +150,16 @@ func TestFirstInstall(t *testing.T) {
 	if !strings.Contains(string(e.read(t, ApacheConf)), "IncludeOptional /etc/apache2/xcp/vhosts/*.conf") {
 		t.Error("Apache include for the per-account virtual hosts not written")
 	}
+	key := strings.TrimSpace(string(e.read(t, PDNSKeyFile)))
+	pdns := string(e.read(t, PDNSConf))
+	for _, want := range []string{"launch=gsqlite3\n", "api-key=" + key + "\n", "local-address=127.0.0.1, ::1, 203.0.113.5\n", "webserver-address=127.0.0.1\n"} {
+		if len(key) != 64 || !strings.Contains(pdns, want) {
+			t.Errorf("PowerDNS config lacks %q (key %q):\n%s", want, key, pdns)
+		}
+	}
+	if db := e.read(t, PDNSDatabase); !bytes.HasPrefix(db, []byte("SQLite format 3")) {
+		t.Error("PowerDNS database not created")
+	}
 	cfg := string(e.read(t, ConfigFile))
 	for _, want := range []string{`listen = ":2443"`, `api_user = "xcp"`, `path = "/var/lib/xcp/xcp.db"`, `tls_cert = "/etc/xcp/ssl/panel.crt"`} {
 		if !strings.Contains(cfg, want) {
@@ -167,7 +189,8 @@ func TestFirstInstall(t *testing.T) {
 	}
 	want := []string{
 		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
-		"systemctl restart xcp-agent.service xcp-api.service", "health", "web install", "a2ensite xcp", "admin admin",
+		"systemctl restart xcp-agent.service xcp-api.service", "health", "web install", "a2ensite xcp",
+		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service", "admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
 		t.Fatalf("calls =\n%q\nwant\n%q", e.sys.calls, want)
@@ -178,6 +201,7 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 	e := newEnv(t)
 	first := e.run(t, false)
 	key := e.read(t, SecretsDir+"/master.key")
+	pdnsKey := e.read(t, PDNSKeyFile)
 	cert := e.read(t, CertFile)
 	edited := append(e.read(t, ConfigFile), []byte("\n# my edit\n")...)
 	os.WriteFile(filepath.Join(e.root, filepath.FromSlash(ConfigFile)), edited, 0o644)
@@ -192,8 +216,12 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 	if !bytes.Equal(e.read(t, SecretsDir+"/master.key"), key) || !bytes.Equal(e.read(t, CertFile), cert) {
 		t.Fatal("master key or certificate was replaced: this would lock out encrypted secrets / break pinning")
 	}
-	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") {
+	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
+		slices.Contains(e.sys.calls, "systemctl restart pdns.service") {
 		t.Fatalf("services restarted although nothing changed: %q", e.sys.calls)
+	}
+	if !bytes.Equal(e.read(t, PDNSKeyFile), pdnsKey) {
+		t.Fatal("PowerDNS API key replaced: the agent would lose access")
 	}
 	_ = first
 }

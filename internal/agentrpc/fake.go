@@ -30,6 +30,7 @@ type Fake struct {
 	failCheck string // non-empty: validated writes fail with this output
 	accounts  fakeUsers
 	sites     fakeSites
+	zones     fakeZones
 }
 
 type fakeFile struct {

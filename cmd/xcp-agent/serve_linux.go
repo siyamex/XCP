@@ -86,6 +86,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			SuspendedDir: "/var/www/xcp-suspended",
 			LogDir:       "/var/log/apache2/xcp", WebUser: "www-data",
 		},
+		DNS:      &agent.DNS{URL: agent.PDNSURL, KeyFile: cfg.Paths.PDNSKeyFile()},
 		Version:  version.Version,
 		Hostname: hostname,
 		Log:      log,

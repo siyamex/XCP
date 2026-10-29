@@ -13,7 +13,7 @@ const menus: Record<string, NavItem[]> = {
   admin: [
     { key: "dashboard", to: "/" },
     { key: "accounts", to: "/accounts" }, { key: "packages", to: "/packages" }, { key: "featureLists", to: "/feature-lists" }, { key: "resellers" },
-    { key: "dns" }, { key: "services" }, { key: "settings" },
+    { key: "dns", to: "/dns" }, { key: "services" }, { key: "settings" },
     { key: "security", to: "/account/security" },
   ],
   reseller: [
@@ -23,7 +23,7 @@ const menus: Record<string, NavItem[]> = {
   ],
   user: [
     { key: "dashboard", to: "/" },
-    { key: "domains", to: "/domains" }, { key: "email" }, { key: "databases" }, { key: "files" },
+    { key: "domains", to: "/domains" }, { key: "dns", to: "/dns" }, { key: "email" }, { key: "databases" }, { key: "files" },
     { key: "ssl" }, { key: "backups" },
     { key: "security", to: "/account/security" },
   ],

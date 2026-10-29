@@ -61,6 +61,11 @@ type System interface {
 	InstallWebStack(ctx context.Context) (installed bool, err error)
 	// EnableApacheSite enables sites-available/xcp.conf and reloads Apache.
 	EnableApacheSite(ctx context.Context) error
+	// InstallDNSServer installs PowerDNS with its SQLite backend; it reports
+	// whether anything was installed.
+	InstallDNSServer(ctx context.Context) (installed bool, err error)
+	// PDNSSchema returns the SQLite schema that comes with PowerDNS.
+	PDNSSchema() ([]byte, error)
 }
 
 // Options configure an install.
@@ -72,6 +77,7 @@ type Options struct {
 	AdminUser     string
 	AdminPassword string // empty: generate one and print it once
 	NoWeb         bool   // skip installing Apache and PHP-FPM
+	NoDNS         bool   // skip installing PowerDNS
 	DryRun        bool
 	Out           io.Writer
 	Sys           System
@@ -90,6 +96,7 @@ type installer struct {
 	res     Result
 	uid     int // service user, -1 in dry runs before it exists
 	gid     int
+	pdnsGID int  // PowerDNS's group, once it is installed
 	restart bool // binaries or units changed: restart services
 	reload  bool // units changed: daemon-reload
 }
@@ -116,6 +123,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		// because a re-run sees the files unchanged and would not restart.
 		{"services", in.services},
 		{"web server (Apache + PHP-FPM)", in.web},
+		{"DNS server (PowerDNS)", in.dns},
 		{"first admin", in.admin},
 	}
 	for _, s := range steps {
@@ -172,6 +180,7 @@ const (
 	rootRoot owner = iota // root:root
 	rootSvc               // root:xcp (service can read)
 	svcSvc                // xcp:xcp (service owns)
+	rootPDNS              // root:pdns (PowerDNS can read)
 )
 
 func (in *installer) chown(p string, o owner) error {
@@ -183,6 +192,8 @@ func (in *installer) chown(p string, o owner) error {
 		return in.o.Sys.Chown(p, 0, in.gid)
 	case svcSvc:
 		return in.o.Sys.Chown(p, in.uid, in.gid)
+	case rootPDNS:
+		return in.o.Sys.Chown(p, 0, in.pdnsGID)
 	}
 	return in.o.Sys.Chown(p, 0, 0)
 }

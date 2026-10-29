@@ -26,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
+	"github.com/siyamex/XCP/internal/zones"
 )
 
 // Features of the feature list that switch domain management on.
@@ -120,6 +121,7 @@ type Service struct {
 	plans    *plans.Service
 	jobs     *jobs.Queue
 	agent    agentrpc.Client
+	zones    *zones.Service
 	resolver TXTResolver
 	key      []byte // signs verification tokens
 }
@@ -127,9 +129,9 @@ type Service struct {
 // NewService returns a domains service. key signs the TXT verification
 // tokens; it must stay the same across restarts.
 func NewService(db *store.DB, rec *audit.Recorder, pl *plans.Service, q *jobs.Queue, ag agentrpc.Client,
-	resolver TXTResolver, key []byte,
+	zs *zones.Service, resolver TXTResolver, key []byte,
 ) *Service {
-	return &Service{db: db, audit: rec, plans: pl, jobs: q, agent: ag, resolver: resolver, key: key}
+	return &Service{db: db, audit: rec, plans: pl, jobs: q, agent: ag, zones: zs, resolver: resolver, key: key}
 }
 
 func fieldErr(err error, name string) error { return validate.WithField(err, name) }
@@ -332,6 +334,13 @@ func (s *Service) Add(ctx context.Context, c auth.Client, p *auth.Principal, acc
 		} else if err != nil {
 			return err
 		}
+		apply, err := s.zones.DomainAdded(ctx, tx, d)
+		if err != nil {
+			return err
+		}
+		if err := s.zones.Enqueue(ctx, tx, p.Login.ID, nil, apply); err != nil {
+			return err
+		}
 		if jobID, err = s.enqueue(ctx, tx, p, a.ID); err != nil {
 			return err
 		}
@@ -453,7 +462,14 @@ func (s *Service) Delete(ctx context.Context, c auth.Client, p *auth.Principal, 
 		if n > 0 {
 			return apperr.NewConflict("has_dependents", "remove the subdomains and aliases of "+d.Name+" first")
 		}
-		if err := store.DeleteDomain(ctx, tx, d.ID); err != nil {
+		remove, apply, err := s.zones.DomainRemoving(ctx, tx, d)
+		if err != nil {
+			return err
+		}
+		if err := store.DeleteDomain(ctx, tx, d.ID); err != nil { // its zone and DNS records go with it
+			return err
+		}
+		if err := s.zones.Enqueue(ctx, tx, p.Login.ID, remove, apply); err != nil {
 			return err
 		}
 		if jobID, err = s.enqueue(ctx, tx, p, a.ID); err != nil {

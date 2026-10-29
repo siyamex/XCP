@@ -8,6 +8,7 @@ import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { cn } from "../lib/cn";
+import { ZoneList } from "./DnsPage";
 import { DomainsPanel } from "./DomainsPage";
 import { usePackages } from "./PackagesPage";
 
@@ -243,6 +244,12 @@ export function AccountDetailPage() {
       </Card>
 
       {(a.status === "active" || a.status === "suspended") && <DomainsPanel accountId={a.id} />}
+      {(a.status === "active" || a.status === "suspended") && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">{t("dns.title")}</h2>
+          <ZoneList accountId={a.id} />
+        </div>
+      )}
 
       <Card>
         <CardTitle>{t("accounts.change")}</CardTitle>

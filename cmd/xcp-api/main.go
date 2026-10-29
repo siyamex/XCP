@@ -25,6 +25,7 @@ import (
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/version"
+	"github.com/siyamex/XCP/internal/zones"
 	"github.com/siyamex/XCP/web"
 )
 
@@ -80,20 +81,41 @@ func serve(args []string) error {
 	// Jobs run in this process for now (ADR-0003); the queue is persistent,
 	// so a separate xcp-worker can take over later without changes.
 	queue := jobs.NewQueue(a.DB)
-	doms := domains.NewService(a.DB, a.Audit, a.Plans, queue, agent, net.DefaultResolver, a.DomainKey)
-	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms)
+	zs := zones.NewService(a.DB, a.Audit, a.Plans, queue, agent, net.DefaultResolver)
+	if err := zs.EnsureDefaults(ctx); err != nil {
+		return fmt.Errorf("store default DNS settings: %w", err)
+	}
+	doms := domains.NewService(a.DB, a.Audit, a.Plans, queue, agent, zs, net.DefaultResolver, a.DomainKey)
+	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms, zs)
+	if n, err := zs.EnsureDomains(ctx); err != nil {
+		a.Log.Error("give domains their DNS", "err", err)
+	} else if n > 0 {
+		a.Log.Info("set up DNS for existing domains", "domains", n)
+	}
 	host, _ := os.Hostname()
 	worker := jobs.NewWorker(queue, fmt.Sprintf("%s:%d", host, os.Getpid()), a.Log)
 	accts.RegisterJobs(worker)
 	doms.RegisterJobs(worker)
+	zs.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
 		_ = worker.Run(ctx)
 	}()
+	sched := jobs.NewScheduler(queue, a.Log)
+	if err := zs.Schedule(sched); err != nil {
+		return err
+	}
+	go sched.Run(ctx)
+	// Catch up at once: zones may wait for a DNS server that is there now.
+	if _, err := queue.Enqueue(ctx, zones.JobSync, struct{}{}, jobs.EnqueueOptions{
+		LockKey: "schedule:" + zones.JobSync, Unique: true, CreatedBy: "startup",
+	}); err != nil && !errors.Is(err, jobs.ErrDuplicate) {
+		a.Log.Error("queue the DNS sync", "err", err)
+	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Zones: zs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

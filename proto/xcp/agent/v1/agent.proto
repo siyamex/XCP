@@ -53,6 +53,15 @@ service AgentService {
 
   // PHPVersions lists the installed PHP-FPM versions, oldest first.
   rpc PHPVersions(PHPVersionsRequest) returns (PHPVersionsResponse);
+
+  // DNSZoneApply makes PowerDNS serve exactly this zone: its records, NS
+  // records from the name servers and an SOA kept by the agent. Only the
+  // RRsets that differ change, in one transaction. NOT_FOUND: PowerDNS is
+  // not installed.
+  rpc DNSZoneApply(DNSZoneApplyRequest) returns (DNSZoneApplyResponse);
+
+  // DNSZoneDelete removes a zone from PowerDNS.
+  rpc DNSZoneDelete(DNSZoneDeleteRequest) returns (DNSZoneDeleteResponse);
 }
 
 message PingRequest {}
@@ -225,4 +234,31 @@ message PHPVersionsRequest {}
 
 message PHPVersionsResponse {
   repeated string versions = 1;
+}
+
+message DNSZoneApplyRequest {
+  string zone = 1;                  // "example.com"
+  repeated string nameservers = 2;  // the first is the primary in the SOA
+  string hostmaster = 3;            // SOA mailbox as a name: "hostmaster.example.com"
+  repeated DNSRecord records = 4;   // without SOA and the zone's own NS records
+}
+
+// DNSRecord is one record in its stored form (internal/dnsrr).
+message DNSRecord {
+  string name = 1;     // fully qualified, without the final dot
+  string type = 2;
+  uint32 ttl = 3;
+  string content = 4;  // presentation format; TXT as quoted strings
+}
+
+message DNSZoneApplyResponse {
+  bool changed = 1;
+}
+
+message DNSZoneDeleteRequest {
+  string zone = 1;
+}
+
+message DNSZoneDeleteResponse {
+  bool deleted = 1;  // false if PowerDNS did not have the zone
 }

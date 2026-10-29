@@ -21,6 +21,7 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
+	"github.com/siyamex/XCP/internal/zones"
 )
 
 // Deps are the services the HTTP layer needs.
@@ -29,6 +30,7 @@ type Deps struct {
 	Plans    *plans.Service
 	Accounts *accounts.Service
 	Domains  *domains.Service
+	Zones    *zones.Service
 	Jobs     *jobs.Queue
 	Agent    agentrpc.Client
 	Log      *slog.Logger
@@ -125,6 +127,14 @@ func New(d Deps) *Server {
 		{method: "GET", path: "/api/v1/accounts/{id}/redirects", access: authed, roles: adminOrUser, h: s.listRedirects},
 		{method: "POST", path: "/api/v1/domains/{id}/redirects", access: authed, roles: adminOrUser, h: s.addRedirect},
 		{method: "DELETE", path: "/api/v1/redirects/{id}", access: authed, roles: adminOrUser, h: s.deleteRedirect},
+		{method: "GET", path: "/api/v1/dns/zones", access: authed, roles: adminOrUser, h: s.listZones},
+		{method: "GET", path: "/api/v1/dns/zones/{id}", access: authed, roles: adminOrUser, h: s.getZone},
+		{method: "PUT", path: "/api/v1/dns/zones/{id}", access: authed, roles: adminOrUser, h: s.updateZone},
+		{method: "POST", path: "/api/v1/dns/zones/{id}/records", access: authed, roles: adminOrUser, h: s.addRecord},
+		{method: "PUT", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.updateRecord},
+		{method: "DELETE", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.deleteRecord},
+		{method: "GET", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.getDNSSettings},
+		{method: "PUT", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.saveDNSSettings},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
 		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}

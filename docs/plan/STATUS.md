@@ -61,6 +61,15 @@ Status: `todo` · `doing` · `done`.
   (or `%v` in the format) are needed for per-domain bandwidth (`xcp-logd`).
 - Domains: "force HTTPS" (USR-DOM-05) needs certificates and an HTTPS vhost;
   it arrives with SSL (task 6).
+- DNS: ALIAS records need PowerDNS's resolver settings, and PTR records need
+  reverse zones and IP ownership (IP management, P2); both are left out.
+- DNS: every zone belongs to an account; a zone for the server's own domain
+  (ns1/ns2 glue) needs an account for now.
+- DNS: the default name servers are ns1/ns2 of the host name's domain, so a
+  host without a full domain name (like WSL) starts with none; the settings
+  page says so. Zones made while the server's IPv4 was unknown got no A
+  records (only a change of address moves records).
+- DNS: `xcpctl doctor` does not check PowerDNS yet.
 - Apache serves static files as www-data, which reads every public_html.
   Each vhost now allows symlinks in the home folder (document root
   included) only with `SymLinksIfOwnerMatch`; found on the VM that a
@@ -76,9 +85,11 @@ Status: `todo` · `doing` · `done`.
 | 2 | Accounts (Linux user, home, quota, slice) | ADM-ACC-01..06, 09, 11 | done | `internal/accounts` + agent ops AccountEnsure / AccountSetSuspended / AccountDelete: Linux user (UID 10000+, marked `xcp account`; foreign users refused), home 0711 + public_html 0750 group www-data, systemd slice + login-session limits, quota where supported; create/update/suspend/unsuspend/password/terminate as jobs (in xcp-api, ADR-0003); UI list/create/detail with live job status. Verified end to end on the Ubuntu VM. |
 | 3 | Apache + PHP-FPM | ADM-WEB-01, 04; USR-WEB-01 | done | agent op SiteApply/SiteRemove/PHPVersions; configs rendered in the agent from typed fields (ADR-0004), checked with apachectl -t / php-fpm -t with rollback; one PHP-FPM pool per account running as the account user, open_basedir to its home, own tmp; suspended sites serve a notice and run no PHP; PHP version per account (package-allowed, installed); installer installs apache2 + php-fpm (`--no-web` to skip). Verified on the VM and in CI (`test/e2e/install/websites.py`). |
 | 4 | Domains (addon, sub, alias, redirects) | USR-DOM-01..04, 06, 07; 05 without force HTTPS | done | `internal/domains` + tables `domains` (primary rows backfilled) and `redirects`: addon domains, subdomains (wildcard `*`), aliases, document root per domain (created by the agent if missing, through fsx, 0750 group www-data), www/bare canonical redirect, redirects 301/302/307/308 with or without the rest of the path; package limits (addon/sub/alias counts) and feature list (`domains`, `redirects`) for user logins; takeover protection: a user adding a name under a registered domain another account uses must publish a TXT record `_xcp-verify.<name>` (token derived from the master key). Every change runs job `site.apply`. Agent renders one vhost per domain, wildcards in a file loaded last. API `/accounts/{id}/domains`, `/domains/{id}`, redirects, `/domain-verification`; users reach their own account (`/me` has `account_id`) and its jobs. UI: Domains section on the account page and a Domains page for users. Verified on the VM (`websites.py`, 30 checks) and in the browser. Force HTTPS comes with SSL (task 6). |
-| 5 | DNS (PowerDNS, zones, editor) | ADM-DNS-01..03; USR-DNS-01..03 | todo | next |
+| 5 | DNS (PowerDNS, zones, editor) | ADM-DNS-01..03; USR-DNS-01 (without ALIAS, PTR), 02, 03 | done | Installer sets up PowerDNS (gsqlite3; API on localhost, key only for xcp-agent; `--no-dns` to skip). Agent op DNSZoneApply/DNSZoneDelete: diff-based PATCH, SOA serial kept by the agent, NS from settings; records validated with miekg/dns in `internal/dnsrr` by API and agent alike. `internal/zones`: a zone per domain from the admin's template (`{domain}`, `{ip4}`, `{ip6}`), records in the existing zone for subdomains and nested domains (removed with the domain), record editor with zone-wide checks, email routing auto/local/remote/backup (auto from the MX records; for the mail service), DNS settings (name servers with a DNS check, server addresses, TTL, template); a new server address moves the A/AAAA records. Jobs `dns.apply`/`dns.delete` per zone name; `dns.sync` applies zones the server lacks. API `/dns/zones`, `/dns/records`, `/server/dns`; UI DNS pages for admins and users. Verified on the VM with dig (`test/e2e/install/dns.py`, 18 checks) and in the browser. |
+| 6 | SSL (AutoSSL, hostname and service certificates) | ADM-SSL-01, 02, 05; USR-SSL-01, 03, 06 | todo | next |
 
 ## Features done
 
 ADM-PKG-01, ADM-PKG-02, ADM-ACC-01, ADM-ACC-02, ADM-ACC-03, ADM-ACC-04, ADM-ACC-05, ADM-ACC-06, ADM-ACC-09, ADM-ACC-11, ADM-WEB-01 (Apache), ADM-WEB-04 (installed versions), USR-WEB-01,
-USR-DOM-01, USR-DOM-02, USR-DOM-03, USR-DOM-04, USR-DOM-05 (without force HTTPS), USR-DOM-06, USR-DOM-07.
+USR-DOM-01, USR-DOM-02, USR-DOM-03, USR-DOM-04, USR-DOM-05 (without force HTTPS), USR-DOM-06, USR-DOM-07,
+ADM-DNS-01, ADM-DNS-02, ADM-DNS-03, USR-DNS-01 (without ALIAS and PTR), USR-DNS-02, USR-DNS-03.

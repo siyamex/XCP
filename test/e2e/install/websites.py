@@ -4,82 +4,12 @@
 It drives the XCP API (admin login from XCP_E2E_USER / XCP_E2E_PASSWORD) and
 checks the result in Apache, PHP-FPM and the file system. Used by run.sh in CI.
 """
-import grp, http.client, http.cookiejar, json, os, pwd, ssl, stat, subprocess, sys, time, urllib.request
+import grp, json, os, pwd, stat, subprocess
 
-API = "https://127.0.0.1:2443/api/v1"
-ctx = ssl.create_default_context(cafile="/etc/xcp/ssl/panel.crt")
-failures = 0
+from xcpe2e import Session, admin, as_user, check, finish, raw, site
 
-
-class Session:
-    """One logged-in panel user, like one browser."""
-
-    def __init__(self):
-        jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx), urllib.request.HTTPCookieProcessor(jar))
-        self.csrf = ""
-
-    def call(self, method, path, body=None):
-        data = json.dumps(body).encode() if body is not None else None
-        req = urllib.request.Request(API + path, data=data, method=method)
-        if data is not None:
-            req.add_header("Content-Type", "application/json")
-        if method != "GET" and self.csrf:
-            req.add_header("X-CSRF-Token", self.csrf)
-        try:
-            with self.opener.open(req) as r:
-                raw = r.read()
-                return r.status, (json.loads(raw) if raw else None)
-        except urllib.error.HTTPError as e:
-            return e.code, json.loads(e.read() or b"null")
-
-    def login(self, username, password):
-        st, res = self.call("POST", "/auth/login", {"username": username, "password": password})
-        self.csrf = (res or {}).get("csrf_token", "")
-        return st
-
-
-def site(host, path="/"):
-    req = urllib.request.Request("http://127.0.0.1" + path, headers={"Host": host})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as r:
-            return r.status, r.read().decode(errors="replace")
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode(errors="replace")
-
-
-def raw(host, path="/"):
-    """One request without following redirects: status and Location."""
-    c = http.client.HTTPConnection("127.0.0.1", 80, timeout=10)
-    c.request("GET", path, headers={"Host": host})
-    r = c.getresponse()
-    r.read()
-    c.close()
-    return r.status, r.getheader("Location", "")
-
-
-def check(ok, what, detail=""):
-    global failures
-    print(("OK   " if ok else "FAIL ") + what + (f"  [{detail}]" if detail and not ok else ""))
-    failures += 0 if ok else 1
-
-
-def wait_job(job_id):
-    for _ in range(120):
-        st, j = api("GET", f"/jobs/{job_id}")
-        if j and j["status"] in ("succeeded", "failed"):
-            return j
-        time.sleep(0.5)
-    return {"status": "timeout"}
-
-
-def as_user(user, path, content):
-    subprocess.run(["runuser", "-u", user, "--", "tee", path], input=content.encode(), stdout=subprocess.DEVNULL, check=True)
-
-
-admin = Session()
-api = admin.call
-admin.login(os.environ.get("XCP_E2E_USER", "e2etest"), os.environ.get("XCP_E2E_PASSWORD", "e2e test password 42"))
+admin_session = admin()
+api, wait_job = admin_session.call, admin_session.wait_job
 st, pk = api("GET", "/packages")
 pkg = next(p for p in pk["items"] if p["name"] == "Default")["id"]
 st, ver = api("GET", "/server/php-versions")
@@ -214,5 +144,4 @@ st, body = site("site1.xcp.test")
 check("hosted with XCP" not in body, "site1 no longer served after termination")
 st, body = site("anything.shop1.xcp.test")
 check(body != "WILDCARD", "wildcard no longer served after termination")
-print(f"\n{failures} failure(s)")
-sys.exit(1 if failures else 0)
+finish()

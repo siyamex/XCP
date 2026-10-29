@@ -39,6 +39,8 @@ const (
 	AgentService_SiteApply_FullMethodName           = "/xcp.agent.v1.AgentService/SiteApply"
 	AgentService_SiteRemove_FullMethodName          = "/xcp.agent.v1.AgentService/SiteRemove"
 	AgentService_PHPVersions_FullMethodName         = "/xcp.agent.v1.AgentService/PHPVersions"
+	AgentService_DNSZoneApply_FullMethodName        = "/xcp.agent.v1.AgentService/DNSZoneApply"
+	AgentService_DNSZoneDelete_FullMethodName       = "/xcp.agent.v1.AgentService/DNSZoneDelete"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -75,6 +77,13 @@ type AgentServiceClient interface {
 	SiteRemove(ctx context.Context, in *SiteRemoveRequest, opts ...grpc.CallOption) (*SiteRemoveResponse, error)
 	// PHPVersions lists the installed PHP-FPM versions, oldest first.
 	PHPVersions(ctx context.Context, in *PHPVersionsRequest, opts ...grpc.CallOption) (*PHPVersionsResponse, error)
+	// DNSZoneApply makes PowerDNS serve exactly this zone: its records, NS
+	// records from the name servers and an SOA kept by the agent. Only the
+	// RRsets that differ change, in one transaction. NOT_FOUND: PowerDNS is
+	// not installed.
+	DNSZoneApply(ctx context.Context, in *DNSZoneApplyRequest, opts ...grpc.CallOption) (*DNSZoneApplyResponse, error)
+	// DNSZoneDelete removes a zone from PowerDNS.
+	DNSZoneDelete(ctx context.Context, in *DNSZoneDeleteRequest, opts ...grpc.CallOption) (*DNSZoneDeleteResponse, error)
 }
 
 type agentServiceClient struct {
@@ -195,6 +204,26 @@ func (c *agentServiceClient) PHPVersions(ctx context.Context, in *PHPVersionsReq
 	return out, nil
 }
 
+func (c *agentServiceClient) DNSZoneApply(ctx context.Context, in *DNSZoneApplyRequest, opts ...grpc.CallOption) (*DNSZoneApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DNSZoneApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_DNSZoneApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) DNSZoneDelete(ctx context.Context, in *DNSZoneDeleteRequest, opts ...grpc.CallOption) (*DNSZoneDeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DNSZoneDeleteResponse)
+	err := c.cc.Invoke(ctx, AgentService_DNSZoneDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -229,6 +258,13 @@ type AgentServiceServer interface {
 	SiteRemove(context.Context, *SiteRemoveRequest) (*SiteRemoveResponse, error)
 	// PHPVersions lists the installed PHP-FPM versions, oldest first.
 	PHPVersions(context.Context, *PHPVersionsRequest) (*PHPVersionsResponse, error)
+	// DNSZoneApply makes PowerDNS serve exactly this zone: its records, NS
+	// records from the name servers and an SOA kept by the agent. Only the
+	// RRsets that differ change, in one transaction. NOT_FOUND: PowerDNS is
+	// not installed.
+	DNSZoneApply(context.Context, *DNSZoneApplyRequest) (*DNSZoneApplyResponse, error)
+	// DNSZoneDelete removes a zone from PowerDNS.
+	DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -271,6 +307,12 @@ func (UnimplementedAgentServiceServer) SiteRemove(context.Context, *SiteRemoveRe
 }
 func (UnimplementedAgentServiceServer) PHPVersions(context.Context, *PHPVersionsRequest) (*PHPVersionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PHPVersions not implemented")
+}
+func (UnimplementedAgentServiceServer) DNSZoneApply(context.Context, *DNSZoneApplyRequest) (*DNSZoneApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DNSZoneApply not implemented")
+}
+func (UnimplementedAgentServiceServer) DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DNSZoneDelete not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -491,6 +533,42 @@ func _AgentService_PHPVersions_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_DNSZoneApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DNSZoneApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).DNSZoneApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_DNSZoneApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).DNSZoneApply(ctx, req.(*DNSZoneApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_DNSZoneDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DNSZoneDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).DNSZoneDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_DNSZoneDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).DNSZoneDelete(ctx, req.(*DNSZoneDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -541,6 +619,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PHPVersions",
 			Handler:    _AgentService_PHPVersions_Handler,
+		},
+		{
+			MethodName: "DNSZoneApply",
+			Handler:    _AgentService_DNSZoneApply_Handler,
+		},
+		{
+			MethodName: "DNSZoneDelete",
+			Handler:    _AgentService_DNSZoneDelete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

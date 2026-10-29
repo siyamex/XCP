@@ -125,7 +125,11 @@
     "limit_reached": "Your package allows no more of these.",
     "primary_domain": "The primary domain belongs to the account and cannot be removed.",
     "has_dependents": "Remove its subdomains and aliases first.",
-    "redirect_exists": "This domain already has a redirect for that path."
+    "redirect_exists": "This domain already has a redirect for that path.",
+    "record_conflict": "That record does not fit the zone.",
+    "record_exists": "The zone has this record already.",
+    "zone_exists": "This server has a DNS zone with that name already.",
+    "zone_in_use": "The domain's DNS zone also holds records of other domains; remove those domains first."
   },
   "packages": {
     "title": "Packages",
@@ -321,6 +325,77 @@
         "307": "307 temporary (keeps method)",
         "308": "308 permanent (keeps method)"
       }
+    }
+  },
+  "dns": {
+    "title": "DNS zones",
+    "search": "Search zones",
+    "zone": "Zone",
+    "account": "Account",
+    "changed": "Changed",
+    "empty": "No zones yet. Every domain gets one.",
+    "records": "Records",
+    "name": "Name",
+    "type": "Type",
+    "ttl": "TTL (seconds)",
+    "ttlDefault": "Default",
+    "value": "Value",
+    "managed": "auto",
+    "managedHint": "Made for a domain and removed with it. You can still change it.",
+    "nameserversHint": "This zone is served by {{names}}. Set these name servers at your domain's registrar.",
+    "notServing": "The DNS server does not have this zone yet. It is added automatically once the DNS server runs (checked every 5 minutes).",
+    "confirmDelete": "Remove the {{type}} record of {{name}}?",
+    "addRecord": "Add record",
+    "editRecord": "Change record",
+    "nameHint": "@ is {{zone}} itself; www is www.{{zone}}.",
+    "valueHint": "For a host name: @ is the zone, one word is in the zone (mail), a name with dots is complete.",
+    "txtHint": "Plain text; long text is split for DNS automatically.",
+    "advanced": "Advanced: type the whole value myself",
+    "priority": "Priority",
+    "weight": "Weight",
+    "port": "Port",
+    "caaTag": "Tag",
+    "valueFor": {
+      "MX": "Mail server",
+      "SRV": "Target host",
+      "CAA": "Certificate authority"
+    },
+    "placeholders": {
+      "A": "192.0.2.10",
+      "AAAA": "2001:db8::10",
+      "CNAME": "example.com",
+      "MX": "10 mail",
+      "TXT": "v=spf1 a mx ~all",
+      "SRV": "10 5 5060 sip",
+      "CAA": "0 issue \"letsencrypt.org\"",
+      "NS": "ns1.other-provider.net",
+      "TLSA": "3 1 1 <hash>",
+      "HTTPS": "1 . alpn=\"h2,h3\"",
+      "SVCB": "1 . alpn=\"h2\""
+    },
+    "mail": {
+      "title": "Email routing",
+      "help": "Who receives the mail for this domain. The mail server of this panel uses it.",
+      "auto": "Automatic",
+      "local": "This server",
+      "backup": "Backup for another mail server",
+      "remote": "Another provider (e.g. Google Workspace, Microsoft 365)",
+      "detected": "from the MX records: {{routing}}"
+    },
+    "settings": {
+      "title": "DNS settings",
+      "nameservers": "Name servers",
+      "nameserversHelp": "Every zone lists these as its NS records. If they are names under your own domain, register them with glue IPs at the registrar.",
+      "noNameservers": "None set yet: each zone names ns1 and ns2 of its own domain, which only works if those exist. Enter your name servers here.",
+      "addNameserver": "Add a name server",
+      "addresses": "Server addresses",
+      "addressesHelp": "The public addresses new zones point to. This server's interfaces have: {{ips}} (behind NAT, enter the public address).",
+      "ttl": "Default TTL (seconds)",
+      "template": "Zone template",
+      "templateHelp": "The records of every new domain's zone. Use {domain}, {ip4} and {ip6}; records that need a missing address are left out.",
+      "addTemplateRecord": "Add a template record",
+      "save": "Save and re-apply all zones",
+      "saved": "Saved. {{count}} zone(s) are being updated."
     }
   }
 }

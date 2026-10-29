@@ -24,6 +24,11 @@ tags:
   - name: system
   - name: plans
   - name: accounts
+  - name: dns
+    description: |
+      DNS zones served by this server. A zone is made for each domain from
+      the zone template; users with the `dns_editor` feature edit their own.
+      Record changes are applied by a job (`job_id`).
   - name: domains
     description: |
       An account's domains and redirects. Admins reach every admin-owned
@@ -784,6 +789,183 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /dns/zones:
+    get:
+      tags: [dns]
+      summary: List zones (admins all, or one account's; users their own)
+      operationId: listZones
+      parameters:
+        - { name: account_id, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string }, description: Part of the zone name (admins) }
+      responses:
+        "200":
+          description: The zones, by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Zone" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /dns/zones/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [dns]
+      summary: A zone with its records
+      operationId: getZone
+      responses:
+        "200":
+          description: The zone.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Zone" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [dns]
+      summary: Set who handles the zone's mail (USR-DNS-03)
+      operationId: updateZone
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mail_routing]
+              properties:
+                mail_routing: { type: string, enum: [auto, local, remote, backup] }
+      responses:
+        "200":
+          description: The zone.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Zone" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /dns/zones/{id}/records:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [dns]
+      summary: Add a record
+      description: "409 codes: `record_conflict` (the zone would be invalid, e.g. a CNAME next to other records), `record_exists`."
+      operationId: addRecord
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordInput" }
+      responses:
+        "202":
+          description: Accepted; served once the job in job_id has run.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Record" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /dns/records/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [dns]
+      summary: Replace a record
+      operationId: updateRecord
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordInput" }
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Record" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [dns]
+      summary: Remove a record
+      operationId: deleteRecord
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Accepted; applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /server/dns:
+    get:
+      tags: [dns]
+      summary: DNS settings, zone template and name server report (admins)
+      operationId: getDNSSettings
+      responses:
+        "200":
+          description: Settings and a check of the name servers in DNS.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/DNSSettings" }
+                  - type: object
+                    required: [report, detected_ips]
+                    properties:
+                      report:
+                        type: array
+                        items:
+                          type: object
+                          required: [name, addresses, ok]
+                          properties:
+                            name: { type: string }
+                            addresses: { type: array, items: { type: string } }
+                            ok: { type: boolean, description: Points to this server's IPv4 or IPv6 }
+                            problem: { type: string }
+                      detected_ips: { type: array, items: { type: string }, description: Addresses of the server's interfaces }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [dns]
+      summary: Save DNS settings and re-apply every zone (admins)
+      operationId: saveDNSSettings
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DNSSettings" }
+      responses:
+        "200":
+          description: Saved; zones_queued zones are being re-applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [settings, zones_queued]
+                properties:
+                  settings: { $ref: "#/components/schemas/DNSSettings" }
+                  zones_queued: { type: integer }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /server/php-versions:
     get:
       tags: [system]
@@ -1094,6 +1276,63 @@ components:
         keep_path: { type: boolean, description: Append the rest of the requested path to the target }
         created_at: { type: string, format: date-time }
         job_id: { type: string }
+
+    Zone:
+      type: object
+      required: [id, account_id, account, name, display_name, mail_routing, serving, updated_at]
+      properties:
+        id: { type: string }
+        account_id: { type: string }
+        account: { type: string, description: The account's username }
+        serving: { type: boolean, description: "The DNS server has the zone; false until PowerDNS has applied it" }
+        name: { type: string }
+        display_name: { type: string }
+        mail_routing: { type: string, enum: [auto, local, remote, backup] }
+        mail_routing_effective: { type: string, enum: [local, remote, backup], description: What auto resolves to from the MX records (detail only) }
+        nameservers: { type: array, items: { type: string }, description: The zone's NS records (detail only) }
+        records: { type: array, items: { $ref: "#/components/schemas/Record" }, description: Detail only }
+        updated_at: { type: string, format: date-time }
+
+    Record:
+      type: object
+      required: [id, zone_id, name, type, ttl, content, managed]
+      properties:
+        id: { type: string }
+        zone_id: { type: string }
+        name: { type: string, description: 'Relative to the zone: "@" for the zone itself' }
+        type: { type: string, enum: [A, AAAA, CAA, CNAME, HTTPS, MX, NS, SRV, SVCB, TLSA, TXT] }
+        ttl: { type: integer }
+        content: { type: string, description: TXT as plain text; others in zone-file form }
+        managed: { type: boolean, description: Made for a domain; removed with it }
+        job_id: { type: string }
+
+    RecordInput:
+      type: object
+      additionalProperties: false
+      required: [name, type, content]
+      properties:
+        name: { type: string, description: '"@", "www", or a full name in the zone' }
+        type: { type: string, enum: [A, AAAA, CAA, CNAME, HTTPS, MX, NS, SRV, SVCB, TLSA, TXT] }
+        ttl: { type: integer, description: "Seconds, 60 to 604800; 0 or missing = the server's default" }
+        content: { type: string, description: 'TXT: plain text. Others: zone-file form; for the host name, "@" is the zone, one label ("mail") is in the zone, a name with dots is complete' }
+
+    DNSSettings:
+      type: object
+      required: [nameservers, ipv4, ipv6, ttl, template]
+      properties:
+        nameservers: { type: array, items: { type: string }, description: "NS of every zone; empty = ns1/ns2 of each zone" }
+        ipv4: { type: string, description: "This server's public IPv4, used by the template" }
+        ipv6: { type: string }
+        ttl: { type: integer }
+        template:
+          type: array
+          items:
+            type: object
+            required: [name, type, content]
+            properties:
+              name: { type: string }
+              type: { type: string }
+              content: { type: string, description: "May use {domain}, {ip4} and {ip6}" }
 
     RedirectCreate:
       type: object

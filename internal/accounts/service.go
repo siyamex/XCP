@@ -23,6 +23,7 @@ import (
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
+	"github.com/siyamex/XCP/internal/zones"
 )
 
 // Account is the API view of an account.
@@ -74,13 +75,14 @@ type Service struct {
 	jobs    *jobs.Queue
 	agent   agentrpc.Client
 	domains *domains.Service
+	zones   *zones.Service
 }
 
 // NewService returns an accounts service.
 func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Service, q *jobs.Queue, ag agentrpc.Client,
-	dom *domains.Service,
+	dom *domains.Service, zs *zones.Service,
 ) *Service {
-	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom}
+	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom, zones: zs}
 }
 
 // scope returns the owner filter for p: admins manage admin-owned accounts
@@ -251,6 +253,13 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 		if err := store.InsertDomain(ctx, tx, primary); errors.Is(err, store.ErrConflict) {
 			return apperr.NewConflict("domain_taken", "another account already uses this domain")
 		} else if err != nil {
+			return err
+		}
+		apply, err := s.zones.DomainAdded(ctx, tx, primary)
+		if err != nil {
+			return err
+		}
+		if err := s.zones.Enqueue(ctx, tx, p.Login.ID, nil, apply); err != nil {
 			return err
 		}
 		login := &store.Login{

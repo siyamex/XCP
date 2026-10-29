@@ -170,6 +170,17 @@ func (s *Service) terminateJob(ctx context.Context, j *jobs.Job, r jobs.Reporter
 	if _, err := s.agent.SiteRemove(ctx, &agentv1.SiteRemoveRequest{Username: a.Username}); err != nil && status.Code(err) != codes.NotFound {
 		return nil, permanentIfRefused(err)
 	}
+	zs, err := store.AccountZones(ctx, s.db.R, a.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, z := range zs {
+		r.Logf("removing DNS zone %s", z.Name)
+		_, err := s.agent.DNSZoneDelete(ctx, &agentv1.DNSZoneDeleteRequest{Zone: z.Name})
+		if err != nil && status.Code(err) != codes.NotFound {
+			return nil, permanentIfRefused(err)
+		}
+	}
 	r.Logf("removing Linux user %s and its home folder", a.Username)
 	res, err := s.agent.AccountDelete(ctx, &agentv1.AccountDeleteRequest{Username: a.Username})
 	if err != nil {

@@ -28,11 +28,16 @@ func (db *DB) GetSetting(ctx context.Context, key string, dst any) error {
 
 // SetSetting stores v as JSON under key, replacing any previous value.
 func (db *DB) SetSetting(ctx context.Context, key string, v any) error {
+	return PutSetting(ctx, db.W, key, v)
+}
+
+// PutSetting is SetSetting through q, which may be a transaction.
+func PutSetting(ctx context.Context, q querier, key string, v any) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return fmt.Errorf("store: setting %q: %w", key, err)
 	}
-	_, err = db.W.ExecContext(ctx, `
+	_, err = q.ExecContext(ctx, `
 		INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
 		ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
 		key, string(b), FormatTime(time.Now()))

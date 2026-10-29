@@ -11,7 +11,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/siyamex/XCP/internal/hostinfo"
 	"github.com/siyamex/XCP/internal/install"
 	"github.com/siyamex/XCP/internal/validate"
 	"github.com/siyamex/XCP/internal/version"
@@ -41,6 +41,7 @@ func run() error {
 	dryRun := flag.Bool("dry-run", false, "show what would change, change nothing")
 	skipOS := flag.Bool("skip-os-check", false, "install on an OS other than Ubuntu 24.04 (unsupported)")
 	noWeb := flag.Bool("no-web", false, "do not install Apache and PHP-FPM")
+	noDNS := flag.Bool("no-dns", false, "do not install PowerDNS")
 	flag.Parse()
 
 	fmt.Printf("XCP installer %s\n\n", version.Version)
@@ -72,10 +73,10 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	ips := serverIPs()
+	ips := hostinfo.ServerIPs()
 	res, err := install.Run(ctx, install.Options{
 		Root: "/", BinDir: *from, Hostname: h, IPs: ips,
-		AdminUser: *adminUser, AdminPassword: password, NoWeb: *noWeb, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
+		AdminUser: *adminUser, AdminPassword: password, NoWeb: *noWeb, NoDNS: *noDNS, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
 	})
 	if err != nil {
 		return err
@@ -134,32 +135,6 @@ func osField(osRelease, key string) string {
 		}
 	}
 	return ""
-}
-
-// serverIPs lists global unicast addresses of interfaces that are up and not
-// loopback, for the certificate and summary. (Some systems, like WSL, put a
-// non-127 address on the loopback interface; it is not reachable from outside.)
-func serverIPs() []string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-	var out []string
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, a := range addrs {
-			if n, ok := a.(*net.IPNet); ok && n.IP.IsGlobalUnicast() && !n.IP.IsLinkLocalUnicast() {
-				out = append(out, n.IP.String())
-			}
-		}
-	}
-	return out
 }
 
 func formatHost(ip string) string {

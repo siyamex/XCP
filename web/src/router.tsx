@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/re
 import { AppLayout } from "./components/AppLayout";
 import { AccountCreatePage, AccountDetailPage, AccountsPage } from "./pages/AccountsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DnsSettingsPage, ZonePage, ZonesPage } from "./pages/DnsPage";
 import { MyDomainsPage } from "./pages/DomainsPage";
 import { FeatureListsPage } from "./pages/FeatureListsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -24,12 +25,16 @@ const accountNewRoute = createRoute({ getParentRoute: () => appRoute, path: "/ac
 const accountRoute = createRoute({ getParentRoute: () => appRoute, path: "/accounts/$accountId", component: AccountDetailPage });
 const featureListsRoute = createRoute({ getParentRoute: () => appRoute, path: "/feature-lists", component: FeatureListsPage });
 const domainsRoute = createRoute({ getParentRoute: () => appRoute, path: "/domains", component: MyDomainsPage });
+const zonesRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns", component: ZonesPage });
+const dnsSettingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns/settings", component: DnsSettingsPage });
+const zoneRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns/$zoneId", component: ZonePage });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
     accountsRoute, accountNewRoute, accountRoute, domainsRoute,
+    zonesRoute, dnsSettingsRoute, zoneRoute,
   ]),
 ]);
 

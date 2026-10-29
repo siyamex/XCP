@@ -564,6 +564,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dns/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List zones (admins all, or one account's; users their own) */
+        get: operations["listZones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/zones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** A zone with its records */
+        get: operations["getZone"];
+        /** Set who handles the zone's mail (USR-DNS-03) */
+        put: operations["updateZone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/zones/{id}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a record
+         * @description 409 codes: `record_conflict` (the zone would be invalid, e.g. a CNAME next to other records), `record_exists`.
+         */
+        post: operations["addRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/records/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a record */
+        put: operations["updateRecord"];
+        post?: never;
+        /** Remove a record */
+        delete: operations["deleteRecord"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/dns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DNS settings, zone template and name server report (admins) */
+        get: operations["getDNSSettings"];
+        /** Save DNS settings and re-apply every zone (admins) */
+        put: operations["saveDNSSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/php-versions": {
         parameters: {
             query?: never;
@@ -838,6 +935,67 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             job_id?: string;
+        };
+        Zone: {
+            id: string;
+            account_id: string;
+            /** @description The account's username */
+            account: string;
+            /** @description The DNS server has the zone; false until PowerDNS has applied it */
+            serving: boolean;
+            name: string;
+            display_name: string;
+            /** @enum {string} */
+            mail_routing: "auto" | "local" | "remote" | "backup";
+            /**
+             * @description What auto resolves to from the MX records (detail only)
+             * @enum {string}
+             */
+            mail_routing_effective?: "local" | "remote" | "backup";
+            /** @description The zone's NS records (detail only) */
+            nameservers?: string[];
+            /** @description Detail only */
+            records?: components["schemas"]["Record"][];
+            /** Format: date-time */
+            updated_at: string;
+        };
+        Record: {
+            id: string;
+            zone_id: string;
+            /** @description Relative to the zone: "@" for the zone itself */
+            name: string;
+            /** @enum {string} */
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "HTTPS" | "MX" | "NS" | "SRV" | "SVCB" | "TLSA" | "TXT";
+            ttl: number;
+            /** @description TXT as plain text; others in zone-file form */
+            content: string;
+            /** @description Made for a domain; removed with it */
+            managed: boolean;
+            job_id?: string;
+        };
+        RecordInput: {
+            /** @description "@", "www", or a full name in the zone */
+            name: string;
+            /** @enum {string} */
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "HTTPS" | "MX" | "NS" | "SRV" | "SVCB" | "TLSA" | "TXT";
+            /** @description Seconds, 60 to 604800; 0 or missing = the server's default */
+            ttl?: number;
+            /** @description TXT: plain text. Others: zone-file form; for the host name, "@" is the zone, one label ("mail") is in the zone, a name with dots is complete */
+            content: string;
+        };
+        DNSSettings: {
+            /** @description NS of every zone; empty = ns1/ns2 of each zone */
+            nameservers: string[];
+            /** @description This server's public IPv4, used by the template */
+            ipv4: string;
+            ipv6: string;
+            ttl: number;
+            template: {
+                name: string;
+                type: string;
+                /** @description May use {domain}, {ip4} and {ip6} */
+                content: string;
+            }[];
         };
         RedirectCreate: {
             path: string;
@@ -1911,6 +2069,234 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    listZones: {
+        parameters: {
+            query?: {
+                account_id?: string;
+                /** @description Part of the zone name (admins) */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The zones, by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Zone"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    getZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The zone. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Zone"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mail_routing: "auto" | "local" | "remote" | "backup";
+                };
+            };
+        };
+        responses: {
+            /** @description The zone. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Zone"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    addRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted; served once the job in job_id has run. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Record"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Record"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    getDNSSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings and a check of the name servers in DNS. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSSettings"] & {
+                        report: {
+                            name: string;
+                            addresses: string[];
+                            /** @description Points to this server's IPv4 or IPv6 */
+                            ok: boolean;
+                            problem?: string;
+                        }[];
+                        /** @description Addresses of the server's interfaces */
+                        detected_ips: string[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    saveDNSSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DNSSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved; zones_queued zones are being re-applied. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["DNSSettings"];
+                        zones_queued: number;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     listPHPVersions: {

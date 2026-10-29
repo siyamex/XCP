@@ -76,6 +76,9 @@ type Paths struct {
 // MasterKeyFile is the secretbox key used to encrypt secrets in the database.
 func (p Paths) MasterKeyFile() string { return filepath.Join(p.SecretsDir, "master.key") }
 
+// PDNSKeyFile holds the PowerDNS API key; only root (xcp-agent) reads it.
+func (p Paths) PDNSKeyFile() string { return filepath.Join(p.SecretsDir, "pdns-api-key") }
+
 // Duration wraps time.Duration so TOML can use strings like "30m".
 type Duration struct{ time.Duration }
 

@@ -22,6 +22,7 @@ type Server struct {
 	Files    *agent.Files
 	Accounts *agent.Accounts
 	Web      *agent.Web
+	DNS      *agent.DNS
 	Version  string
 	Hostname string
 	Log      *slog.Logger

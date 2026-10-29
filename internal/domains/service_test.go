@@ -22,6 +22,7 @@ import (
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
+	"github.com/siyamex/XCP/internal/zones"
 )
 
 const pw = "correct horse battery"
@@ -73,12 +74,14 @@ func newEnv(t *testing.T) *env {
 	fake := agentrpc.NewFake()
 	q := jobs.NewQueue(db)
 	txt := domains.StaticTXT{}
-	svc := domains.NewService(db, rec, pl, q, fake, txt, []byte("test key"))
-	accts := accounts.NewService(db, rec, au, pl, q, fake, svc)
+	zs := zones.NewService(db, rec, pl, q, fake, zones.StaticHosts{})
+	svc := domains.NewService(db, rec, pl, q, fake, zs, txt, []byte("test key"))
+	accts := accounts.NewService(db, rec, au, pl, q, fake, svc, zs)
 	w := jobs.NewWorker(q, "test", log)
 	w.Poll = 10 * time.Millisecond
 	accts.RegisterJobs(w)
 	svc.RegisterJobs(w)
+	zs.RegisterJobs(w)
 	runCtx, stop := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() { w.Run(runCtx); close(done) }()
