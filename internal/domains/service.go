@@ -122,6 +122,7 @@ type Service struct {
 	jobs     *jobs.Queue
 	agent    agentrpc.Client
 	zones    *zones.Service
+	certs    CertSource
 	resolver TXTResolver
 	key      []byte // signs verification tokens
 }
@@ -300,6 +301,9 @@ func (s *Service) Add(ctx context.Context, c auth.Client, p *auth.Principal, acc
 	default:
 		return Domain{}, badField("kind", validate.CodeFormat, "kind must be addon, sub or alias")
 	}
+	if h := s.hostname(ctx); h != "" && (strings.TrimPrefix(d.Name, "*.") == h || strings.HasSuffix(d.Name, "."+h)) {
+		return Domain{}, badField("name", validate.CodeReserved, h+" is this server's own name")
+	}
 	if in.Kind != store.DomainAlias {
 		root := in.DocRoot
 		if strings.TrimSpace(root) == "" {
@@ -358,6 +362,14 @@ func (s *Service) Add(ctx context.Context, c auth.Client, p *auth.Principal, acc
 	v := view(*d, byID)
 	v.JobID = jobID
 	return v, nil
+}
+
+// hostname is the server's own name, if the certificate source knows it.
+func (s *Service) hostname(ctx context.Context) string {
+	if s.certs == nil {
+		return ""
+	}
+	return s.certs.Hostname(ctx)
 }
 
 // checkLimit enforces the package's number of addon domains, subdomains and aliases.

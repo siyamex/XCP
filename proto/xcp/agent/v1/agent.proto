@@ -62,6 +62,12 @@ service AgentService {
 
   // DNSZoneDelete removes a zone from PowerDNS.
   rpc DNSZoneDelete(DNSZoneDeleteRequest) returns (DNSZoneDeleteResponse);
+
+  // HostCertificateInstall installs the certificate of the server's host
+  // name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
+  // and FTP. It must cover the host name and be valid now; xcp-api picks it
+  // up without a restart.
+  rpc HostCertificateInstall(HostCertificateInstallRequest) returns (HostCertificateInstallResponse);
 }
 
 message PingRequest {}
@@ -200,6 +206,15 @@ message VirtualHost {
   string doc_root = 2;  // relative to the home folder; created when missing
   Canonical canonical = 3;
   repeated Redirect redirects = 4;
+  TLS tls = 5;           // also serve it over HTTPS; unset = HTTP only
+  bool force_https = 6;  // HTTP redirects to HTTPS (needs tls)
+}
+
+// TLS is a certificate and its private key. The agent checks that they
+// match and that the certificate covers the name.
+message TLS {
+  string cert_pem = 1;  // the certificate, then the rest of its chain
+  string key_pem = 2;
 }
 
 // Canonical is the host name a site sends its visitors to.
@@ -261,4 +276,13 @@ message DNSZoneDeleteRequest {
 
 message DNSZoneDeleteResponse {
   bool deleted = 1;  // false if PowerDNS did not have the zone
+}
+
+message HostCertificateInstallRequest {
+  string hostname = 1;
+  TLS tls = 2;
+}
+
+message HostCertificateInstallResponse {
+  bool changed = 1;
 }

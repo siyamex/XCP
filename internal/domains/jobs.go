@@ -32,10 +32,28 @@ func (s *Service) RegisterJobs(w *jobs.Worker) {
 }
 
 func (s *Service) enqueue(ctx context.Context, tx *sql.Tx, p *auth.Principal, accountID string) (string, error) {
+	return s.EnqueueSite(ctx, tx, p.Login.ID, accountID)
+}
+
+// EnqueueSite queues, inside tx, the job that applies an account's websites
+// again (after a certificate changed, for example).
+func (s *Service) EnqueueSite(ctx context.Context, tx *sql.Tx, createdBy, accountID string) (string, error) {
 	return s.jobs.EnqueueTx(ctx, tx, JobSiteApply, jobPayload{AccountID: accountID}, jobs.EnqueueOptions{
-		AccountID: accountID, LockKey: "account:" + accountID, MaxAttempts: 3, CreatedBy: p.Login.ID,
+		AccountID: accountID, LockKey: "account:" + accountID, MaxAttempts: 3, CreatedBy: createdBy,
 	})
 }
+
+// CertSource gives the websites their certificates (package ssl).
+type CertSource interface {
+	// SiteTLS returns the certificate a domain's site serves (nil: none) and
+	// whether HTTP redirects to HTTPS.
+	SiteTLS(ctx context.Context, d store.Domain) (*agentv1.TLS, bool, error)
+	// Hostname is the server's own name, which no account may add.
+	Hostname(ctx context.Context) string
+}
+
+// SetCertSource connects the certificate source; without one, sites are HTTP only.
+func (s *Service) SetCertSource(c CertSource) { s.certs = c }
 
 var canonicals = map[string]agentv1.Canonical{
 	store.CanonicalBoth: agentv1.Canonical_CANONICAL_UNSPECIFIED,
@@ -69,6 +87,11 @@ func (s *Service) SiteRequest(ctx context.Context, a *store.Account, lim plans.L
 			root = byID[d.ParentID].DocRoot
 		}
 		v := &agentv1.VirtualHost{Name: d.Name, DocRoot: root, Canonical: canonicals[d.Canonical]}
+		if s.certs != nil {
+			if v.Tls, v.ForceHttps, err = s.certs.SiteTLS(ctx, d); err != nil {
+				return nil, err
+			}
+		}
 		for _, r := range rs {
 			if r.DomainID == d.ID {
 				v.Redirects = append(v.Redirects, &agentv1.Redirect{

@@ -11,6 +11,7 @@ import { cn } from "../lib/cn";
 import { ZoneList } from "./DnsPage";
 import { DomainsPanel } from "./DomainsPage";
 import { usePackages } from "./PackagesPage";
+import { AccountSSL } from "./SslPage";
 
 type Account = components["schemas"]["Account"];
 type Status = Account["status"];
@@ -250,6 +251,7 @@ export function AccountDetailPage() {
           <ZoneList accountId={a.id} />
         </div>
       )}
+      {(a.status === "active" || a.status === "suspended") && <AccountSSL accountId={a.id} />}
 
       <Card>
         <CardTitle>{t("accounts.change")}</CardTitle>

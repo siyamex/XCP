@@ -129,7 +129,8 @@
     "record_conflict": "That record does not fit the zone.",
     "record_exists": "The zone has this record already.",
     "zone_exists": "This server has a DNS zone with that name already.",
-    "zone_in_use": "The domain's DNS zone also holds records of other domains; remove those domains first."
+    "zone_in_use": "The domain's DNS zone also holds records of other domains; remove those domains first.",
+    "needs_certificate": "The domain needs a valid certificate first."
   },
   "packages": {
     "title": "Packages",
@@ -397,5 +398,64 @@
       "save": "Save and re-apply all zones",
       "saved": "Saved. {{count}} zone(s) are being updated."
     }
+  },
+  "ssl": {
+    "title": "SSL/TLS",
+    "domains": "Certificates of the domains",
+    "domain": "Domain",
+    "status": "AutoSSL",
+    "certificate": "Certificate",
+    "none": "None",
+    "manage": "Manage",
+    "runNow": "Run AutoSSL now",
+    "runAll": "Run AutoSSL for all accounts",
+    "statuses": {
+      "ok": "OK",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "none": "Not checked yet"
+    },
+    "sources": {
+      "acme": "AutoSSL",
+      "upload": "Uploaded"
+    },
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft": "{{count}} days left",
+    "autossl": "Get certificates automatically (AutoSSL)",
+    "forceHttps": "Force HTTPS (visitors over HTTP are sent to HTTPS)",
+    "upload": "Install your own certificate",
+    "fields": {
+      "certificate": "Certificate (PEM)",
+      "chain": "CA bundle (optional)",
+      "key": "Private key (PEM)"
+    },
+    "install": "Install certificate",
+    "remove": "Remove certificate",
+    "confirmRemove": "Remove the certificate of {{name}}? HTTPS stops until AutoSSL issues a new one.",
+    "dashboard": "Certificates by expiry",
+    "expiringSoon_one": "{{count}} certificate expires within 14 days.",
+    "expiringSoon": "{{count}} certificates expire within 14 days.",
+    "names": "Names",
+    "account": "Account",
+    "source": "Source",
+    "expires": "Expires",
+    "server": "this server",
+    "noCertificates": "No certificates yet. AutoSSL issues them for domains that point to this server.",
+    "settings": "AutoSSL settings",
+    "enabled": "AutoSSL is on (runs daily, renews 30 days before expiry)",
+    "provider": "Certificate authority",
+    "providers": {
+      "letsencrypt": "Let's Encrypt",
+      "letsencrypt-staging": "Let's Encrypt staging (test certificates)",
+      "custom": "Other ACME CA"
+    },
+    "email": "Contact email for the CA",
+    "hostname": "This server's host name",
+    "hostnameHint": "Its certificate is used by the panel. No account can add this name.",
+    "directory": "ACME directory URL",
+    "eabKeyId": "EAB key ID (if the CA needs one)",
+    "eabKey": "EAB key",
+    "eabKeyStored": "Stored; type to replace",
+    "caBundle": "CA certificate of the ACME server (only for a private CA)"
   }
 }

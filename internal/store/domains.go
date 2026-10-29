@@ -25,34 +25,50 @@ const (
 
 // Domain is one domain of an account.
 type Domain struct {
-	ID        string
-	AccountID string
-	Name      string // "*.example.com" for a wildcard subdomain
-	Kind      string
-	ParentID  string // sub: the domain it is under; alias: the domain whose site it shows
-	DocRoot   string // relative to the home folder; "" for an alias
-	Canonical string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         string
+	AccountID  string
+	Name       string // "*.example.com" for a wildcard subdomain
+	Kind       string
+	ParentID   string // sub: the domain it is under; alias: the domain whose site it shows
+	DocRoot    string // relative to the home folder; "" for an alias
+	Canonical  string
+	AutoSSL    bool // AutoSSL may issue its certificate (USR-SSL-06)
+	ForceHTTPS bool
+	SSLStatus  string     // AutoSSL's last result: "", ok, failed, skipped
+	SSLDetail  string     // why
+	SSLChecked *time.Time // when
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
-const domainColumns = `id, account_id, name, kind, COALESCE(parent_id, ''), docroot, canonical, created_at, updated_at`
+// AutoSSL results of a domain.
+const (
+	SSLOK      = "ok"
+	SSLFailed  = "failed"
+	SSLSkipped = "skipped"
+)
+
+const domainColumns = `id, account_id, name, kind, COALESCE(parent_id, ''), docroot, canonical,
+	autossl, force_https, ssl_status, ssl_detail, ssl_checked_at, created_at, updated_at`
 
 func scanDomain(s scanner) (*Domain, error) {
 	var (
 		d                Domain
 		created, updated string
+		checked          sql.NullString
 	)
-	err := s.Scan(&d.ID, &d.AccountID, &d.Name, &d.Kind, &d.ParentID, &d.DocRoot, &d.Canonical, &created, &updated)
+	err := s.Scan(&d.ID, &d.AccountID, &d.Name, &d.Kind, &d.ParentID, &d.DocRoot, &d.Canonical,
+		&d.AutoSSL, &d.ForceHTTPS, &d.SSLStatus, &d.SSLDetail, &checked, &created, &updated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	var errs [2]error
+	var errs [3]error
 	d.CreatedAt, errs[0] = ParseTime(created)
 	d.UpdatedAt, errs[1] = ParseTime(updated)
+	d.SSLChecked, errs[2] = NullTime(checked)
 	return &d, errors.Join(errs[:]...)
 }
 
@@ -124,6 +140,20 @@ func UpdateDomain(ctx context.Context, q querier, d *Domain) error {
 	d.UpdatedAt = time.Now().UTC()
 	return execOne(ctx, q, `UPDATE domains SET docroot = ?, canonical = ?, updated_at = ? WHERE id = ?`,
 		d.DocRoot, d.Canonical, FormatTime(d.UpdatedAt), d.ID)
+}
+
+// SetDomainSSL saves whether AutoSSL may issue the domain's certificate and
+// whether HTTP redirects to HTTPS.
+func SetDomainSSL(ctx context.Context, q querier, id string, autoSSL, forceHTTPS bool) error {
+	return execOne(ctx, q, `UPDATE domains SET autossl = ?, force_https = ?, updated_at = ? WHERE id = ?`,
+		autoSSL, forceHTTPS, FormatTime(time.Now()), id)
+}
+
+// SetDomainSSLStatus records AutoSSL's result for a domain.
+func (db *DB) SetDomainSSLStatus(ctx context.Context, id, status, detail string) error {
+	_, err := db.W.ExecContext(ctx, `UPDATE domains SET ssl_status = ?, ssl_detail = ?, ssl_checked_at = ? WHERE id = ?`,
+		status, detail, FormatTime(time.Now()), id)
+	return err
 }
 
 // DeleteDomain removes a domain and its redirects.

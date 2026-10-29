@@ -76,6 +76,14 @@ type Paths struct {
 // MasterKeyFile is the secretbox key used to encrypt secrets in the database.
 func (p Paths) MasterKeyFile() string { return filepath.Join(p.SecretsDir, "master.key") }
 
+// HostCertFiles are the certificate and key of the server's host name
+// (AutoSSL), next to the panel's own self-signed pair: the panel serves
+// them to clients that ask for the host name, and mail and FTP use them.
+func (a API) HostCertFiles() (cert, key string) {
+	dir := filepath.Dir(a.TLSCert)
+	return filepath.Join(dir, "hostname.crt"), filepath.Join(dir, "hostname.key")
+}
+
 // PDNSKeyFile holds the PowerDNS API key; only root (xcp-agent) reads it.
 func (p Paths) PDNSKeyFile() string { return filepath.Join(p.SecretsDir, "pdns-api-key") }
 

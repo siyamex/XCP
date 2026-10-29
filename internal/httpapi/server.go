@@ -20,6 +20,7 @@ import (
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/zones"
 )
@@ -31,6 +32,7 @@ type Deps struct {
 	Accounts *accounts.Service
 	Domains  *domains.Service
 	Zones    *zones.Service
+	SSL      *ssl.Service
 	Jobs     *jobs.Queue
 	Agent    agentrpc.Client
 	Log      *slog.Logger
@@ -135,6 +137,15 @@ func New(d Deps) *Server {
 		{method: "DELETE", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.deleteRecord},
 		{method: "GET", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.getDNSSettings},
 		{method: "PUT", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.saveDNSSettings},
+		{method: "GET", path: "/api/v1/server/ssl", access: authed, roles: adminOnly, h: s.getSSLSettings},
+		{method: "PUT", path: "/api/v1/server/ssl", access: authed, roles: adminOnly, h: s.saveSSLSettings},
+		{method: "POST", path: "/api/v1/server/ssl/run", access: authed, roles: adminOnly, h: s.runAutoSSL},
+		{method: "GET", path: "/api/v1/ssl/certificates", access: authed, roles: adminOrUser, h: s.listCertificates},
+		{method: "GET", path: "/api/v1/accounts/{id}/ssl", access: authed, roles: adminOrUser, h: s.accountSSL},
+		{method: "POST", path: "/api/v1/accounts/{id}/ssl/run", access: authed, roles: adminOrUser, h: s.runAutoSSL},
+		{method: "PUT", path: "/api/v1/domains/{id}/ssl", access: authed, roles: adminOrUser, h: s.setDomainSSL},
+		{method: "PUT", path: "/api/v1/domains/{id}/certificate", access: authed, roles: adminOrUser, h: s.uploadCertificate},
+		{method: "DELETE", path: "/api/v1/domains/{id}/certificate", access: authed, roles: adminOrUser, h: s.deleteCertificate},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
 		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}

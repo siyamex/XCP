@@ -26,6 +26,8 @@ type App struct {
 	Auth  *auth.Service
 	Audit *audit.Recorder
 	Plans *plans.Service
+	// Box encrypts secrets in the database with the master key.
+	Box *secretbox.Box
 	// DomainKey signs domain verification tokens (derived from the master key).
 	DomainKey []byte
 }
@@ -64,7 +66,7 @@ func Open(ctx context.Context, configPath string) (*App, error) {
 		return nil, err
 	}
 	return &App{
-		Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec, Plans: plans.NewService(db, rec),
+		Cfg: cfg, Log: log, DB: db, Auth: svc, Audit: rec, Plans: plans.NewService(db, rec), Box: box,
 		DomainKey: deriveKey(key, "domain-verification"),
 	}, nil
 }

@@ -31,6 +31,8 @@ type Fake struct {
 	accounts  fakeUsers
 	sites     fakeSites
 	zones     fakeZones
+	hostName  string
+	hostCert  string
 }
 
 type fakeFile struct {

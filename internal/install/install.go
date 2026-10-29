@@ -209,6 +209,7 @@ func (in *installer) dirs(context.Context) error {
 		{SSLDir, 0o750, rootSvc},
 		{"/etc/xcp/generated", 0o755, rootRoot},
 		{StateDir, 0o750, svcSvc},
+		{ChallengeDir, 0o755, svcSvc}, // read by Apache
 		{UnitDir, 0o755, rootRoot},
 		{"/usr/sbin", 0o755, rootRoot},
 		{"/usr/bin", 0o755, rootRoot},
@@ -381,10 +382,37 @@ func (in *installer) units(context.Context) error {
 // unknown name never lands on a customer's site.
 const ApacheConf = "/etc/apache2/sites-available/xcp.conf"
 
-const apacheConfBody = "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
-	"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n" +
-	"# Wildcard subdomains last, so they never catch a name another virtual host serves.\n" +
-	"IncludeOptional /etc/apache2/xcp/wildcards/*.conf\n"
+// ChallengeDir holds the ACME HTTP-01 answers xcp-api writes; Apache
+// serves it for every host name (ADR-0005).
+const ChallengeDir = "/var/www/xcp-acme"
+
+// apacheConf is the site that includes the per-account virtual hosts. Its
+// default HTTPS host comes first, so a name without a certificate here gets
+// an error, never a customer's site (like 000-default on port 80).
+func apacheConf(hostname string) string {
+	return "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
+		"# Certificates are validated over HTTP for every host name (ADR-0005).\n" +
+		"Alias /.well-known/acme-challenge/ " + ChallengeDir + "/\n" +
+		"<Directory " + ChallengeDir + ">\n" +
+		"    Options None\n" +
+		"    AllowOverride None\n" +
+		"    Require all granted\n" +
+		"</Directory>\n" +
+		"<IfModule ssl_module>\n" +
+		"<VirtualHost *:443>\n" +
+		"    ServerName " + hostname + "\n" +
+		"    SSLEngine on\n" +
+		"    SSLCertificateFile " + CertFile + "\n" +
+		"    SSLCertificateKeyFile " + KeyFile + "\n" +
+		"    <Location />\n" +
+		"        Require all denied\n" +
+		"    </Location>\n" +
+		"</VirtualHost>\n" +
+		"</IfModule>\n" +
+		"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n" +
+		"# Wildcard subdomains last, so they never catch a name another virtual host serves.\n" +
+		"IncludeOptional /etc/apache2/xcp/wildcards/*.conf\n"
+}
 
 func (in *installer) web(ctx context.Context) error {
 	if in.o.NoWeb {
@@ -393,7 +421,7 @@ func (in *installer) web(ctx context.Context) error {
 	}
 	if in.o.DryRun {
 		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers, start both")
-		_, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
+		_, err := in.writeFile(ApacheConf, []byte(apacheConf(in.o.Hostname)), 0o644, rootRoot, false)
 		return err
 	}
 	installed, err := in.o.Sys.InstallWebStack(ctx)
@@ -407,7 +435,7 @@ func (in *installer) web(ctx context.Context) error {
 	if err := os.MkdirAll(in.path(path.Dir(ApacheConf)), 0o755); err != nil { //nolint:gosec // G301: see above
 		return err
 	}
-	wrote, err := in.writeFile(ApacheConf, []byte(apacheConfBody), 0o644, rootRoot, false)
+	wrote, err := in.writeFile(ApacheConf, []byte(apacheConf(in.o.Hostname)), 0o644, rootRoot, false)
 	if err != nil {
 		return err
 	}

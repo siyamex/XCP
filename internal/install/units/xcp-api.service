@@ -19,7 +19,8 @@ NoNewPrivileges=yes
 CapabilityBoundingSet=
 AmbientCapabilities=
 ProtectSystem=strict
-ReadWritePaths=/var/lib/xcp
+# The ACME HTTP-01 answers it writes for Apache to serve (ADR-0005).
+ReadWritePaths=/var/lib/xcp -/var/www/xcp-acme
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

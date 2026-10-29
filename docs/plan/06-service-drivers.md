@@ -133,7 +133,9 @@ type WebServer interface {
 - SFTP uses OpenSSH (`internal-sftp`, chroot option for SFTP-only users, P3).
 
 ## 8. SSL/ACME
-- `lego` client inside `xcp-worker`. Account keys per ACME provider.
+- **Amended by ADR-0005:** `golang.org/x/crypto/acme` inside xcp-api's job
+  worker; challenge files written by xcp-api; certificates travel with
+  `SiteApply`. Account keys per ACME directory.
 - HTTP-01: challenge files written to the shared challenge dir by the agent.
   DNS-01: through the local PowerDNS API or external DNS providers.
 - AutoSSL job: daily. For each domain, check DNS points to the server (skip

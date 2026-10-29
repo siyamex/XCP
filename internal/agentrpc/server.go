@@ -23,6 +23,7 @@ type Server struct {
 	Accounts *agent.Accounts
 	Web      *agent.Web
 	DNS      *agent.DNS
+	HostCert *agent.HostCert
 	Version  string
 	Hostname string
 	Log      *slog.Logger

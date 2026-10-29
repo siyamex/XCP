@@ -35,7 +35,7 @@ func TestRedirectPathAndTarget(t *testing.T) {
 			t.Errorf("RedirectPath(%q) = %q, %v; want %q", in, got, err, want)
 		}
 	}
-	for _, bad := range []string{"old", "/a b", "/a/../b", "/a/./b", "/a\"b", "/$1", "/a?b", "//"} {
+	for _, bad := range []string{"old", "/a b", "/a/../b", "/a/./b", "/a\"b", "/$1", "/a?b", "//", "/.well-known", "/.well-known/acme-challenge/x"} {
 		if _, err := RedirectPath(bad); err == nil {
 			t.Errorf("RedirectPath(%q) accepted", bad)
 		}

@@ -29,6 +29,11 @@ tags:
       DNS zones served by this server. A zone is made for each domain from
       the zone template; users with the `dns_editor` feature edit their own.
       Record changes are applied by a job (`job_id`).
+  - name: ssl
+    description: |
+      Certificates (ADR-0005). AutoSSL issues free certificates through ACME
+      for domains that point here; users may upload their own. Private keys
+      are never returned. Users need the `ssl` feature.
   - name: domains
     description: |
       An account's domains and redirects. Admins reach every admin-owned
@@ -966,6 +971,183 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/ssl:
+    get:
+      tags: [ssl]
+      summary: AutoSSL settings (admins)
+      operationId: getSSLSettings
+      responses:
+        "200":
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SSLSettings" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [ssl]
+      summary: Save the AutoSSL settings (admins)
+      operationId: saveSSLSettings
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SSLSettingsInput" }
+      responses:
+        "200":
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SSLSettings" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/ssl/run:
+    post:
+      tags: [ssl]
+      summary: Run AutoSSL now for every account and the server's host name (admins)
+      operationId: runAutoSSLAll
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /ssl/certificates:
+    get:
+      tags: [ssl]
+      summary: Certificates, soonest to expire first (admins all, users their own)
+      operationId: listCertificates
+      responses:
+        "200":
+          description: The certificates.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Certificate" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/ssl:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [ssl]
+      summary: SSL state of an account's domains
+      operationId: getAccountSSL
+      responses:
+        "200":
+          description: One entry per domain.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/DomainSSL" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/ssl/run:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [ssl]
+      summary: Run AutoSSL now for one account
+      operationId: runAutoSSL
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/ssl:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [ssl]
+      summary: Leave a domain out of AutoSSL, or force HTTPS
+      description: "409 `needs_certificate`: HTTPS can only be forced while the domain has a valid certificate."
+      operationId: setDomainSSL
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [autossl, force_https]
+              properties:
+                autossl: { type: boolean }
+                force_https: { type: boolean }
+      responses:
+        "202":
+          description: Accepted; the site is applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainSSL" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/certificate:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [ssl]
+      summary: Upload a certificate for a domain (USR-SSL-03)
+      description: The key must match, and the certificate must cover the domain and be valid now.
+      operationId: uploadCertificate
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [certificate, key]
+              properties:
+                certificate: { type: string, description: "PEM; may include the chain" }
+                chain: { type: string, description: PEM intermediate certificates }
+                key: { type: string, description: PEM private key without a passphrase }
+      responses:
+        "202":
+          description: Accepted; the site is applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainSSL" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [ssl]
+      summary: Remove a domain's certificate (HTTPS is then not forced)
+      operationId: deleteCertificate
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Accepted; the site is applied by the job in job_id.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /server/php-versions:
     get:
       tags: [system]
@@ -1333,6 +1515,65 @@ components:
               name: { type: string }
               type: { type: string }
               content: { type: string, description: "May use {domain}, {ip4} and {ip6}" }
+
+    SSLSettings:
+      type: object
+      required: [enabled, provider, directory_url, ca_bundle, eab_key_id, has_eab_key, email, hostname]
+      properties:
+        enabled: { type: boolean }
+        provider: { type: string, enum: [letsencrypt, letsencrypt-staging, custom] }
+        directory_url: { type: string, description: "custom: the ACME directory (https)" }
+        ca_bundle: { type: string, description: "custom: PEM CA certificates the directory's HTTPS is signed with, if not public" }
+        eab_key_id: { type: string, description: "custom: External Account Binding key ID" }
+        has_eab_key: { type: boolean, description: The EAB key is stored (it is never returned) }
+        email: { type: string }
+        hostname: { type: string, description: "The server's own name: its certificate is used by the panel; accounts cannot add it" }
+
+    SSLSettingsInput:
+      type: object
+      additionalProperties: false
+      required: [enabled, provider]
+      properties:
+        enabled: { type: boolean }
+        provider: { type: string, enum: [letsencrypt, letsencrypt-staging, custom] }
+        directory_url: { type: string }
+        ca_bundle: { type: string }
+        eab_key_id: { type: string }
+        eab_key: { type: string, description: "base64url HMAC key; empty keeps the stored one" }
+        clear_eab_key: { type: boolean }
+        email: { type: string }
+        hostname: { type: string }
+
+    Certificate:
+      type: object
+      required: [id, domain, source, names, issuer, not_before, not_after, days_left]
+      properties:
+        id: { type: string }
+        domain: { type: string, description: '"" for the server''s own certificate' }
+        account_id: { type: string }
+        account: { type: string }
+        source: { type: string, enum: [acme, upload] }
+        names: { type: array, items: { type: string } }
+        issuer: { type: string }
+        not_before: { type: string, format: date-time }
+        not_after: { type: string, format: date-time }
+        days_left: { type: integer }
+
+    DomainSSL:
+      type: object
+      required: [domain_id, domain, display_name, kind, autossl, force_https, status, detail]
+      properties:
+        domain_id: { type: string }
+        domain: { type: string }
+        display_name: { type: string }
+        kind: { type: string, enum: [primary, addon, sub, alias] }
+        autossl: { type: boolean, description: false = left out of AutoSSL }
+        force_https: { type: boolean }
+        status: { type: string, enum: ["", ok, failed, skipped], description: AutoSSL's last result }
+        detail: { type: string, description: Why (shown to the user) }
+        checked_at: { type: string, format: date-time }
+        certificate: { $ref: "#/components/schemas/Certificate" }
+        job_id: { type: string }
 
     RedirectCreate:
       type: object

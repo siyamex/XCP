@@ -29,7 +29,10 @@ func siteFrom(req *agentv1.SiteApplyRequest) agent.Site {
 		if !ok {
 			c = "unknown" // refused by agent.CheckSite
 		}
-		vh := agent.Vhost{Name: v.GetName(), DocRoot: v.GetDocRoot(), Canonical: c}
+		vh := agent.Vhost{Name: v.GetName(), DocRoot: v.GetDocRoot(), Canonical: c, ForceHTTPS: v.GetForceHttps()}
+		if t := v.GetTls(); t != nil {
+			vh.TLS = &agent.TLS{CertPEM: t.GetCertPem(), KeyPEM: t.GetKeyPem()}
+		}
 		for _, r := range v.GetRedirects() {
 			vh.Redirects = append(vh.Redirects, agent.Redirect{
 				Path: r.GetPath(), Target: r.GetTarget(), Code: int(r.GetCode()), KeepPath: r.GetKeepPath(),

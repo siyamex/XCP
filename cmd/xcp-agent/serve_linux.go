@@ -65,6 +65,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 
 	hostname, _ := os.Hostname()
+	hostCert, hostKey := cfg.API.HostCertFiles()
 	allowedUIDs := []uint32{0, apiUID}
 	gs := grpc.NewServer(
 		grpc.Creds(agentrpc.PeerCredentials(allowedUIDs)),
@@ -83,10 +84,12 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Web: &agent.Web{
 			Run: runner, Services: agent.Systemctl{Run: runner}, HomesRoot: cfg.Paths.HomesRoot,
 			VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", PHPDir: "/etc/php",
+			CertDir:      "/etc/xcp/ssl/sites",
 			SuspendedDir: "/var/www/xcp-suspended",
 			LogDir:       "/var/log/apache2/xcp", WebUser: "www-data",
 		},
 		DNS:      &agent.DNS{URL: agent.PDNSURL, KeyFile: cfg.Paths.PDNSKeyFile()},
+		HostCert: &agent.HostCert{CertFile: hostCert, KeyFile: hostKey, Group: cfg.Agent.APIUser},
 		Version:  version.Version,
 		Hostname: hostname,
 		Log:      log,

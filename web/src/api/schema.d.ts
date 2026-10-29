@@ -661,6 +661,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/ssl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** AutoSSL settings (admins) */
+        get: operations["getSSLSettings"];
+        /** Save the AutoSSL settings (admins) */
+        put: operations["saveSSLSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/ssl/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run AutoSSL now for every account and the server's host name (admins) */
+        post: operations["runAutoSSLAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ssl/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Certificates, soonest to expire first (admins all, users their own) */
+        get: operations["listCertificates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/ssl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** SSL state of an account's domains */
+        get: operations["getAccountSSL"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/ssl/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run AutoSSL now for one account */
+        post: operations["runAutoSSL"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/ssl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Leave a domain out of AutoSSL, or force HTTPS
+         * @description 409 `needs_certificate`: HTTPS can only be forced while the domain has a valid certificate.
+         */
+        put: operations["setDomainSSL"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload a certificate for a domain (USR-SSL-03)
+         * @description The key must match, and the certificate must cover the domain and be valid now.
+         */
+        put: operations["uploadCertificate"];
+        post?: never;
+        /** Remove a domain's certificate (HTTPS is then not forced) */
+        delete: operations["deleteCertificate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/php-versions": {
         parameters: {
             query?: never;
@@ -996,6 +1131,72 @@ export interface components {
                 /** @description May use {domain}, {ip4} and {ip6} */
                 content: string;
             }[];
+        };
+        SSLSettings: {
+            enabled: boolean;
+            /** @enum {string} */
+            provider: "letsencrypt" | "letsencrypt-staging" | "custom";
+            /** @description custom: the ACME directory (https) */
+            directory_url: string;
+            /** @description custom: PEM CA certificates the directory's HTTPS is signed with, if not public */
+            ca_bundle: string;
+            /** @description custom: External Account Binding key ID */
+            eab_key_id: string;
+            /** @description The EAB key is stored (it is never returned) */
+            has_eab_key: boolean;
+            email: string;
+            /** @description The server's own name: its certificate is used by the panel; accounts cannot add it */
+            hostname: string;
+        };
+        SSLSettingsInput: {
+            enabled: boolean;
+            /** @enum {string} */
+            provider: "letsencrypt" | "letsencrypt-staging" | "custom";
+            directory_url?: string;
+            ca_bundle?: string;
+            eab_key_id?: string;
+            /** @description base64url HMAC key; empty keeps the stored one */
+            eab_key?: string;
+            clear_eab_key?: boolean;
+            email?: string;
+            hostname?: string;
+        };
+        Certificate: {
+            id: string;
+            /** @description "" for the server's own certificate */
+            domain: string;
+            account_id?: string;
+            account?: string;
+            /** @enum {string} */
+            source: "acme" | "upload";
+            names: string[];
+            issuer: string;
+            /** Format: date-time */
+            not_before: string;
+            /** Format: date-time */
+            not_after: string;
+            days_left: number;
+        };
+        DomainSSL: {
+            domain_id: string;
+            domain: string;
+            display_name: string;
+            /** @enum {string} */
+            kind: "primary" | "addon" | "sub" | "alias";
+            /** @description false = left out of AutoSSL */
+            autossl: boolean;
+            force_https: boolean;
+            /**
+             * @description AutoSSL's last result
+             * @enum {string}
+             */
+            status: "" | "ok" | "failed" | "skipped";
+            /** @description Why (shown to the user) */
+            detail: string;
+            /** Format: date-time */
+            checked_at?: string;
+            certificate?: components["schemas"]["Certificate"];
+            job_id?: string;
         };
         RedirectCreate: {
             path: string;
@@ -2297,6 +2498,239 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getSSLSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSLSettings"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    saveSSLSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SSLSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSLSettings"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    runAutoSSLAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    listCertificates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The certificates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Certificate"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    getAccountSSL: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One entry per domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["DomainSSL"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    runAutoSSL: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    setDomainSSL: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    autossl: boolean;
+                    force_https: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted; the site is applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainSSL"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    uploadCertificate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description PEM; may include the chain */
+                    certificate: string;
+                    /** @description PEM intermediate certificates */
+                    chain?: string;
+                    /** @description PEM private key without a passphrase */
+                    key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted; the site is applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainSSL"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deleteCertificate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; the site is applied by the job in job_id. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     listPHPVersions: {

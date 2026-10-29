@@ -2,22 +2,30 @@ package agent
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/fs"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/siyamex/XCP/internal/fsx"
 )
 
 func testWeb() *Web {
 	return &Web{
-		HomesRoot: "/home", VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", PHPDir: "/etc/php",
+		HomesRoot: "/home", VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", CertDir: "/etc/xcp/ssl/sites", PHPDir: "/etc/php",
 		SuspendedDir: "/var/www/xcp-suspended", LogDir: "/var/log/apache2/xcp", WebUser: "www-data",
 	}
 }
@@ -58,6 +66,7 @@ func TestVhostGolden(t *testing.T) {
         SetHandler "proxy:unix:/run/php/xcp-demo1-8.3.sock|fcgi://localhost"
     </FilesMatch>
     RewriteEngine On
+    RewriteRule "^/\.well-known/acme-challenge/" - [L]
     RewriteCond %{HTTP_HOST} ^www\.demo1\.example(:[0-9]+)?$ [NC]
     RewriteRule ^ %{REQUEST_SCHEME}://demo1.example%{REQUEST_URI} [R=301,L]
     RedirectMatch 302 "^/old/promo(/.*)?$" "https://shop.example/?ref=promo"
@@ -107,10 +116,10 @@ func TestWildcardVhostsGoToTheirOwnFile(t *testing.T) {
 
 func TestRedirectLines(t *testing.T) {
 	cases := map[Redirect]string{
-		{Path: "/", Target: "https://new.example", Code: 301, KeepPath: true}:             `Redirect 301 "/" "https://new.example/"`,
-		{Path: "/", Target: "https://new.example/x/", Code: 308, KeepPath: true}:          `Redirect 308 "/" "https://new.example/x/"`,
+		{Path: "/", Target: "https://new.example", Code: 301, KeepPath: true}:             `RedirectMatch 301 "^/(?!\.well-known/acme-challenge/)(.*)$" "https://new.example/$1"`,
+		{Path: "/", Target: "https://new.example/x/", Code: 308, KeepPath: true}:          `RedirectMatch 308 "^/(?!\.well-known/acme-challenge/)(.*)$" "https://new.example/x/$1"`,
 		{Path: "/docs", Target: "https://new.example/manual/", Code: 307, KeepPath: true}: `Redirect 307 "/docs" "https://new.example/manual"`,
-		{Path: "/", Target: "https://new.example/?a=1&b=2", Code: 302}:                    `RedirectMatch 302 "^/" "https://new.example/?a=1&b=2"`,
+		{Path: "/", Target: "https://new.example/?a=1&b=2", Code: 302}:                    `RedirectMatch 302 "^/(?!\.well-known/acme-challenge/)" "https://new.example/?a=1&b=2"`,
 		{Path: "/a.b/c-d", Target: "http://x.example/", Code: 301}:                        `RedirectMatch 301 "^/a\.b/c-d(/.*)?$" "http://x.example/"`,
 	}
 	for r, want := range cases {
@@ -300,6 +309,123 @@ func TestSiteReloadFailureRollsBackSoRetryReloads(t *testing.T) {
 	m.fail, m.calls = "", nil
 	if changed, err := w.write(ctx, files, []string{"8.3"}); err != nil || !changed || len(m.calls) != 2 {
 		t.Fatalf("retry: changed=%v err=%v calls=%q", changed, err, m.calls)
+	}
+}
+
+// testTLS is a self-signed certificate for names, with its key.
+func testTLS(t *testing.T, names ...string) *TLS {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: names[0]}, DNSNames: names,
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kb, _ := x509.MarshalPKCS8PrivateKey(key)
+	return &TLS{
+		CertPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})),
+		KeyPEM:  string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: kb})),
+	}
+}
+
+func TestHTTPSVhosts(t *testing.T) {
+	s := Site{Username: "demo1", UID: 10000, PHPVersion: "8.3", Vhosts: []Vhost{
+		{Name: "secure.example", DocRoot: "public_html", TLS: testTLS(t, "secure.example"), ForceHTTPS: true},
+		{Name: "both.example", DocRoot: "public_html", TLS: testTLS(t, "both.example")},
+	}}
+	if err := CheckSite(s); err != nil {
+		t.Fatal(err)
+	}
+	got := string(render(vhostTmpl, testWeb().data(s, false)))
+	httpOnlyRedirect := `<VirtualHost *:80>
+    ServerName secure.example
+    ServerAlias www.secure.example
+    # HTTPS only; certificates are still validated over HTTP.
+    RewriteEngine On
+    RewriteRule "^/\.well-known/acme-challenge/" - [L]
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
+    ErrorLog /var/log/apache2/xcp/demo1.error.log
+    CustomLog /var/log/apache2/xcp/demo1.access.log combined
+</VirtualHost>
+<VirtualHost *:443>
+    ServerName secure.example
+    ServerAlias www.secure.example
+    SSLEngine on
+    SSLCertificateFile /etc/xcp/ssl/sites/demo1/secure.example.crt
+    SSLCertificateKeyFile /etc/xcp/ssl/sites/demo1/secure.example.key
+    DocumentRoot /home/demo1/public_html
+`
+	if !strings.Contains(got, httpOnlyRedirect) {
+		t.Fatalf("force-HTTPS vhosts:\n%s", got)
+	}
+	if strings.Count(got, "<VirtualHost *:443>") != 2 || strings.Count(got, "DocumentRoot /home/demo1/public_html") != 3 {
+		t.Fatalf("both.example must serve the site over HTTP and HTTPS:\n%s", got)
+	}
+
+	// A suspended account shows the notice over HTTPS too, without redirecting.
+	s.Suspended = true
+	if got := string(render(vhostTmpl, testWeb().data(s, false))); strings.Contains(got, "https://%{SERVER_NAME}") || strings.Count(got, "xcp-suspended/index.html") != 4 {
+		t.Fatalf("suspended:\n%s", got)
+	}
+}
+
+func TestCheckSiteTLS(t *testing.T) {
+	good := testTLS(t, "a.example")
+	other := testTLS(t, "b.example")
+	bad := map[string]Vhost{
+		"key of another certificate": {Name: "a.example", DocRoot: "public_html", TLS: &TLS{CertPEM: good.CertPEM, KeyPEM: other.KeyPEM}},
+		"name not covered":           {Name: "a.example", DocRoot: "public_html", TLS: other},
+		"force HTTPS without one":    {Name: "a.example", DocRoot: "public_html", ForceHTTPS: true},
+		"not PEM":                    {Name: "a.example", DocRoot: "public_html", TLS: &TLS{CertPEM: "SSLCertificateFile /etc/shadow", KeyPEM: good.KeyPEM}},
+	}
+	for name, v := range bad {
+		if err := CheckSite(Site{Username: "demo1", UID: 10000, Vhosts: []Vhost{v}}); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+	wild := Vhost{Name: "*.w.example", DocRoot: "public_html", TLS: testTLS(t, "*.w.example")}
+	if err := CheckSite(Site{Username: "demo1", UID: 10000, Vhosts: []Vhost{{Name: "w.example", DocRoot: "public_html"}, wild}}); err != nil {
+		t.Fatalf("wildcard certificate: %v", err)
+	}
+}
+
+func TestCertFiles(t *testing.T) {
+	w := testWeb()
+	w.CertDir = t.TempDir()
+	dir := filepath.Join(w.CertDir, "demo1")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "gone.example.crt"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tlsA := testTLS(t, "a.example")
+	files, err := w.certFiles(Site{Username: "demo1", Vhosts: []Vhost{
+		{Name: "a.example", TLS: tlsA}, {Name: "plain.example"}, {Name: "*.w.example", TLS: testTLS(t, "*.w.example")},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, f := range files {
+		got = append(got, fmt.Sprintf("%s %v %v", f.name, f.content != nil, f.mode()))
+	}
+	want := []string{
+		"a.example.crt true -rw-r--r--", "a.example.key true -rw-------",
+		"_wildcard.w.example.crt true -rw-r--r--", "_wildcard.w.example.key true -rw-------",
+		"gone.example.crt false -rw-r--r--",
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("files =\n%q\nwant\n%q", got, want)
+	}
+	if string(files[0].content) != tlsA.CertPEM {
+		t.Fatal("certificate not written as given (re-encoded PEM)")
 	}
 }
 

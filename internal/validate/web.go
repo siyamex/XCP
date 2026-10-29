@@ -68,6 +68,9 @@ func RedirectPath(s string) (string, error) {
 			return "", fail(CodeFormat, "path must not contain . or .. segments")
 		}
 	}
+	if s == "/.well-known" || strings.HasPrefix(s, "/.well-known/acme-challenge") {
+		return "", fail(CodeReserved, "certificates are validated under /.well-known/acme-challenge; it cannot be redirected")
+	}
 	return s, nil
 }
 

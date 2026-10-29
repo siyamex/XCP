@@ -28,19 +28,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentService_Ping_FullMethodName                = "/xcp.agent.v1.AgentService/Ping"
-	AgentService_ServiceStatus_FullMethodName       = "/xcp.agent.v1.AgentService/ServiceStatus"
-	AgentService_ServiceAction_FullMethodName       = "/xcp.agent.v1.AgentService/ServiceAction"
-	AgentService_FileWriteManaged_FullMethodName    = "/xcp.agent.v1.AgentService/FileWriteManaged"
-	AgentService_FileRemoveManaged_FullMethodName   = "/xcp.agent.v1.AgentService/FileRemoveManaged"
-	AgentService_AccountEnsure_FullMethodName       = "/xcp.agent.v1.AgentService/AccountEnsure"
-	AgentService_AccountSetSuspended_FullMethodName = "/xcp.agent.v1.AgentService/AccountSetSuspended"
-	AgentService_AccountDelete_FullMethodName       = "/xcp.agent.v1.AgentService/AccountDelete"
-	AgentService_SiteApply_FullMethodName           = "/xcp.agent.v1.AgentService/SiteApply"
-	AgentService_SiteRemove_FullMethodName          = "/xcp.agent.v1.AgentService/SiteRemove"
-	AgentService_PHPVersions_FullMethodName         = "/xcp.agent.v1.AgentService/PHPVersions"
-	AgentService_DNSZoneApply_FullMethodName        = "/xcp.agent.v1.AgentService/DNSZoneApply"
-	AgentService_DNSZoneDelete_FullMethodName       = "/xcp.agent.v1.AgentService/DNSZoneDelete"
+	AgentService_Ping_FullMethodName                   = "/xcp.agent.v1.AgentService/Ping"
+	AgentService_ServiceStatus_FullMethodName          = "/xcp.agent.v1.AgentService/ServiceStatus"
+	AgentService_ServiceAction_FullMethodName          = "/xcp.agent.v1.AgentService/ServiceAction"
+	AgentService_FileWriteManaged_FullMethodName       = "/xcp.agent.v1.AgentService/FileWriteManaged"
+	AgentService_FileRemoveManaged_FullMethodName      = "/xcp.agent.v1.AgentService/FileRemoveManaged"
+	AgentService_AccountEnsure_FullMethodName          = "/xcp.agent.v1.AgentService/AccountEnsure"
+	AgentService_AccountSetSuspended_FullMethodName    = "/xcp.agent.v1.AgentService/AccountSetSuspended"
+	AgentService_AccountDelete_FullMethodName          = "/xcp.agent.v1.AgentService/AccountDelete"
+	AgentService_SiteApply_FullMethodName              = "/xcp.agent.v1.AgentService/SiteApply"
+	AgentService_SiteRemove_FullMethodName             = "/xcp.agent.v1.AgentService/SiteRemove"
+	AgentService_PHPVersions_FullMethodName            = "/xcp.agent.v1.AgentService/PHPVersions"
+	AgentService_DNSZoneApply_FullMethodName           = "/xcp.agent.v1.AgentService/DNSZoneApply"
+	AgentService_DNSZoneDelete_FullMethodName          = "/xcp.agent.v1.AgentService/DNSZoneDelete"
+	AgentService_HostCertificateInstall_FullMethodName = "/xcp.agent.v1.AgentService/HostCertificateInstall"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -84,6 +85,11 @@ type AgentServiceClient interface {
 	DNSZoneApply(ctx context.Context, in *DNSZoneApplyRequest, opts ...grpc.CallOption) (*DNSZoneApplyResponse, error)
 	// DNSZoneDelete removes a zone from PowerDNS.
 	DNSZoneDelete(ctx context.Context, in *DNSZoneDeleteRequest, opts ...grpc.CallOption) (*DNSZoneDeleteResponse, error)
+	// HostCertificateInstall installs the certificate of the server's host
+	// name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
+	// and FTP. It must cover the host name and be valid now; xcp-api picks it
+	// up without a restart.
+	HostCertificateInstall(ctx context.Context, in *HostCertificateInstallRequest, opts ...grpc.CallOption) (*HostCertificateInstallResponse, error)
 }
 
 type agentServiceClient struct {
@@ -224,6 +230,16 @@ func (c *agentServiceClient) DNSZoneDelete(ctx context.Context, in *DNSZoneDelet
 	return out, nil
 }
 
+func (c *agentServiceClient) HostCertificateInstall(ctx context.Context, in *HostCertificateInstallRequest, opts ...grpc.CallOption) (*HostCertificateInstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HostCertificateInstallResponse)
+	err := c.cc.Invoke(ctx, AgentService_HostCertificateInstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -265,6 +281,11 @@ type AgentServiceServer interface {
 	DNSZoneApply(context.Context, *DNSZoneApplyRequest) (*DNSZoneApplyResponse, error)
 	// DNSZoneDelete removes a zone from PowerDNS.
 	DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error)
+	// HostCertificateInstall installs the certificate of the server's host
+	// name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
+	// and FTP. It must cover the host name and be valid now; xcp-api picks it
+	// up without a restart.
+	HostCertificateInstall(context.Context, *HostCertificateInstallRequest) (*HostCertificateInstallResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -313,6 +334,9 @@ func (UnimplementedAgentServiceServer) DNSZoneApply(context.Context, *DNSZoneApp
 }
 func (UnimplementedAgentServiceServer) DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DNSZoneDelete not implemented")
+}
+func (UnimplementedAgentServiceServer) HostCertificateInstall(context.Context, *HostCertificateInstallRequest) (*HostCertificateInstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HostCertificateInstall not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -569,6 +593,24 @@ func _AgentService_DNSZoneDelete_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_HostCertificateInstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HostCertificateInstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).HostCertificateInstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_HostCertificateInstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).HostCertificateInstall(ctx, req.(*HostCertificateInstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -627,6 +669,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DNSZoneDelete",
 			Handler:    _AgentService_DNSZoneDelete_Handler,
+		},
+		{
+			MethodName: "HostCertificateInstall",
+			Handler:    _AgentService_HostCertificateInstall_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

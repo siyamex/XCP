@@ -19,6 +19,7 @@ import (
 
 	"github.com/siyamex/XCP/internal/execx"
 	"github.com/siyamex/XCP/internal/fsx"
+	"github.com/siyamex/XCP/internal/tlsx"
 	"github.com/siyamex/XCP/internal/validate"
 )
 
@@ -61,10 +62,18 @@ type Site struct {
 
 // Vhost is the website of one domain.
 type Vhost struct {
-	Name      string // "*.example.com" for a wildcard subdomain
-	DocRoot   string // relative to the home folder
-	Canonical string // "", CanonicalWWW or CanonicalBare
-	Redirects []Redirect
+	Name       string // "*.example.com" for a wildcard subdomain
+	DocRoot    string // relative to the home folder
+	Canonical  string // "", CanonicalWWW or CanonicalBare
+	Redirects  []Redirect
+	TLS        *TLS // served over HTTPS too; nil = HTTP only
+	ForceHTTPS bool // HTTP redirects to HTTPS; needs TLS
+}
+
+// TLS is a certificate (followed by its chain) and its private key, PEM.
+type TLS struct {
+	CertPEM string
+	KeyPEM  string
 }
 
 // Canonical host choices of a Vhost.
@@ -140,6 +149,17 @@ func checkVhost(v Vhost) error {
 	default:
 		return invalid("canonical %q of %s is not www or bare", v.Canonical, v.Name)
 	}
+	if v.TLS != nil {
+		p, err := tlsx.Parse(v.TLS.CertPEM, "", v.TLS.KeyPEM)
+		if err != nil {
+			return invalid("certificate of %s: %v", v.Name, err)
+		}
+		if !tlsx.Covers(p.Leaf, v.Name) {
+			return invalid("the certificate of %s does not cover that name", v.Name)
+		}
+	} else if v.ForceHTTPS {
+		return invalid("%s cannot force HTTPS without a certificate", v.Name)
+	}
 	if len(v.Redirects) > MaxVhostRedirects {
 		return invalid("%s has more than %d redirects", v.Name, MaxVhostRedirects)
 	}
@@ -172,6 +192,7 @@ type Web struct {
 	HomesRoot    string // /home
 	VhostDir     string // /etc/apache2/xcp/vhosts
 	WildcardDir  string // /etc/apache2/xcp/wildcards, included after VhostDir
+	CertDir      string // /etc/xcp/ssl/sites: <user>/<domain>.crt and .key, root only
 	PHPDir       string // /etc/php
 	SuspendedDir string // /var/www/xcp-suspended
 	LogDir       string // /var/log/apache2/xcp
@@ -200,23 +221,20 @@ func (w *Web) PHPVersions() []string {
 }
 
 var (
-	vhostTmpl = template.Must(template.New("vhost").Parse(`# Managed by XCP. Do not edit: changes are overwritten.
-{{- range .Vhosts}}
-<VirtualHost *:80>
-    ServerName {{.ServerName}}
-    ServerAlias {{.Alias}}
-{{- if $.Suspended}}
+	vhostTmpl = template.Must(template.New("vhost").Parse(`
+{{- define "site"}}
+{{- if .S.Suspended}}
     # Account suspended: every request gets the notice page.
-    DocumentRoot {{$.SuspendedDir}}
-    <Directory {{$.SuspendedDir}}>
+    DocumentRoot {{.S.SuspendedDir}}
+    <Directory {{.S.SuspendedDir}}>
         Require all granted
     </Directory>
-    AliasMatch "^/.*$" "{{$.SuspendedDir}}/index.html"
+    AliasMatch "^/.*$" "{{.S.SuspendedDir}}/index.html"
 {{- else}}
     DocumentRoot {{.DocRoot}}
     # Symlinks in the home folder, the document root itself included, are
     # followed only when the link and its target have the same owner.
-    <Directory {{$.Home}}>
+    <Directory {{.S.Home}}>
         Options SymLinksIfOwnerMatch
         AllowOverride None
         Require all denied
@@ -227,10 +245,11 @@ var (
         Require all granted
     </Directory>
     <FilesMatch "\.(php|phtml)$">
-        SetHandler "proxy:unix:{{$.Socket}}|fcgi://localhost"
+        SetHandler "proxy:unix:{{.S.Socket}}|fcgi://localhost"
     </FilesMatch>
 {{- with .Canonical}}
     RewriteEngine On
+    RewriteRule "^/\.well-known/acme-challenge/" - [L]
     RewriteCond %{HTTP_HOST} ^{{.From}}(:[0-9]+)?$ [NC]
     RewriteRule ^ %{REQUEST_SCHEME}://{{.To}}%{REQUEST_URI} [R=301,L]
 {{- end}}
@@ -238,9 +257,35 @@ var (
     {{.}}
 {{- end}}
 {{- end}}
-    ErrorLog {{$.LogDir}}/{{$.Username}}.error.log
-    CustomLog {{$.LogDir}}/{{$.Username}}.access.log combined
+    ErrorLog {{.S.LogDir}}/{{.S.Username}}.error.log
+    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log combined
+{{- end -}}
+# Managed by XCP. Do not edit: changes are overwritten.
+{{- range .Vhosts}}
+<VirtualHost *:80>
+    ServerName {{.ServerName}}
+    ServerAlias {{.Alias}}
+{{- if .HTTPSOnly}}
+    # HTTPS only; certificates are still validated over HTTP.
+    RewriteEngine On
+    RewriteRule "^/\.well-known/acme-challenge/" - [L]
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
+    ErrorLog {{.S.LogDir}}/{{.S.Username}}.error.log
+    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log combined
+{{- else}}
+{{- template "site" .}}
+{{- end}}
 </VirtualHost>
+{{- if .CertFile}}
+<VirtualHost *:443>
+    ServerName {{.ServerName}}
+    ServerAlias {{.Alias}}
+    SSLEngine on
+    SSLCertificateFile {{.CertFile}}
+    SSLCertificateKeyFile {{.KeyFile}}
+{{- template "site" .}}
+</VirtualHost>
+{{- end}}
 {{- end}}
 `))
 	poolTmpl = template.Must(template.New("pool").Parse(`; Managed by XCP. Do not edit: changes are overwritten.
@@ -272,9 +317,12 @@ type siteData struct {
 }
 
 type vhostData struct {
+	S                          *siteData
 	ServerName, Alias, DocRoot string
 	Canonical                  *canonicalRule
 	Redirects                  []string // rendered directives
+	CertFile, KeyFile          string   // set when also served over HTTPS
+	HTTPSOnly                  bool     // HTTP only redirects to HTTPS
 }
 
 // canonicalRule redirects hosts matching the regex From to the host To.
@@ -284,24 +332,37 @@ type canonicalRule struct{ From, To string }
 // The socket name includes the PHP version: when a site switches version,
 // the old FPM unlinks its socket on reload, which must not be the new FPM's.
 func (w *Web) data(s Site, wildcards bool) siteData {
-	d := siteData{
+	d := &siteData{
 		Site: s, Home: path.Join(w.HomesRoot, s.Username),
 		Socket:       "/run/php/xcp-" + s.Username + "-" + s.PHPVersion + ".sock",
 		SuspendedDir: w.SuspendedDir, LogDir: w.LogDir, WebUser: w.WebUser,
 	}
-	for _, v := range s.Vhosts {
-		if strings.HasPrefix(v.Name, "*.") == wildcards {
-			d.Vhosts = append(d.Vhosts, vhostOf(d.Home, v))
-		}
-	}
 	if d.MaxChildren == 0 {
 		d.MaxChildren = 10
 	}
-	return d
+	for _, v := range s.Vhosts {
+		if strings.HasPrefix(v.Name, "*.") == wildcards {
+			d.Vhosts = append(d.Vhosts, w.vhostOf(d, v))
+		}
+	}
+	return *d
 }
 
-func vhostOf(home string, v Vhost) vhostData {
-	d := vhostData{ServerName: v.Name, Alias: "www." + v.Name, DocRoot: home + "/" + v.DocRoot}
+// certBase names the certificate files of a vhost.
+func certBase(name string) string {
+	if base, ok := strings.CutPrefix(name, "*."); ok {
+		return "_wildcard." + base
+	}
+	return name
+}
+
+func (w *Web) vhostOf(s *siteData, v Vhost) vhostData {
+	d := vhostData{S: s, ServerName: v.Name, Alias: "www." + v.Name, DocRoot: s.Home + "/" + v.DocRoot}
+	if v.TLS != nil {
+		dir := path.Join(w.CertDir, s.Username)
+		d.CertFile, d.KeyFile = path.Join(dir, certBase(v.Name)+".crt"), path.Join(dir, certBase(v.Name)+".key")
+		d.HTTPSOnly = v.ForceHTTPS && !s.Suspended
+	}
 	if base, ok := strings.CutPrefix(v.Name, "*."); ok {
 		d.ServerName, d.Alias = "wildcard."+base, v.Name
 	}
@@ -321,21 +382,22 @@ func vhostOf(home string, v Vhost) vhostData {
 }
 
 // redirectLine renders a redirect for mod_alias. CheckSite has made sure
-// paths and targets hold no quotes, backslashes, spaces or '$'.
+// paths and targets hold no quotes, backslashes, spaces or '$'. A redirect
+// of the whole site leaves out the path certificates are validated under.
 func redirectLine(r Redirect) string {
+	const notACME = `(?!\.well-known/acme-challenge/)`
 	switch {
 	case r.KeepPath && r.Path == "/":
-		// Redirect appends what follows the matched "/", so the target must end in "/".
 		t := r.Target
 		if !strings.HasSuffix(t, "/") {
 			t += "/"
 		}
-		return fmt.Sprintf(`Redirect %d "/" "%s"`, r.Code, t)
+		return fmt.Sprintf(`RedirectMatch %d "^/%s(.*)$" "%s$1"`, r.Code, notACME, t)
 	case r.KeepPath:
 		// Redirect appends what follows the path, starting with "/".
 		return fmt.Sprintf(`Redirect %d "%s" "%s"`, r.Code, r.Path, strings.TrimSuffix(r.Target, "/"))
 	case r.Path == "/":
-		return fmt.Sprintf(`RedirectMatch %d "^/" "%s"`, r.Code, r.Target)
+		return fmt.Sprintf(`RedirectMatch %d "^/%s" "%s"`, r.Code, notACME, r.Target)
 	default:
 		return fmt.Sprintf(`RedirectMatch %d "^%s(/.*)?$" "%s"`, r.Code, regexp.QuoteMeta(r.Path), r.Target)
 	}
@@ -354,6 +416,14 @@ type managedFile struct {
 	dir, name string
 	content   []byte // nil = must not exist
 	unit      string // the service that reads it
+	private   bool   // root only (0600): private keys
+}
+
+func (f managedFile) mode() fs.FileMode {
+	if f.private {
+		return 0o600
+	}
+	return 0o644
 }
 
 const apacheUnit = "apache2.service"
@@ -412,8 +482,53 @@ func (w *Web) Apply(ctx context.Context, s Site) (SiteResult, error) {
 	if err := w.ensureDocRoots(s); err != nil {
 		return SiteResult{}, err
 	}
-	changed, err := w.write(ctx, files, installed)
+	certs, err := w.certFiles(s)
+	if err != nil {
+		return SiteResult{}, err
+	}
+	changed, err := w.write(ctx, append(files, certs...), installed)
 	return SiteResult{Changed: changed, PHPVersion: version}, err
+}
+
+// certFiles are the certificate and key files of the account's HTTPS
+// vhosts (re-encoded by tlsx, so nothing else reaches them), and removals
+// for the files that no vhost uses any more.
+func (w *Web) certFiles(s Site) ([]managedFile, error) {
+	dir := filepath.Join(w.CertDir, s.Username)
+	want := map[string]bool{}
+	var out []managedFile
+	for _, v := range s.Vhosts {
+		if v.TLS == nil {
+			continue
+		}
+		p, err := tlsx.Parse(v.TLS.CertPEM, "", v.TLS.KeyPEM)
+		if err != nil {
+			return nil, invalid("certificate of %s: %v", v.Name, err)
+		}
+		b := certBase(v.Name)
+		out = append(out,
+			managedFile{dir: dir, name: b + ".crt", content: []byte(p.CertPEM), unit: apacheUnit},
+			managedFile{dir: dir, name: b + ".key", content: []byte(p.KeyPEM), unit: apacheUnit, private: true})
+		want[b+".crt"], want[b+".key"] = true, true
+	}
+	if len(out) > 0 {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, err
+		}
+	}
+	return append(out, w.staleCerts(dir, want)...), nil
+}
+
+// staleCerts are removals for the files in dir that are not in keep.
+func (w *Web) staleCerts(dir string, keep map[string]bool) []managedFile {
+	ents, _ := os.ReadDir(dir) // a missing folder has nothing to remove
+	var out []managedFile
+	for _, e := range ents {
+		if e.Type().IsRegular() && !keep[e.Name()] {
+			out = append(out, managedFile{dir: dir, name: e.Name(), unit: apacheUnit})
+		}
+	}
+	return out
 }
 
 // ensureDocRoots creates missing document roots below the account's home,
@@ -495,9 +610,14 @@ func (w *Web) Remove(ctx context.Context, username string) (bool, error) {
 	for _, v := range installed {
 		files = append(files, managedFile{dir: w.poolDir(v), name: "xcp-" + username + ".conf", unit: fpmUnit(v)})
 	}
+	certDir := filepath.Join(w.CertDir, username)
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.write(ctx, files, installed)
+	changed, err := w.write(ctx, append(files, w.staleCerts(certDir, nil)...), installed)
+	if err == nil {
+		_ = os.Remove(certDir) // empty now
+	}
+	return changed, err
 }
 
 // ensureSupport creates the vhost and log folders and the suspended page.
@@ -506,6 +626,9 @@ func (w *Web) ensureSupport() error {
 		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // G301: read by Apache
 			return err
 		}
+	}
+	if err := os.MkdirAll(w.CertDir, 0o700); err != nil { // private keys: root only
+		return err
 	}
 	page := filepath.Join(w.SuspendedDir, "index.html")
 	if _, err := os.Stat(page); err == nil {
@@ -536,7 +659,7 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 				continue
 			}
 			if p.existed {
-				_ = root.WriteFileAtomic(p.f.name, p.old, 0o644)
+				_ = root.WriteFileAtomic(p.f.name, p.old, p.f.mode())
 			} else {
 				_ = root.Remove(p.f.name)
 			}
@@ -566,7 +689,7 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 		case f.content == nil:
 			err = root.Remove(f.name)
 		default:
-			err = root.WriteFileAtomic(f.name, f.content, 0o644)
+			err = root.WriteFileAtomic(f.name, f.content, f.mode())
 		}
 		root.Close()
 		if err != nil {

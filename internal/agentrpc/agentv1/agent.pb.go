@@ -1250,6 +1250,8 @@ type VirtualHost struct {
 	DocRoot       string                 `protobuf:"bytes,2,opt,name=doc_root,json=docRoot,proto3" json:"doc_root,omitempty"` // relative to the home folder; created when missing
 	Canonical     Canonical              `protobuf:"varint,3,opt,name=canonical,proto3,enum=xcp.agent.v1.Canonical" json:"canonical,omitempty"`
 	Redirects     []*Redirect            `protobuf:"bytes,4,rep,name=redirects,proto3" json:"redirects,omitempty"`
+	Tls           *TLS                   `protobuf:"bytes,5,opt,name=tls,proto3" json:"tls,omitempty"`                                  // also serve it over HTTPS; unset = HTTP only
+	ForceHttps    bool                   `protobuf:"varint,6,opt,name=force_https,json=forceHttps,proto3" json:"force_https,omitempty"` // HTTP redirects to HTTPS (needs tls)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1312,6 +1314,74 @@ func (x *VirtualHost) GetRedirects() []*Redirect {
 	return nil
 }
 
+func (x *VirtualHost) GetTls() *TLS {
+	if x != nil {
+		return x.Tls
+	}
+	return nil
+}
+
+func (x *VirtualHost) GetForceHttps() bool {
+	if x != nil {
+		return x.ForceHttps
+	}
+	return false
+}
+
+// TLS is a certificate and its private key. The agent checks that they
+// match and that the certificate covers the name.
+type TLS struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CertPem       string                 `protobuf:"bytes,1,opt,name=cert_pem,json=certPem,proto3" json:"cert_pem,omitempty"` // the certificate, then the rest of its chain
+	KeyPem        string                 `protobuf:"bytes,2,opt,name=key_pem,json=keyPem,proto3" json:"key_pem,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TLS) Reset() {
+	*x = TLS{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TLS) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TLS) ProtoMessage() {}
+
+func (x *TLS) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TLS.ProtoReflect.Descriptor instead.
+func (*TLS) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TLS) GetCertPem() string {
+	if x != nil {
+		return x.CertPem
+	}
+	return ""
+}
+
+func (x *TLS) GetKeyPem() string {
+	if x != nil {
+		return x.KeyPem
+	}
+	return ""
+}
+
 // Redirect sends requests for a path (and everything below it) to a URL.
 type Redirect struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1325,7 +1395,7 @@ type Redirect struct {
 
 func (x *Redirect) Reset() {
 	*x = Redirect{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1337,7 +1407,7 @@ func (x *Redirect) String() string {
 func (*Redirect) ProtoMessage() {}
 
 func (x *Redirect) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[19]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1350,7 +1420,7 @@ func (x *Redirect) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Redirect.ProtoReflect.Descriptor instead.
 func (*Redirect) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Redirect) GetPath() string {
@@ -1391,7 +1461,7 @@ type SiteApplyResponse struct {
 
 func (x *SiteApplyResponse) Reset() {
 	*x = SiteApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1403,7 +1473,7 @@ func (x *SiteApplyResponse) String() string {
 func (*SiteApplyResponse) ProtoMessage() {}
 
 func (x *SiteApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[20]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1416,7 +1486,7 @@ func (x *SiteApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteApplyResponse.ProtoReflect.Descriptor instead.
 func (*SiteApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SiteApplyResponse) GetChanged() bool {
@@ -1442,7 +1512,7 @@ type SiteRemoveRequest struct {
 
 func (x *SiteRemoveRequest) Reset() {
 	*x = SiteRemoveRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1454,7 +1524,7 @@ func (x *SiteRemoveRequest) String() string {
 func (*SiteRemoveRequest) ProtoMessage() {}
 
 func (x *SiteRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[21]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1467,7 +1537,7 @@ func (x *SiteRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteRemoveRequest.ProtoReflect.Descriptor instead.
 func (*SiteRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{21}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SiteRemoveRequest) GetUsername() string {
@@ -1486,7 +1556,7 @@ type SiteRemoveResponse struct {
 
 func (x *SiteRemoveResponse) Reset() {
 	*x = SiteRemoveResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1498,7 +1568,7 @@ func (x *SiteRemoveResponse) String() string {
 func (*SiteRemoveResponse) ProtoMessage() {}
 
 func (x *SiteRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[22]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1511,7 +1581,7 @@ func (x *SiteRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteRemoveResponse.ProtoReflect.Descriptor instead.
 func (*SiteRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{22}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SiteRemoveResponse) GetChanged() bool {
@@ -1529,7 +1599,7 @@ type PHPVersionsRequest struct {
 
 func (x *PHPVersionsRequest) Reset() {
 	*x = PHPVersionsRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[23]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1541,7 +1611,7 @@ func (x *PHPVersionsRequest) String() string {
 func (*PHPVersionsRequest) ProtoMessage() {}
 
 func (x *PHPVersionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[23]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1554,7 +1624,7 @@ func (x *PHPVersionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PHPVersionsRequest.ProtoReflect.Descriptor instead.
 func (*PHPVersionsRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{23}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{24}
 }
 
 type PHPVersionsResponse struct {
@@ -1566,7 +1636,7 @@ type PHPVersionsResponse struct {
 
 func (x *PHPVersionsResponse) Reset() {
 	*x = PHPVersionsResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[24]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1578,7 +1648,7 @@ func (x *PHPVersionsResponse) String() string {
 func (*PHPVersionsResponse) ProtoMessage() {}
 
 func (x *PHPVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[24]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1591,7 +1661,7 @@ func (x *PHPVersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PHPVersionsResponse.ProtoReflect.Descriptor instead.
 func (*PHPVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{24}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PHPVersionsResponse) GetVersions() []string {
@@ -1613,7 +1683,7 @@ type DNSZoneApplyRequest struct {
 
 func (x *DNSZoneApplyRequest) Reset() {
 	*x = DNSZoneApplyRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[25]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +1695,7 @@ func (x *DNSZoneApplyRequest) String() string {
 func (*DNSZoneApplyRequest) ProtoMessage() {}
 
 func (x *DNSZoneApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[25]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +1708,7 @@ func (x *DNSZoneApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSZoneApplyRequest.ProtoReflect.Descriptor instead.
 func (*DNSZoneApplyRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{25}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DNSZoneApplyRequest) GetZone() string {
@@ -1682,7 +1752,7 @@ type DNSRecord struct {
 
 func (x *DNSRecord) Reset() {
 	*x = DNSRecord{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[26]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1694,7 +1764,7 @@ func (x *DNSRecord) String() string {
 func (*DNSRecord) ProtoMessage() {}
 
 func (x *DNSRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[26]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1707,7 +1777,7 @@ func (x *DNSRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSRecord.ProtoReflect.Descriptor instead.
 func (*DNSRecord) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{26}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DNSRecord) GetName() string {
@@ -1747,7 +1817,7 @@ type DNSZoneApplyResponse struct {
 
 func (x *DNSZoneApplyResponse) Reset() {
 	*x = DNSZoneApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[27]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1759,7 +1829,7 @@ func (x *DNSZoneApplyResponse) String() string {
 func (*DNSZoneApplyResponse) ProtoMessage() {}
 
 func (x *DNSZoneApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[27]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1772,7 +1842,7 @@ func (x *DNSZoneApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSZoneApplyResponse.ProtoReflect.Descriptor instead.
 func (*DNSZoneApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{27}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *DNSZoneApplyResponse) GetChanged() bool {
@@ -1791,7 +1861,7 @@ type DNSZoneDeleteRequest struct {
 
 func (x *DNSZoneDeleteRequest) Reset() {
 	*x = DNSZoneDeleteRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[28]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1803,7 +1873,7 @@ func (x *DNSZoneDeleteRequest) String() string {
 func (*DNSZoneDeleteRequest) ProtoMessage() {}
 
 func (x *DNSZoneDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[28]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1816,7 +1886,7 @@ func (x *DNSZoneDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSZoneDeleteRequest.ProtoReflect.Descriptor instead.
 func (*DNSZoneDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{28}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *DNSZoneDeleteRequest) GetZone() string {
@@ -1835,7 +1905,7 @@ type DNSZoneDeleteResponse struct {
 
 func (x *DNSZoneDeleteResponse) Reset() {
 	*x = DNSZoneDeleteResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[29]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1847,7 +1917,7 @@ func (x *DNSZoneDeleteResponse) String() string {
 func (*DNSZoneDeleteResponse) ProtoMessage() {}
 
 func (x *DNSZoneDeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[29]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1860,12 +1930,108 @@ func (x *DNSZoneDeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSZoneDeleteResponse.ProtoReflect.Descriptor instead.
 func (*DNSZoneDeleteResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{29}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DNSZoneDeleteResponse) GetDeleted() bool {
 	if x != nil {
 		return x.Deleted
+	}
+	return false
+}
+
+type HostCertificateInstallRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hostname      string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Tls           *TLS                   `protobuf:"bytes,2,opt,name=tls,proto3" json:"tls,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HostCertificateInstallRequest) Reset() {
+	*x = HostCertificateInstallRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HostCertificateInstallRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HostCertificateInstallRequest) ProtoMessage() {}
+
+func (x *HostCertificateInstallRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HostCertificateInstallRequest.ProtoReflect.Descriptor instead.
+func (*HostCertificateInstallRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *HostCertificateInstallRequest) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *HostCertificateInstallRequest) GetTls() *TLS {
+	if x != nil {
+		return x.Tls
+	}
+	return nil
+}
+
+type HostCertificateInstallResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changed       bool                   `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HostCertificateInstallResponse) Reset() {
+	*x = HostCertificateInstallResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HostCertificateInstallResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HostCertificateInstallResponse) ProtoMessage() {}
+
+func (x *HostCertificateInstallResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HostCertificateInstallResponse.ProtoReflect.Descriptor instead.
+func (*HostCertificateInstallResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *HostCertificateInstallResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
 	}
 	return false
 }
@@ -1944,12 +2110,18 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"phpVersion\x12\x1c\n" +
 	"\tsuspended\x18\x05 \x01(\bR\tsuspended\x12!\n" +
 	"\fmax_children\x18\x06 \x01(\rR\vmaxChildren\x121\n" +
-	"\x06vhosts\x18\a \x03(\v2\x19.xcp.agent.v1.VirtualHostR\x06vhostsJ\x04\b\x03\x10\x04R\adomains\"\xa9\x01\n" +
+	"\x06vhosts\x18\a \x03(\v2\x19.xcp.agent.v1.VirtualHostR\x06vhostsJ\x04\b\x03\x10\x04R\adomains\"\xef\x01\n" +
 	"\vVirtualHost\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bdoc_root\x18\x02 \x01(\tR\adocRoot\x125\n" +
 	"\tcanonical\x18\x03 \x01(\x0e2\x17.xcp.agent.v1.CanonicalR\tcanonical\x124\n" +
-	"\tredirects\x18\x04 \x03(\v2\x16.xcp.agent.v1.RedirectR\tredirects\"g\n" +
+	"\tredirects\x18\x04 \x03(\v2\x16.xcp.agent.v1.RedirectR\tredirects\x12#\n" +
+	"\x03tls\x18\x05 \x01(\v2\x11.xcp.agent.v1.TLSR\x03tls\x12\x1f\n" +
+	"\vforce_https\x18\x06 \x01(\bR\n" +
+	"forceHttps\"9\n" +
+	"\x03TLS\x12\x19\n" +
+	"\bcert_pem\x18\x01 \x01(\tR\acertPem\x12\x17\n" +
+	"\akey_pem\x18\x02 \x01(\tR\x06keyPem\"g\n" +
 	"\bRedirect\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06target\x18\x02 \x01(\tR\x06target\x12\x12\n" +
@@ -1983,7 +2155,12 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x14DNSZoneDeleteRequest\x12\x12\n" +
 	"\x04zone\x18\x01 \x01(\tR\x04zone\"1\n" +
 	"\x15DNSZoneDeleteResponse\x12\x18\n" +
-	"\adeleted\x18\x01 \x01(\bR\adeleted*\xb6\x01\n" +
+	"\adeleted\x18\x01 \x01(\bR\adeleted\"`\n" +
+	"\x1dHostCertificateInstallRequest\x12\x1a\n" +
+	"\bhostname\x18\x01 \x01(\tR\bhostname\x12#\n" +
+	"\x03tls\x18\x02 \x01(\v2\x11.xcp.agent.v1.TLSR\x03tls\":\n" +
+	"\x1eHostCertificateInstallResponse\x12\x18\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -2005,7 +2182,8 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\tCanonical\x12\x19\n" +
 	"\x15CANONICAL_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rCANONICAL_WWW\x10\x01\x12\x12\n" +
-	"\x0eCANONICAL_BARE\x10\x022\x8e\t\n" +
+	"\x0eCANONICAL_BARE\x10\x022\x83\n" +
+	"\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -2020,7 +2198,8 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"SiteRemove\x12\x1f.xcp.agent.v1.SiteRemoveRequest\x1a .xcp.agent.v1.SiteRemoveResponse\x12R\n" +
 	"\vPHPVersions\x12 .xcp.agent.v1.PHPVersionsRequest\x1a!.xcp.agent.v1.PHPVersionsResponse\x12U\n" +
 	"\fDNSZoneApply\x12!.xcp.agent.v1.DNSZoneApplyRequest\x1a\".xcp.agent.v1.DNSZoneApplyResponse\x12X\n" +
-	"\rDNSZoneDelete\x12\".xcp.agent.v1.DNSZoneDeleteRequest\x1a#.xcp.agent.v1.DNSZoneDeleteResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\rDNSZoneDelete\x12\".xcp.agent.v1.DNSZoneDeleteRequest\x1a#.xcp.agent.v1.DNSZoneDeleteResponse\x12s\n" +
+	"\x16HostCertificateInstall\x12+.xcp.agent.v1.HostCertificateInstallRequest\x1a,.xcp.agent.v1.HostCertificateInstallResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -2035,42 +2214,45 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
-	(ServiceActionKind)(0),              // 0: xcp.agent.v1.ServiceActionKind
-	(Validator)(0),                      // 1: xcp.agent.v1.Validator
-	(Shell)(0),                          // 2: xcp.agent.v1.Shell
-	(Canonical)(0),                      // 3: xcp.agent.v1.Canonical
-	(*PingRequest)(nil),                 // 4: xcp.agent.v1.PingRequest
-	(*PingResponse)(nil),                // 5: xcp.agent.v1.PingResponse
-	(*ServiceStatusRequest)(nil),        // 6: xcp.agent.v1.ServiceStatusRequest
-	(*ServiceStatusResponse)(nil),       // 7: xcp.agent.v1.ServiceStatusResponse
-	(*ServiceActionRequest)(nil),        // 8: xcp.agent.v1.ServiceActionRequest
-	(*ServiceActionResponse)(nil),       // 9: xcp.agent.v1.ServiceActionResponse
-	(*FileWriteManagedRequest)(nil),     // 10: xcp.agent.v1.FileWriteManagedRequest
-	(*FileWriteManagedResponse)(nil),    // 11: xcp.agent.v1.FileWriteManagedResponse
-	(*FileRemoveManagedRequest)(nil),    // 12: xcp.agent.v1.FileRemoveManagedRequest
-	(*FileRemoveManagedResponse)(nil),   // 13: xcp.agent.v1.FileRemoveManagedResponse
-	(*ResourceLimits)(nil),              // 14: xcp.agent.v1.ResourceLimits
-	(*AccountEnsureRequest)(nil),        // 15: xcp.agent.v1.AccountEnsureRequest
-	(*AccountEnsureResponse)(nil),       // 16: xcp.agent.v1.AccountEnsureResponse
-	(*AccountSetSuspendedRequest)(nil),  // 17: xcp.agent.v1.AccountSetSuspendedRequest
-	(*AccountSetSuspendedResponse)(nil), // 18: xcp.agent.v1.AccountSetSuspendedResponse
-	(*AccountDeleteRequest)(nil),        // 19: xcp.agent.v1.AccountDeleteRequest
-	(*AccountDeleteResponse)(nil),       // 20: xcp.agent.v1.AccountDeleteResponse
-	(*SiteApplyRequest)(nil),            // 21: xcp.agent.v1.SiteApplyRequest
-	(*VirtualHost)(nil),                 // 22: xcp.agent.v1.VirtualHost
-	(*Redirect)(nil),                    // 23: xcp.agent.v1.Redirect
-	(*SiteApplyResponse)(nil),           // 24: xcp.agent.v1.SiteApplyResponse
-	(*SiteRemoveRequest)(nil),           // 25: xcp.agent.v1.SiteRemoveRequest
-	(*SiteRemoveResponse)(nil),          // 26: xcp.agent.v1.SiteRemoveResponse
-	(*PHPVersionsRequest)(nil),          // 27: xcp.agent.v1.PHPVersionsRequest
-	(*PHPVersionsResponse)(nil),         // 28: xcp.agent.v1.PHPVersionsResponse
-	(*DNSZoneApplyRequest)(nil),         // 29: xcp.agent.v1.DNSZoneApplyRequest
-	(*DNSRecord)(nil),                   // 30: xcp.agent.v1.DNSRecord
-	(*DNSZoneApplyResponse)(nil),        // 31: xcp.agent.v1.DNSZoneApplyResponse
-	(*DNSZoneDeleteRequest)(nil),        // 32: xcp.agent.v1.DNSZoneDeleteRequest
-	(*DNSZoneDeleteResponse)(nil),       // 33: xcp.agent.v1.DNSZoneDeleteResponse
+	(ServiceActionKind)(0),                 // 0: xcp.agent.v1.ServiceActionKind
+	(Validator)(0),                         // 1: xcp.agent.v1.Validator
+	(Shell)(0),                             // 2: xcp.agent.v1.Shell
+	(Canonical)(0),                         // 3: xcp.agent.v1.Canonical
+	(*PingRequest)(nil),                    // 4: xcp.agent.v1.PingRequest
+	(*PingResponse)(nil),                   // 5: xcp.agent.v1.PingResponse
+	(*ServiceStatusRequest)(nil),           // 6: xcp.agent.v1.ServiceStatusRequest
+	(*ServiceStatusResponse)(nil),          // 7: xcp.agent.v1.ServiceStatusResponse
+	(*ServiceActionRequest)(nil),           // 8: xcp.agent.v1.ServiceActionRequest
+	(*ServiceActionResponse)(nil),          // 9: xcp.agent.v1.ServiceActionResponse
+	(*FileWriteManagedRequest)(nil),        // 10: xcp.agent.v1.FileWriteManagedRequest
+	(*FileWriteManagedResponse)(nil),       // 11: xcp.agent.v1.FileWriteManagedResponse
+	(*FileRemoveManagedRequest)(nil),       // 12: xcp.agent.v1.FileRemoveManagedRequest
+	(*FileRemoveManagedResponse)(nil),      // 13: xcp.agent.v1.FileRemoveManagedResponse
+	(*ResourceLimits)(nil),                 // 14: xcp.agent.v1.ResourceLimits
+	(*AccountEnsureRequest)(nil),           // 15: xcp.agent.v1.AccountEnsureRequest
+	(*AccountEnsureResponse)(nil),          // 16: xcp.agent.v1.AccountEnsureResponse
+	(*AccountSetSuspendedRequest)(nil),     // 17: xcp.agent.v1.AccountSetSuspendedRequest
+	(*AccountSetSuspendedResponse)(nil),    // 18: xcp.agent.v1.AccountSetSuspendedResponse
+	(*AccountDeleteRequest)(nil),           // 19: xcp.agent.v1.AccountDeleteRequest
+	(*AccountDeleteResponse)(nil),          // 20: xcp.agent.v1.AccountDeleteResponse
+	(*SiteApplyRequest)(nil),               // 21: xcp.agent.v1.SiteApplyRequest
+	(*VirtualHost)(nil),                    // 22: xcp.agent.v1.VirtualHost
+	(*TLS)(nil),                            // 23: xcp.agent.v1.TLS
+	(*Redirect)(nil),                       // 24: xcp.agent.v1.Redirect
+	(*SiteApplyResponse)(nil),              // 25: xcp.agent.v1.SiteApplyResponse
+	(*SiteRemoveRequest)(nil),              // 26: xcp.agent.v1.SiteRemoveRequest
+	(*SiteRemoveResponse)(nil),             // 27: xcp.agent.v1.SiteRemoveResponse
+	(*PHPVersionsRequest)(nil),             // 28: xcp.agent.v1.PHPVersionsRequest
+	(*PHPVersionsResponse)(nil),            // 29: xcp.agent.v1.PHPVersionsResponse
+	(*DNSZoneApplyRequest)(nil),            // 30: xcp.agent.v1.DNSZoneApplyRequest
+	(*DNSRecord)(nil),                      // 31: xcp.agent.v1.DNSRecord
+	(*DNSZoneApplyResponse)(nil),           // 32: xcp.agent.v1.DNSZoneApplyResponse
+	(*DNSZoneDeleteRequest)(nil),           // 33: xcp.agent.v1.DNSZoneDeleteRequest
+	(*DNSZoneDeleteResponse)(nil),          // 34: xcp.agent.v1.DNSZoneDeleteResponse
+	(*HostCertificateInstallRequest)(nil),  // 35: xcp.agent.v1.HostCertificateInstallRequest
+	(*HostCertificateInstallResponse)(nil), // 36: xcp.agent.v1.HostCertificateInstallResponse
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -2081,39 +2263,43 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	2,  // 5: xcp.agent.v1.AccountSetSuspendedRequest.shell:type_name -> xcp.agent.v1.Shell
 	22, // 6: xcp.agent.v1.SiteApplyRequest.vhosts:type_name -> xcp.agent.v1.VirtualHost
 	3,  // 7: xcp.agent.v1.VirtualHost.canonical:type_name -> xcp.agent.v1.Canonical
-	23, // 8: xcp.agent.v1.VirtualHost.redirects:type_name -> xcp.agent.v1.Redirect
-	30, // 9: xcp.agent.v1.DNSZoneApplyRequest.records:type_name -> xcp.agent.v1.DNSRecord
-	4,  // 10: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
-	6,  // 11: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
-	8,  // 12: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
-	10, // 13: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
-	12, // 14: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
-	15, // 15: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
-	17, // 16: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
-	19, // 17: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
-	21, // 18: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
-	25, // 19: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
-	27, // 20: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
-	29, // 21: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
-	32, // 22: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
-	5,  // 23: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	7,  // 24: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	9,  // 25: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	11, // 26: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	13, // 27: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	16, // 28: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	18, // 29: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	20, // 30: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	24, // 31: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
-	26, // 32: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
-	28, // 33: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
-	31, // 34: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
-	33, // 35: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
-	23, // [23:36] is the sub-list for method output_type
-	10, // [10:23] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	24, // 8: xcp.agent.v1.VirtualHost.redirects:type_name -> xcp.agent.v1.Redirect
+	23, // 9: xcp.agent.v1.VirtualHost.tls:type_name -> xcp.agent.v1.TLS
+	31, // 10: xcp.agent.v1.DNSZoneApplyRequest.records:type_name -> xcp.agent.v1.DNSRecord
+	23, // 11: xcp.agent.v1.HostCertificateInstallRequest.tls:type_name -> xcp.agent.v1.TLS
+	4,  // 12: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
+	6,  // 13: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
+	8,  // 14: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
+	10, // 15: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
+	12, // 16: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
+	15, // 17: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
+	17, // 18: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
+	19, // 19: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
+	21, // 20: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
+	26, // 21: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
+	28, // 22: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
+	30, // 23: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
+	33, // 24: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
+	35, // 25: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
+	5,  // 26: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	7,  // 27: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	9,  // 28: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	11, // 29: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	13, // 30: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	16, // 31: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	18, // 32: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	20, // 33: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	25, // 34: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	27, // 35: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	29, // 36: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	32, // 37: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
+	34, // 38: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
+	36, // 39: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
+	26, // [26:40] is the sub-list for method output_type
+	12, // [12:26] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_xcp_agent_v1_agent_proto_init() }
@@ -2128,7 +2314,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   30,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
