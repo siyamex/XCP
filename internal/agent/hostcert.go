@@ -63,7 +63,7 @@ func (p *HostCert) InstallCertificate(hostname string, t TLS) (bool, error) {
 	if err := root.WriteFileAtomic(keyName, []byte(pair.KeyPEM), 0o640); err != nil {
 		return false, err
 	}
-	if err := root.Chown(keyName, 0, gid); err != nil {
+	if err := root.Chown(keyName, -1, gid); err != nil { // owner stays root (the agent's)
 		return false, err
 	}
 	return true, root.WriteFileAtomic(certName, []byte(pair.CertPEM), 0o644)

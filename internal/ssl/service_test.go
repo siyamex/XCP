@@ -79,6 +79,20 @@ func (ca *testCA) sign(names []string, pub crypto.PublicKey, notAfter time.Time)
 		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.cert.Raw})), nil
 }
 
+// setFail makes issuing fail for names containing s ("" = never).
+func (ca *testCA) setFail(s string) {
+	ca.mu.Lock()
+	defer ca.mu.Unlock()
+	ca.fail = s
+}
+
+// issuedNames returns the names of every certificate issued so far.
+func (ca *testCA) issuedNames() [][]string {
+	ca.mu.Lock()
+	defer ca.mu.Unlock()
+	return slices.Clone(ca.issued)
+}
+
 func (ca *testCA) Issue(_ context.Context, names []string, key crypto.Signer) (string, error) {
 	ca.mu.Lock()
 	defer ca.mu.Unlock()
@@ -261,9 +275,10 @@ func TestAutoSSL(t *testing.T) {
 	if res.Issued != 2 || res.Skipped != 1 || !strings.HasPrefix(res.Hostname, "ok") {
 		t.Fatalf("first run = %+v", res)
 	}
-	if !slices.ContainsFunc(e.ca.issued, func(n []string) bool { return slices.Equal(n, []string{"example.com", "www.example.com"}) }) ||
-		!slices.ContainsFunc(e.ca.issued, func(n []string) bool { return slices.Equal(n, []string{"shop.net"}) }) {
-		t.Fatalf("issued %v (www only where it points here)", e.ca.issued)
+	issued := e.ca.issuedNames()
+	if !slices.ContainsFunc(issued, func(n []string) bool { return slices.Equal(n, []string{"example.com", "www.example.com"}) }) ||
+		!slices.ContainsFunc(issued, func(n []string) bool { return slices.Equal(n, []string{"shop.net"}) }) {
+		t.Fatalf("issued %v (www only where it points here)", issued)
 	}
 	st := e.ssl(t, e.admin, a.ID)
 	if st["other.net"].Status != store.SSLSkipped || !strings.Contains(st["other.net"].Detail, "198.51.100.99") || st["example.com"].Certificate == nil {
@@ -281,7 +296,7 @@ func TestAutoSSL(t *testing.T) {
 	if _, err := e.db.W.ExecContext(ctx, `DELETE FROM certificates WHERE domain_id IS NOT NULL`); err != nil {
 		t.Fatal(err)
 	}
-	e.ca.fail = "shop.net"
+	e.ca.setFail("shop.net")
 	if res := e.run(t, e.admin, a.ID); res.Failed != 1 {
 		t.Fatalf("run with a failing CA = %+v", res)
 	}
@@ -294,7 +309,7 @@ func TestAutoSSL(t *testing.T) {
 	if _, err := e.svc.SetOptions(ctx, client, e.admin, sh.DomainID, OptionsInput{AutoSSL: false}); err != nil {
 		t.Fatal(err)
 	}
-	e.ca.fail = ""
+	e.ca.setFail("")
 	e.run(t, e.admin, a.ID)
 	if d := e.ssl(t, e.admin, a.ID)["shop.net"]; d.Status != store.SSLSkipped || d.Certificate != nil {
 		t.Fatalf("excluded domain = %+v", d)

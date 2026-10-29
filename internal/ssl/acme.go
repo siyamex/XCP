@@ -13,13 +13,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/acme"
 
-	"github.com/siyamex/XCP/internal/fsx"
 	"github.com/siyamex/XCP/internal/store"
 )
 
@@ -143,7 +143,9 @@ func (a *acmeIssuer) Issue(ctx context.Context, names []string, key crypto.Signe
 			return "", fmt.Errorf("%s: %w", z.Identifier.Value, err)
 		}
 	}
-	if order, err = a.client.WaitOrder(ctx, order.URI); err != nil {
+	// WaitOrder's result has no URI (that comes from a Location header only
+	// the new-order response has), so keep order for the finalize step.
+	if _, err := a.client.WaitOrder(ctx, order.URI); err != nil {
 		return "", err
 	}
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
@@ -152,7 +154,9 @@ func (a *acmeIssuer) Issue(ctx context.Context, names []string, key crypto.Signe
 	if err != nil {
 		return "", err
 	}
-	ders, _, err := a.client.CreateOrderCert(ctx, order.FinalizeURL, csr, true)
+	// Not CreateOrderCert: it needs a Location header on the finalize
+	// response, which RFC 8555 does not require (Pebble sends none).
+	ders, _, err := a.client.CreateCertFromOrder(ctx, order, csr, true)
 	if err != nil {
 		return "", err
 	}
@@ -181,12 +185,16 @@ func (a *acmeIssuer) validate(ctx context.Context, z *acme.Authorization) error 
 	if err != nil {
 		return err
 	}
-	root, err := fsx.OpenRoot(a.challengeDir)
+	// Not fsx: it needs openat2, which xcp-api's sandbox (RestrictSUIDSGID)
+	// blocks. The folder belongs to xcp-api's own user, so nobody else can
+	// plant links in it, and os.Root keeps the token inside it. The answer
+	// is complete before the CA is told to look, so no atomic write either.
+	root, err := os.OpenRoot(a.challengeDir)
 	if err != nil {
 		return fmt.Errorf("challenge folder: %w", err)
 	}
 	defer root.Close()
-	if err := root.WriteFileAtomic(ch.Token, []byte(body), 0o644); err != nil {
+	if err := root.WriteFile(ch.Token, []byte(body), 0o644); err != nil {
 		return fmt.Errorf("write the challenge: %w", err)
 	}
 	defer root.Remove(ch.Token) //nolint:errcheck // best effort; the token is useless afterwards
