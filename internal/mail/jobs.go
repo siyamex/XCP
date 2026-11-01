@@ -31,6 +31,7 @@ type applyPayload struct {
 func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobApply, 4, s.applyJob)
 	w.Register(JobSettings, 1, s.settingsJob)
+	w.Register(JobWebmailExpire, 1, s.webmailExpireJob)
 }
 
 // EnqueueApply queues, inside tx, the job that applies an account's mail.
@@ -63,6 +64,10 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 		return nil, err
 	}
 	fws, err := store.AccountForwarders(ctx, s.db.R, a.ID)
+	if err != nil {
+		return nil, err
+	}
+	replies, err := store.AccountAutoresponders(ctx, s.db.R, a.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,11 +108,16 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 							Local: b.LocalPart, PasswordHash: b.PasswordHash, QuotaMb: b.QuotaMB,
 							Login: b.CanLogin && !suspended, Receive: b.CanReceive, Send: b.CanSend && !suspended,
 						})
+						if r, ok := replies[b.ID]; ok {
+							md.Mailboxes[len(md.Mailboxes)-1].Autoresponder = &agentv1.MailAutoresponder{
+								Subject: r.Subject, Body: r.Body, Start: r.StartDate, End: r.EndDate, Days: int32(r.Days), //nolint:gosec // G115: 1..30
+							}
+						}
 					}
 				}
 				for _, f := range fws {
 					if f.DomainID == d.ID {
-						md.Forwarders = append(md.Forwarders, &agentv1.MailForwarder{Local: f.LocalPart, To: f.Destinations, Fail: f.FailMessage})
+						md.Forwarders = append(md.Forwarders, &agentv1.MailForwarder{Local: f.LocalPart, To: f.Destinations, Fail: f.FailMessage, Pipe: f.Pipe})
 					}
 				}
 			}

@@ -528,8 +528,6 @@
     "goesTo": "Goes to",
     "rejected": "Rejected: {{message}}",
     "newForwarder": "New forwarder",
-    "forwardTo": "Forward",
-    "reject": "Reject",
     "targets": "Addresses to forward to, separated by commas",
     "rejectMessage": "Message for the sender",
     "createForwarder": "Create forwarder",
@@ -558,6 +556,24 @@
     "relayPassword": "Relay password",
     "rbls": "Block lists (one per line)",
     "heloChecks": "Refuse senders without a valid HELO name",
-    "greylisting": "Greylisting (delays mail from unknown senders)"
+    "greylisting": "Greylisting (delays mail from unknown senders)",
+    "modes": {
+      "forward": "Forward",
+      "reject": "Reject",
+      "pipe": "Run a script"
+    },
+    "script": "Script",
+    "scriptHint": "A path in your home folder. The script runs as your account with the sender and recipient as arguments and gets the message on its input; it must be executable.",
+    "piped": "Script: {{script}}",
+    "webmail": "Webmail",
+    "replying": "Autoresponder",
+    "autoresponder": "Autoresponder",
+    "subject": "Subject",
+    "from": "From",
+    "until": "Until (inclusive)",
+    "everyDays": "Reply to a sender once in (days)",
+    "replyText": "Reply message",
+    "saveReply": "Save autoresponder",
+    "removeReply": "Remove autoresponder"
   }
 }

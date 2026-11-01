@@ -156,7 +156,10 @@ function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number |
   return (
     <>
       <tr className="border-t border-slate-100 align-top dark:border-slate-800">
-        <td className="px-4 py-3 font-medium">{m.address}</td>
+        <td className="px-4 py-3 font-medium">
+          {m.address}
+          {m.autoresponder && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">{t("email.replying")}</span>}
+        </td>
         <td className="px-4 py-3">{m.quota_mb ? `${m.quota_mb} MB` : t("common.unlimited")}</td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap gap-3 text-xs">
@@ -169,6 +172,7 @@ function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number |
           </div>
         </td>
         <td className="whitespace-nowrap px-4 py-3 text-right">
+          {m.login && <WebmailButton mailboxId={m.id} />}
           <Button variant="ghost" onClick={() => setOpen(!open)}>{open ? t("common.cancel") : t("databases.manage")}</Button>
           <Button variant="ghost" disabled={remove.isPending}
             onClick={() => window.confirm(t("email.confirmDelete", { name: m.address })) && remove.mutate()}>{t("common.delete")}</Button>
@@ -185,6 +189,7 @@ function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number |
               </Field>
               <Button type="submit" variant="secondary" disabled={update.isPending}>{t("email.saveQuota")}</Button>
             </form>
+            <AutoresponderForm m={m} onStarted={onStarted} />
             <form onSubmit={(e) => { e.preventDefault(); setPw.mutate(); }} className="flex flex-wrap items-end gap-2">
               <Field id={`pw-${m.id}`} label={t("databases.newPassword")}>
                 <Input id={`pw-${m.id}`} required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -199,16 +204,81 @@ function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number |
   );
 }
 
+/** Opens webmail in a new tab, signed in with a one-time URL. */
+function WebmailButton({ mailboxId }: { mailboxId: string }) {
+  const { t } = useTranslation();
+  const signon = useMutation({
+    mutationFn: () => unwrap(api.POST("/mailboxes/{id}/webmail", { params: { path: { id: mailboxId } } })),
+  });
+  const open = () => {
+    // Open the tab while the click still counts, then send it to the URL.
+    const tab = window.open("about:blank", "_blank");
+    if (tab) tab.opener = null;
+    signon.mutate(undefined, {
+      onSuccess: (r) => (tab ? tab.location.replace(r.url) : window.location.assign(r.url)),
+      onError: () => tab?.close(),
+    });
+  };
+  return (
+    <span className="inline-block text-left">
+      <Button variant="ghost" disabled={signon.isPending} onClick={open}>{t("email.webmail")}</Button>
+      <ErrorAlert error={signon.error} />
+    </span>
+  );
+}
+
+/** A mailbox's autoresponder (USR-MAIL-05). */
+function AutoresponderForm({ m, onStarted }: { m: Mailbox; onStarted: (r: { job_id?: string }) => void }) {
+  const { t } = useTranslation();
+  const blank = { subject: "", body: "", start: "", end: "", days: 1 };
+  const [form, setForm] = useState({ ...blank, ...m.autoresponder });
+  const path = { params: { path: { id: m.id } } };
+  const save = useMutation({ mutationFn: () => unwrap(api.PUT("/mailboxes/{id}/autoresponder", { ...path, body: form })), onSuccess: onStarted });
+  const remove = useMutation({
+    mutationFn: () => unwrap(api.DELETE("/mailboxes/{id}/autoresponder", path)),
+    onSuccess: (r) => { setForm(blank); onStarted(r); },
+  });
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-3">
+      <p className="text-sm font-medium">{t("email.autoresponder")}</p>
+      <div className="grid gap-3 md:grid-cols-4">
+        <Field id={`ar-s-${m.id}`} label={t("email.subject")}>
+          <Input id={`ar-s-${m.id}`} required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+        </Field>
+        <Field id={`ar-from-${m.id}`} label={t("email.from")}>
+          <Input id={`ar-from-${m.id}`} type="date" value={form.start ?? ""} onChange={(e) => setForm({ ...form, start: e.target.value })} />
+        </Field>
+        <Field id={`ar-to-${m.id}`} label={t("email.until")}>
+          <Input id={`ar-to-${m.id}`} type="date" value={form.end ?? ""} onChange={(e) => setForm({ ...form, end: e.target.value })} />
+        </Field>
+        <Field id={`ar-d-${m.id}`} label={t("email.everyDays")}>
+          <Input id={`ar-d-${m.id}`} type="number" min={1} max={30} value={form.days ?? 1} onChange={(e) => setForm({ ...form, days: Number(e.target.value) })} />
+        </Field>
+      </div>
+      <textarea aria-label={t("email.replyText")} required rows={4} placeholder={t("email.replyText")}
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+        value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
+      <ErrorAlert error={save.error ?? remove.error} />
+      <div className="flex gap-2">
+        <Button type="submit" variant="secondary" disabled={save.isPending}>{t("email.saveReply")}</Button>
+        {m.autoresponder && <Button type="button" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate()}>{t("email.removeReply")}</Button>}
+      </div>
+    </form>
+  );
+}
+
 function Forwarders({ accountId, o, domains, onStarted }: { accountId: string; o: Overview; domains: MailDomain[]; onStarted: (r: { job_id?: string }) => void }) {
   const { t } = useTranslation();
-  const [form, setForm] = useState({ local: "", domain_id: domains[0]?.id ?? "", to: "", fail: "", reject: false });
+  const [form, setForm] = useState({ local: "", domain_id: domains[0]?.id ?? "", to: "", fail: "", pipe: "", mode: "forward" as "forward" | "reject" | "pipe" });
   const create = useMutation({
-    mutationFn: () => unwrap(api.POST("/accounts/{id}/forwarders", {
-      params: { path: { id: accountId } },
-      body: form.reject ? { domain_id: form.domain_id, local: form.local, fail: form.fail }
-        : { domain_id: form.domain_id, local: form.local, to: form.to.split(/[\s,;]+/).filter(Boolean) },
-    })),
-    onSuccess: (r) => { setForm({ ...form, local: "", to: "", fail: "" }); onStarted(r); },
+    mutationFn: () => {
+      const base = { domain_id: form.domain_id, local: form.local };
+      const body = form.mode === "reject" ? { ...base, fail: form.fail }
+        : form.mode === "pipe" ? { ...base, pipe: form.pipe }
+        : { ...base, to: form.to.split(/[\s,;]+/).filter(Boolean) };
+      return unwrap(api.POST("/accounts/{id}/forwarders", { params: { path: { id: accountId } }, body }));
+    },
+    onSuccess: (r) => { setForm({ ...form, local: "", to: "", fail: "", pipe: "" }); onStarted(r); },
   });
   const remove = useMutation({
     mutationFn: (id: string) => unwrap(api.DELETE("/forwarders/{id}", { params: { path: { id } } })),
@@ -228,7 +298,8 @@ function Forwarders({ accountId, o, domains, onStarted }: { accountId: string; o
           {o.forwarders.map((f) => (
             <tr key={f.id} className="border-t border-slate-100 dark:border-slate-800">
               <td className="px-4 py-3 font-medium">{f.address}</td>
-              <td className="px-4 py-3">{f.fail ? <span className="text-red-700 dark:text-red-400">{t("email.rejected", { message: f.fail })}</span> : f.to.join(", ")}</td>
+              <td className="px-4 py-3">{f.fail ? <span className="text-red-700 dark:text-red-400">{t("email.rejected", { message: f.fail })}</span>
+                : f.pipe ? <span className="font-mono text-xs">{t("email.piped", { script: f.pipe })}</span> : f.to.join(", ")}</td>
               <td className="px-4 py-3 text-right">
                 <Button variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate(f.id)}>{t("common.delete")}</Button>
               </td>
@@ -244,13 +315,19 @@ function Forwarders({ accountId, o, domains, onStarted }: { accountId: string; o
               <AddressInput id="fw-local" domains={domains} local={form.local} domainId={form.domain_id} onChange={(local, domain_id) => setForm({ ...form, local, domain_id })} />
             </Field>
             <div className="flex gap-4 pb-2 text-sm">
-              <label className="flex items-center gap-1"><input type="radio" checked={!form.reject} onChange={() => setForm({ ...form, reject: false })} /> {t("email.forwardTo")}</label>
-              <label className="flex items-center gap-1"><input type="radio" checked={form.reject} onChange={() => setForm({ ...form, reject: true })} /> {t("email.reject")}</label>
+              {(["forward", "reject", "pipe"] as const).map((mode) => (
+                <label key={mode} className="flex items-center gap-1">
+                  <input type="radio" checked={form.mode === mode} onChange={() => setForm({ ...form, mode })} /> {t(`email.modes.${mode}`)}
+                </label>
+              ))}
             </div>
           </div>
-          {form.reject
-            ? <Input aria-label={t("email.rejectMessage")} required placeholder={t("email.rejectMessage")} value={form.fail} onChange={(e) => setForm({ ...form, fail: e.target.value })} />
-            : <Input aria-label={t("email.targets")} required placeholder={t("email.targets")} value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} />}
+          {form.mode === "reject" && <Input aria-label={t("email.rejectMessage")} required placeholder={t("email.rejectMessage")} value={form.fail} onChange={(e) => setForm({ ...form, fail: e.target.value })} />}
+          {form.mode === "forward" && <Input aria-label={t("email.targets")} required placeholder={t("email.targets")} value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} />}
+          {form.mode === "pipe" && <>
+            <Input aria-label={t("email.script")} required placeholder="bin/handle-mail.php" value={form.pipe} onChange={(e) => setForm({ ...form, pipe: e.target.value })} />
+            <p className="text-xs text-slate-500">{t("email.scriptHint")}</p>
+          </>}
           <ErrorAlert error={create.error ?? remove.error} />
           <Button type="submit" variant="secondary" disabled={create.isPending}>{t("email.createForwarder")}</Button>
         </form>
@@ -332,6 +409,7 @@ function Checks({ checks }: { checks: Check[] }) {
 function ClientSettings({ server }: { server: string }) {
   const { t } = useTranslation();
   const rows: [string, string][] = [
+    ["Webmail", `https://${server}/webmail/`],
     ["IMAP", `${server} · 993 · SSL/TLS`], ["POP3", `${server} · 995 · SSL/TLS`], ["SMTP", `${server} · 587 · STARTTLS (465 · SSL/TLS)`],
   ];
   return (

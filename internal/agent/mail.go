@@ -15,7 +15,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/siyamex/XCP/internal/execx"
 	"github.com/siyamex/XCP/internal/fsx"
 	"github.com/siyamex/XCP/internal/tlsx"
 	"github.com/siyamex/XCP/internal/validate"
@@ -37,7 +39,14 @@ type Mail struct {
 	PanelCert    string // the self-signed pair, until the host name has a certificate
 	PanelKey     string
 	Services     ServiceManager
-	mu           sync.Mutex
+	// Mail part 2 (ADR-0008).
+	Run            *execx.Runner // runs sievec; nil in tests
+	SieveDir       string        // /etc/dovecot/xcp/sieve
+	WebmailState   string        // /etc/xcp/mail/webmail.json
+	WebmailTickets string        // /var/lib/xcp-roundcube/tickets; missing means no webmail
+	WebmailUser    string        // the user Roundcube runs as
+	Now            func() time.Time
+	mu             sync.Mutex
 }
 
 // Paths of the Ubuntu setup made by xcp-install.
@@ -92,6 +101,16 @@ type Mailbox struct {
 	Login        bool
 	Receive      bool
 	Send         bool
+	Reply        *Autoresponder // nil: none
+}
+
+// Autoresponder answers mail to a mailbox between two dates (ADR-0008).
+type Autoresponder struct {
+	Subject string
+	Body    string
+	Start   string // YYYY-MM-DD; "" = from now
+	End     string // YYYY-MM-DD, inclusive; "" = until removed
+	Days    int    // reply to the same sender at most once in this many days
 }
 
 // Forwarder sends mail for an address to other addresses, or rejects it.
@@ -99,6 +118,7 @@ type Forwarder struct {
 	Local string
 	To    []string // full addresses
 	Fail  string   // set: reject with this message instead
+	Pipe  string   // set: hand the mail to this script, relative to the account's home
 }
 
 var (
@@ -173,6 +193,11 @@ func CheckMailAccount(a MailAccount) error {
 			if m.QuotaMB < 0 || m.QuotaMB > 10<<20 {
 				return invalid("%s@%s: bad quota", m.Local, d.Name)
 			}
+			if m.Reply != nil {
+				if err := checkReply(*m.Reply); err != nil {
+					return fmt.Errorf("autoresponder of %s@%s: %w", m.Local, d.Name, err)
+				}
+			}
 		}
 		for _, f := range d.Forwarders {
 			if err := CheckLocalPart(f.Local); err != nil {
@@ -180,6 +205,16 @@ func CheckMailAccount(a MailAccount) error {
 			}
 			if addrs[f.Local] == "forwarder" {
 				return invalid("forwarder %s@%s is listed twice", f.Local, d.Name)
+			}
+			if f.Pipe != "" {
+				if addrs[f.Local] == "mailbox" || len(f.To) > 0 || f.Fail != "" {
+					return invalid("pipe %s@%s: a pipe is the address's only destination", f.Local, d.Name)
+				}
+				if p, err := validate.RelPath(f.Pipe); err != nil || p != f.Pipe || strings.ContainsAny(f.Pipe, " \t$") {
+					return invalid("pipe %s@%s: %q is not a path inside the account's home", f.Local, d.Name, f.Pipe)
+				}
+				addrs[f.Local] = "forwarder"
+				continue
 			}
 			if f.Fail != "" {
 				if addrs[f.Local] == "mailbox" {
@@ -220,13 +255,23 @@ type mailFiles struct {
 	passwd  string
 	dkim    map[string]string // file in DKIMDir -> key
 	dkimMap string            // domain -> selector, for Rspamd
+	sieve   map[string]sieveFile
+	pipes   []pipeService
+}
+
+// sieveFile is an autoresponder script, readable by its account's group.
+type sieveFile struct {
+	script string
+	gid    int
 }
 
 // renderMail builds the global maps from all accounts' fragments.
 func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 	slices.SortFunc(accounts, func(a, b MailAccount) int { return strings.Compare(a.Username, b.Username) })
-	var domains, aliasDomains, relayDomains, mailboxes, aliases, access, senders, sasl, passwd, dkimMap strings.Builder
+	var domains, aliasDomains, relayDomains, mailboxes, aliases, access, senders, sasl, passwd, dkimMap, transport strings.Builder
 	dkim := map[string]string{}
+	sieve := map[string]sieveFile{}
+	var pipes []pipeService
 	for _, a := range accounts {
 		ds := slices.Clone(a.Domains)
 		slices.SortFunc(ds, func(x, y MailDomain) int { return strings.Compare(x.Name, y.Name) })
@@ -246,8 +291,21 @@ func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 			}
 			fmt.Fprintf(&domains, "%s OK\n", d.Name)
 			forwards := map[string][]string{}
-			for _, f := range d.Forwarders {
+			fws := slices.Clone(d.Forwarders)
+			slices.SortFunc(fws, func(x, y Forwarder) int { return strings.Compare(x.Local, y.Local) })
+			for _, f := range fws {
 				addr := f.Local + "@" + d.Name
+				if f.Pipe != "" {
+					name := pipeServicePrefix + a.Username + "-" + strconv.Itoa(len(pipes)+1)
+					path := filepath.ToSlash(filepath.Join(homesRoot, a.Username, f.Pipe))
+					pipes = append(pipes, pipeService{name: name, user: a.Username, path: path})
+					fmt.Fprintf(&mailboxes, "%s OK\n", addr)
+					fmt.Fprintf(&transport, "%s %s:\n", addr, name)
+					// Like a mailbox, the address maps to itself, so the default
+					// address does not take its mail before the transport sees it.
+					fmt.Fprintf(&aliases, "%s %s\n", addr, addr)
+					continue
+				}
 				if f.Fail != "" {
 					fmt.Fprintf(&access, "%s REJECT %s\n", addr, f.Fail)
 					continue
@@ -267,6 +325,9 @@ func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 					extra += " nologin=y"
 				}
 				fmt.Fprintf(&passwd, "%s:%s:%d:%d::%s::%s\n", addr, m.PasswordHash, a.UID, a.GID, home, strings.TrimSpace(extra))
+				if m.Reply != nil {
+					sieve[d.Name+"/"+m.Local+".sieve"] = sieveFile{script: renderSieve(addr, *m.Reply), gid: a.GID}
+				}
 				if m.Send {
 					fmt.Fprintf(&senders, "%s %s\n", addr, addr)
 				} else {
@@ -297,8 +358,9 @@ func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 			"relay_domains": head + relayDomains.String(), "mailboxes": head + mailboxes.String(),
 			"aliases": head + aliases.String(), "recipient_access": head + access.String(),
 			"sender_logins": head + senders.String(), "sasl_access": head + sasl.String(),
+			"transport": head + transport.String(),
 		},
-		passwd: passwd.String(), dkim: dkim, dkimMap: head + dkimMap.String(),
+		passwd: passwd.String(), dkim: dkim, dkimMap: head + dkimMap.String(), sieve: sieve, pipes: pipes,
 	}
 }
 
@@ -386,6 +448,7 @@ func renderMainCF(s MailSettings, cert, key string) string {
 	w("virtual_alias_maps", m("aliases"))
 	w("relay_domains", m("relay_domains"))
 	w("virtual_transport", "lmtp:unix:"+dovecotLMTPSocket)
+	w("transport_maps", m("transport"))
 	w("smtpd_sasl_type", "dovecot")
 	w("smtpd_sasl_path", dovecotAuthSocket)
 	w("smtpd_sasl_auth_enable", "no")
@@ -617,12 +680,28 @@ func (m *Mail) rebuild(ctx context.Context, all []MailAccount) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	masterChanged, err := writeFile(m.PostfixDir, "master.cf", renderMasterCF(f.pipes), 0o644, "")
+	if err != nil {
+		return false, err
+	}
+	postfixChanged = postfixChanged || masterChanged
+	sieveChanged, err := m.writeSieve(ctx, f)
+	if err != nil {
+		return false, err
+	}
+	tokens, err := m.loadTokens()
+	if err != nil {
+		return false, err
+	}
+	if err := m.writeTokens(all, tokens); err != nil {
+		return false, err
+	}
 	if postfixChanged {
 		if err := m.Services.Do(ctx, "postfix.service", ActionReload); err != nil {
 			return true, err
 		}
 	}
-	return postfixChanged || passwdChanged || dkimChanged, nil
+	return postfixChanged || passwdChanged || dkimChanged || sieveChanged, nil
 }
 
 // writeDKIM writes the signing keys and Rspamd's selector map, and removes

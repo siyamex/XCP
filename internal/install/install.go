@@ -111,6 +111,8 @@ type installer struct {
 	pdnsGID  int // PowerDNS's group, once it is installed
 	pmaUID   int // phpMyAdmin's user, once it exists
 	pmaGID   int
+	rcUID    int // Roundcube's user, once it exists
+	rcGID    int
 	mailGIDs map[owner]int // dovecot's and rspamd's groups, once installed
 	restart  bool          // binaries or units changed: restart services
 	reload   bool          // units changed: daemon-reload
@@ -202,6 +204,8 @@ const (
 	pmaPMA                   // xcp-pma:xcp-pma (phpMyAdmin owns)
 	rootDovecot              // root:dovecot (Dovecot can read)
 	rootRspamd               // root:_rspamd (Rspamd can read)
+	rootRC                   // root:xcp-rc (Roundcube can read)
+	rcRC                     // xcp-rc:xcp-rc (Roundcube owns)
 )
 
 func (in *installer) chown(p string, o owner) error {
@@ -219,6 +223,10 @@ func (in *installer) chown(p string, o owner) error {
 		return in.o.Sys.Chown(p, 0, in.pmaGID)
 	case pmaPMA:
 		return in.o.Sys.Chown(p, in.pmaUID, in.pmaGID)
+	case rootRC:
+		return in.o.Sys.Chown(p, 0, in.rcGID)
+	case rcRC:
+		return in.o.Sys.Chown(p, in.rcUID, in.rcGID)
 	case rootDovecot, rootRspamd:
 		return in.o.Sys.Chown(p, 0, in.mailGIDs[o])
 	}
@@ -449,6 +457,15 @@ func apacheConf(hostname string) string {
 		"        SetHandler \"proxy:unix:" + PMASocket + "|fcgi://" + pmaPool + "\"\n" +
 		"    </FilesMatch>\n" +
 		"</Directory>\n" +
+		"<Directory " + RCDir + "/public_html>\n" +
+		"    Options None\n" +
+		"    AllowOverride None\n" +
+		"    AcceptPathInfo On\n" +
+		"    DirectoryIndex index.php\n" +
+		"    <FilesMatch \"\\.php$\">\n" +
+		"        SetHandler \"proxy:unix:" + RCSocket + "|fcgi://" + rcPool + "\"\n" +
+		"    </FilesMatch>\n" +
+		"</Directory>\n" +
 		"<IfModule ssl_module>\n" +
 		"<VirtualHost *:443>\n" +
 		"    ServerName " + hostname + "\n" +
@@ -479,6 +496,16 @@ func apacheConf(hostname string) string {
 		"        <LocationMatch \"^/phpmyadmin/(libraries|templates|vendor|sql|locale|\\.)\">\n" +
 		"            Require all denied\n" +
 		"        </LocationMatch>\n" +
+		"    </IfFile>\n" +
+		"    <IfFile " + RCDir + "/public_html/index.php>\n" +
+		"        Alias /webmail " + RCDir + "/public_html\n" +
+		"        <Location /webmail>\n" +
+		"            Require all granted\n" +
+		"            <If \"%{SERVER_NAME} != '" + hostname + "' && %{SERVER_NAME} != 'localhost' && %{SERVER_NAME} !~ /^[0-9.]+$|:/\">\n" +
+		"                Require all denied\n" +
+		"            </If>\n" +
+		"            RequestHeader edit* Cookie \"(^|;\\s*)(__Host-)?xcp_session=[^;]*\" \"\"\n" +
+		"        </Location>\n" +
 		"    </IfFile>\n" +
 		"</VirtualHost>\n" +
 		"</IfModule>\n" +

@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath}
+	allowed := []string{agent.SievecPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -96,6 +96,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			PostfixDir: agent.PostfixConfDir, DovecotDir: agent.DovecotXCPDir, DKIMDir: agent.RspamdDKIMDir,
 			RspamdDir: agent.RspamdConfDir, HomesRoot: cfg.Paths.HomesRoot, HostCert: hc,
 			PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey, Services: agent.Systemctl{Run: runner},
+			Run: runner, SieveDir: agent.DovecotSieveDir, WebmailState: agent.WebmailStateFile,
+			WebmailTickets: agent.WebmailTicketDir, WebmailUser: agent.WebmailUser,
 		},
 		MySQL: &agent.MySQL{
 			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,

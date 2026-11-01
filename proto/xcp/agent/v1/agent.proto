@@ -117,6 +117,14 @@ service AgentService {
 
   // MailSettingsApply renders the mail servers' configuration.
   rpc MailSettingsApply(MailSettingsApplyRequest) returns (MailSettingsApplyResponse);
+
+  // MailWebmailSignon makes a temporary IMAP password (8 hours) for a
+  // mailbox of the account that may log in, and a one-time ticket for
+  // Roundcube (ADR-0008). NOT_FOUND: webmail is not installed.
+  rpc MailWebmailSignon(MailWebmailSignonRequest) returns (MailWebmailSignonResponse);
+
+  // MailWebmailExpire drops expired temporary passwords and tickets.
+  rpc MailWebmailExpire(MailWebmailExpireRequest) returns (MailWebmailExpireResponse);
 }
 
 message PingRequest {}
@@ -442,12 +450,22 @@ message Mailbox {
   bool login = 4;
   bool receive = 5;
   bool send = 6;
+  MailAutoresponder autoresponder = 7;  // unset: none
+}
+
+message MailAutoresponder {
+  string subject = 1;
+  string body = 2;
+  string start = 3;  // YYYY-MM-DD; empty: from now
+  string end = 4;    // YYYY-MM-DD, inclusive; empty: until removed
+  int32 days = 5;    // at most one reply per sender in this many days
 }
 
 message MailForwarder {
   string local = 1;
   repeated string to = 2;
   string fail = 3;  // set: reject with this message
+  string pipe = 4;  // set: run this script (relative to the account's home) as the account user
 }
 
 message MailAccountApplyResponse {
@@ -476,3 +494,16 @@ message MailSettingsApplyRequest {
 message MailSettingsApplyResponse {
   bool changed = 1;
 }
+
+message MailWebmailSignonRequest {
+  string username = 1;
+  string address = 2;
+}
+
+message MailWebmailSignonResponse {
+  string ticket = 1;  // for /webmail/?_xcp_ticket=
+}
+
+message MailWebmailExpireRequest {}
+
+message MailWebmailExpireResponse {}

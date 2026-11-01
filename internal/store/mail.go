@@ -39,7 +39,19 @@ type Forwarder struct {
 	LocalPart    string
 	Destinations []string
 	FailMessage  string
+	Pipe         string // a script relative to the account's home
 	CreatedAt    time.Time
+}
+
+// Autoresponder answers mail to a mailbox between two dates.
+type Autoresponder struct {
+	MailboxID string
+	Subject   string
+	Body      string
+	StartDate string // YYYY-MM-DD or ""
+	EndDate   string
+	Days      int
+	UpdatedAt time.Time
 }
 
 // AccountMailDomains returns the mail settings of an account's domains, by domain ID.
@@ -157,12 +169,12 @@ func CountMailboxes(ctx context.Context, q querier, accountID string) (int, erro
 	return n, err
 }
 
-const forwarderColumns = `id, domain_id, local_part, destinations, fail_message, created_at`
+const forwarderColumns = `id, domain_id, local_part, destinations, fail_message, pipe, created_at`
 
 func scanForwarder(s scanner) (*Forwarder, error) {
 	var f Forwarder
 	var dest, created string
-	err := s.Scan(&f.ID, &f.DomainID, &f.LocalPart, &dest, &f.FailMessage, &created)
+	err := s.Scan(&f.ID, &f.DomainID, &f.LocalPart, &dest, &f.FailMessage, &f.Pipe, &created)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -209,8 +221,8 @@ func InsertForwarder(ctx context.Context, q querier, f *Forwarder) error {
 	if err != nil {
 		return err
 	}
-	_, err = q.ExecContext(ctx, `INSERT INTO mail_forwarders (`+forwarderColumns+`) VALUES (?, ?, ?, ?, ?, ?)`,
-		f.ID, f.DomainID, f.LocalPart, string(dest), f.FailMessage, FormatTime(f.CreatedAt))
+	_, err = q.ExecContext(ctx, `INSERT INTO mail_forwarders (`+forwarderColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		f.ID, f.DomainID, f.LocalPart, string(dest), f.FailMessage, f.Pipe, FormatTime(f.CreatedAt))
 	if uniqueViolation(err) {
 		return ErrConflict
 	}
@@ -236,4 +248,42 @@ func prefixed(alias, columns string) string {
 		cols[i] = alias + c
 	}
 	return strings.Join(cols, ", ")
+}
+
+// AccountAutoresponders returns the autoresponders of an account's mailboxes, by mailbox ID.
+func AccountAutoresponders(ctx context.Context, q querier, accountID string) (map[string]Autoresponder, error) {
+	rows, err := q.QueryContext(ctx, `SELECT r.mailbox_id, r.subject, r.body, r.start_date, r.end_date, r.days, r.updated_at
+		FROM mail_autoresponders r JOIN mailboxes m ON m.id = r.mailbox_id JOIN domains d ON d.id = m.domain_id
+		WHERE d.account_id = ?`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]Autoresponder{}
+	for rows.Next() {
+		var r Autoresponder
+		var updated string
+		if err := rows.Scan(&r.MailboxID, &r.Subject, &r.Body, &r.StartDate, &r.EndDate, &r.Days, &updated); err != nil {
+			return nil, err
+		}
+		if r.UpdatedAt, err = ParseTime(updated); err != nil {
+			return nil, err
+		}
+		out[r.MailboxID] = r
+	}
+	return out, rows.Err()
+}
+
+// SetAutoresponder stores a mailbox's autoresponder.
+func SetAutoresponder(ctx context.Context, q querier, r Autoresponder) error {
+	_, err := q.ExecContext(ctx, `INSERT INTO mail_autoresponders (mailbox_id, subject, body, start_date, end_date, days, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mailbox_id) DO UPDATE SET subject = excluded.subject, body = excluded.body,
+		start_date = excluded.start_date, end_date = excluded.end_date, days = excluded.days, updated_at = excluded.updated_at`,
+		r.MailboxID, r.Subject, r.Body, r.StartDate, r.EndDate, r.Days, FormatTime(time.Now()))
+	return err
+}
+
+// DeleteAutoresponder removes a mailbox's autoresponder.
+func DeleteAutoresponder(ctx context.Context, q querier, mailboxID string) error {
+	return execOne(ctx, q, `DELETE FROM mail_autoresponders WHERE mailbox_id = ?`, mailboxID)
 }

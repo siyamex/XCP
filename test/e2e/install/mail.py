@@ -3,7 +3,7 @@
 is installed: delivery over SMTP, forwarders, the default address,
 rejections, IMAP logins, submission with DKIM signing, the switches,
 suspension and the settings. Used by run.sh."""
-import imaplib, os, pwd, smtplib, ssl, subprocess, time
+import http.cookiejar, imaplib, urllib.error, os, pwd, smtplib, ssl, subprocess, time, urllib.request
 from email.message import EmailMessage
 
 from xcpe2e import Session, admin, check, finish
@@ -149,6 +149,62 @@ limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=
 check(limit == "1048576", "the largest message size reaches Postfix", limit)
 st, r = api("PUT", "/server/mail", body)
 wait_job(r["job_id"])
+
+# Mail part 2 (ADR-0008): autoresponder, pipe, webmail sign-on.
+user.login("mail1", PW)  # suspending ended the user's sessions
+sender = create(f"/accounts/{acct}/mailboxes", {"domain_id": dom, "local": "sender", "password": PW})
+SENDER = (f"sender@{DOMAIN}", PW)
+st, r = user.call("PUT", f"/mailboxes/{info['id']}/autoresponder", {"subject": "Out of office", "body": "I am away until Monday.", "days": 1})
+check(st == 202, "set an autoresponder", f"{st} {r}")
+user.wait_job(r["job_id"])
+check(send(f"info@{DOMAIN}", "are you there", sender=f"sender@{DOMAIN}", port=587, login=SENDER) is None, "mail to a mailbox with an autoresponder")
+reply = wait_for(*SENDER, "Out of office")
+check(reply is not None and "I am away until Monday." in reply, "the autoresponder answers the sender", (reply or "")[:300])
+st, r = user.call("PUT", f"/mailboxes/{info['id']}/autoresponder", {"subject": "Later", "body": "x", "start": "2099-01-01", "days": 1})
+user.wait_job(r["job_id"])
+check(send(f"info@{DOMAIN}", "not yet", sender=f"sender@{DOMAIN}", port=587, login=SENDER) is None and wait_for(*INFO, "not yet"), "mail before the start date")
+time.sleep(3)
+check(wait_for(*SENDER, "Later", seconds=2) is None, "gets no reply before the autoresponder starts")
+st, r = user.call("DELETE", f"/mailboxes/{info['id']}/autoresponder")
+user.wait_job(r["job_id"])
+
+subprocess.run(["runuser", "-u", "mail1", "--", "mkdir", "-p", "/home/mail1/bin"], check=True)
+script = "#!/bin/sh\n# $1 = sender, $2 = recipient\ncat > /home/mail1/piped.eml\nid -un > /home/mail1/piped.user\n"
+subprocess.run(["runuser", "-u", "mail1", "--", "tee", "/home/mail1/bin/pipe.sh"], input=script.encode(), stdout=subprocess.DEVNULL, check=True)
+subprocess.run(["runuser", "-u", "mail1", "--", "chmod", "700", "/home/mail1/bin/pipe.sh"], check=True)
+create(f"/accounts/{acct}/forwarders", {"domain_id": dom, "local": "orders", "pipe": "bin/pipe.sh"})
+check(send(f"orders@{DOMAIN}", "new order 42") is None, "mail to a pipe address is accepted")
+piped = ""
+for _ in range(60):
+    if os.path.exists("/home/mail1/piped.user"):
+        piped = open("/home/mail1/piped.eml").read()
+        break
+    time.sleep(0.5)
+check("new order 42" in piped and open("/home/mail1/piped.user").read().strip() == "mail1", "the script gets the mail and runs as the account's user", piped[:200])
+
+st, s = user.call("POST", f"/mailboxes/{info['id']}/webmail")
+url = (s or {}).get("url", "")
+check(st == 200 and url.startswith("https://127.0.0.1/webmail/?_xcp_ticket="), "webmail sign-on gives a URL", f"{st} {s}")
+jar = http.cookiejar.CookieJar()
+browser = urllib.request.build_opener(urllib.request.HTTPSHandler(context=insecure), urllib.request.HTTPCookieProcessor(jar))
+with browser.open(url.replace("https://127.0.0.1", "https://127.0.0.1"), timeout=30) as resp:
+    page = resp.read().decode(errors="replace")
+check('"task":"mail"' in page and f"info@{DOMAIN}" in page, "the ticket signs in to Roundcube's inbox", page[:300])
+try:
+    with urllib.request.build_opener(urllib.request.HTTPSHandler(context=insecure)).open(url, timeout=30) as resp:
+        again = resp.read().decode(errors="replace")
+except urllib.error.HTTPError as e:  # Roundcube answers a failed login with 401
+    again = e.read().decode(errors="replace")
+check('"task":"login"' in again, "a ticket works once", again[:200])
+tokens = open("/etc/dovecot/xcp/tokens").read()
+check(f"info@{DOMAIN}:" in tokens, "the temporary password is in Dovecot's second passdb")
+st, r = user.call("PUT", f"/mailboxes/{info['id']}", {"quota_mb": 0, "login": False, "receive": True, "send": True})
+user.wait_job(r["job_id"])
+check(f"info@{DOMAIN}:" not in open("/etc/dovecot/xcp/tokens").read(), "switching login off drops it")
+st, r = user.call("POST", f"/mailboxes/{info['id']}/webmail")
+check(st == 409, "and webmail sign-on is refused", f"{st} {r}")
+st, r = user.call("PUT", f"/mailboxes/{info['id']}", {"quota_mb": 0, "login": True, "receive": True, "send": True})
+user.wait_job(r["job_id"])
 
 maildir = os.stat(f"/home/mail1/mail/{DOMAIN}/info/Maildir")
 check(pwd.getpwuid(maildir.st_uid).pw_name == "mail1" and maildir.st_mode & 0o077 == 0,

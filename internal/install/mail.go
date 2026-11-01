@@ -24,55 +24,8 @@ const (
 // account has mail.
 var postfixMaps = []string{
 	"domains", "alias_domains", "relay_domains", "mailboxes", "aliases", "recipient_access", "sender_logins", "sasl_access",
+	"transport",
 }
-
-const masterCF = `# Managed by XCP (xcp-install; ADR-0007). Changes are overwritten.
-# service type  private unpriv  chroot  wakeup  maxproc command + args
-smtp      inet  n       -       n       -       -       smtpd
-submission inet n       -       n       -       -       smtpd
-  -o syslog_name=postfix/submission
-  -o smtpd_tls_security_level=encrypt
-  -o smtpd_sasl_auth_enable=yes
-  -o smtpd_client_restrictions=$mua_client_restrictions
-  -o smtpd_sender_restrictions=$mua_sender_restrictions
-  -o smtpd_relay_restrictions=$mua_relay_restrictions
-  -o smtpd_recipient_restrictions=
-  -o milter_macro_daemon_name=ORIGINATING
-smtps     inet  n       -       n       -       -       smtpd
-  -o syslog_name=postfix/smtps
-  -o smtpd_tls_wrappermode=yes
-  -o smtpd_sasl_auth_enable=yes
-  -o smtpd_client_restrictions=$mua_client_restrictions
-  -o smtpd_sender_restrictions=$mua_sender_restrictions
-  -o smtpd_relay_restrictions=$mua_relay_restrictions
-  -o smtpd_recipient_restrictions=
-  -o milter_macro_daemon_name=ORIGINATING
-pickup    unix  n       -       n       60      1       pickup
-cleanup   unix  n       -       n       -       0       cleanup
-qmgr      unix  n       -       n       300     1       qmgr
-tlsmgr    unix  -       -       n       1000?   1       tlsmgr
-rewrite   unix  -       -       n       -       -       trivial-rewrite
-bounce    unix  -       -       n       -       0       bounce
-defer     unix  -       -       n       -       0       bounce
-trace     unix  -       -       n       -       0       bounce
-verify    unix  -       -       n       -       1       verify
-flush     unix  n       -       n       1000?   0       flush
-proxymap  unix  -       -       n       -       -       proxymap
-proxywrite unix -       -       n       -       1       proxymap
-smtp      unix  -       -       n       -       -       smtp
-relay     unix  -       -       n       -       -       smtp
-  -o syslog_name=postfix/$service_name
-showq     unix  n       -       n       -       -       showq
-error     unix  -       -       n       -       -       error
-retry     unix  -       -       n       -       -       error
-discard   unix  -       -       n       -       -       discard
-local     unix  -       n       n       -       -       local
-virtual   unix  -       n       n       -       -       virtual
-lmtp      unix  -       -       n       -       -       lmtp
-anvil     unix  -       -       n       -       1       anvil
-scache    unix  -       -       n       -       1       scache
-postlog   unix-dgram n  -       n       -       1       postlogd
-`
 
 const dovecotConf = `# Managed by XCP (xcp-install; ADR-0007). Changes are overwritten.
 protocols = imap pop3 lmtp
@@ -92,6 +45,11 @@ auth_cache_negative_ttl = 1 min
 passdb {
   driver = passwd-file
   args = scheme=ARGON2ID username_format=%Lu /etc/dovecot/xcp/passwd
+}
+# Temporary passwords for webmail sign-on (ADR-0008), tried after the real one.
+passdb {
+  driver = passwd-file
+  args = scheme=SHA256 username_format=%Lu /etc/dovecot/xcp/tokens
 }
 userdb {
   driver = passwd-file
@@ -137,6 +95,12 @@ service auth {
 plugin {
   quota = count:User quota
   quota_vsizes = yes
+  # Autoresponders (ADR-0008), written by xcp-agent; then the user's own filters.
+  sieve_before = /etc/dovecot/xcp/sieve/%d/%n.sieve
+  sieve = file:~/sieve;active=~/.dovecot.sieve
+}
+protocol lmtp {
+  mail_plugins = $mail_plugins sieve
 }
 protocol imap {
   mail_plugins = $mail_plugins imap_quota
@@ -210,7 +174,8 @@ func (in *installer) mail(ctx context.Context) error {
 		{path.Dir(agent.MailFragmentDir), 0o700, rootRoot},
 		{agent.MailFragmentDir, 0o700, rootRoot},
 		{mailMaps, 0o755, rootRoot},
-		{agent.DovecotXCPDir, 0o750, rootDovecot},
+		{agent.DovecotXCPDir, 0o755, rootDovecot},
+		{agent.DovecotSieveDir, 0o755, rootRoot},
 		{rspamdLocal, 0o755, rootRoot},
 		{agent.RspamdConfDir + "/xcp", 0o755, rootRoot},
 		{agent.RspamdDKIMDir, 0o750, rootRspamd},
@@ -225,8 +190,10 @@ func (in *installer) mail(ctx context.Context) error {
 	if _, err := in.writeFile(mailMaps+"/relay_password", nil, 0o600, rootRoot, true); err != nil {
 		return err
 	}
-	if _, err := in.writeFile(agent.DovecotXCPDir+"/passwd", nil, 0o640, rootDovecot, true); err != nil {
-		return err
+	for _, f := range []string{"passwd", "tokens"} {
+		if _, err := in.writeFile(agent.DovecotXCPDir+"/"+f, nil, 0o640, rootDovecot, true); err != nil {
+			return err
+		}
 	}
 	if _, err := in.writeFile(agent.RspamdConfDir+"/xcp/dkim_selectors.map", nil, 0o644, rootRoot, true); err != nil {
 		return err
@@ -246,6 +213,10 @@ func (in *installer) mail(ctx context.Context) error {
 		cert, key = HostCertFile, HostKeyFile
 	}
 	mainCF, sslConf, greylist := agent.MailRenderDefaults(set, cert, key)
+	masterCF, err := agent.MailMasterCF(in.path(agent.MailFragmentDir), "/home")
+	if err != nil {
+		return err
+	}
 	changed := map[string]bool{}
 	for _, f := range []struct {
 		path, content, unit string
@@ -276,5 +247,9 @@ func (in *installer) mail(ctx context.Context) error {
 			}
 		}
 	}
-	return nil
+	if in.o.NoWeb {
+		in.logf("    webmail skipped: it needs the web server (--no-web)")
+		return nil
+	}
+	return in.webmail(ctx, set.MaxMessageMB)
 }

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/siyamex/XCP/internal/mail"
 )
@@ -137,5 +138,39 @@ func (s *Server) putMailSettings(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"settings": set, "job_id": jobID})
+	return nil
+}
+
+func (s *Server) setAutoresponder(w http.ResponseWriter, r *http.Request) error {
+	var in mail.Autoresponder
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	jobID, err := s.Mail.SetAutoresponder(r.Context(), client(r), principal(r), r.PathValue("id"), in)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
+func (s *Server) deleteAutoresponder(w http.ResponseWriter, r *http.Request) error {
+	jobID, err := s.Mail.DeleteAutoresponder(r.Context(), client(r), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
+// webmailSignon returns where the browser signs in to webmail: like
+// phpMyAdmin, the host it reached the panel by, on Apache's HTTPS port.
+func (s *Server) webmailSignon(w http.ResponseWriter, r *http.Request) error {
+	ticket, err := s.Mail.Webmail(r.Context(), client(r), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	u := strings.Replace(phpMyAdminURL(r, ticket), "/phpmyadmin/xcp-signon.php?ticket=", "/webmail/?_xcp_ticket=", 1)
+	writeJSON(w, http.StatusOK, map[string]string{"url": u})
 	return nil
 }

@@ -131,6 +131,9 @@ func serve(args []string) error {
 	if err := dbs.Schedule(sched); err != nil {
 		return err
 	}
+	if err := mails.Schedule(sched); err != nil {
+		return err
+	}
 	go sched.Run(ctx)
 	// Catch up at once: zones may wait for a DNS server that is there now.
 	if _, err := queue.Enqueue(ctx, zones.JobSync, struct{}{}, jobs.EnqueueOptions{

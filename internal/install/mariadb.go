@@ -40,7 +40,8 @@ const (
 
 // phpMyAdmin is the release xcp-install installs, pinned by version and
 // SHA-256 (07-security.md §10). Tests swap it for a small tarball.
-var phpMyAdmin = struct{ Version, URL, SHA256 string }{
+var phpMyAdmin = release{
+	Name:    "phpMyAdmin",
 	Version: "5.2.3",
 	URL:     "https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.tar.gz",
 	SHA256:  "12ba1c425fa4071abbd4e7668c9ebdeac0b0755a467a6d6d5026122bb47c102b",
@@ -305,23 +306,39 @@ func (in *installer) secretHex(p string) (string, error) {
 	return s, err
 }
 
-// pmaTree installs the pinned phpMyAdmin release in PMADir, unless it is
-// there already. It reports whether it installed it.
+// release is a third-party web application xcp-install installs, pinned
+// by version and SHA-256 (07-security.md §10).
+type release struct {
+	Name, Version, URL, SHA256 string
+}
+
+// releaseVersionFile names the file in a tree that records its version.
+const releaseVersionFile = ".xcp-version"
+
+// pmaTree installs the pinned phpMyAdmin release in PMADir.
 func (in *installer) pmaTree(ctx context.Context) (bool, error) {
-	versionFile := PMADir + "/" + path.Base(agent.PMAVersionFile)
-	if b, err := os.ReadFile(in.path(versionFile)); err == nil && strings.TrimSpace(string(b)) == phpMyAdmin.Version {
+	return in.installRelease(ctx, phpMyAdmin, PMADir, pmaDropped)
+}
+
+// installRelease installs a release in dir, unless that version is there
+// already, without the folders in dropped. It replaces the whole tree, so
+// files the installer adds to it are written again afterwards. It reports
+// whether it installed it.
+func (in *installer) installRelease(ctx context.Context, rel release, dir string, dropped []string) (bool, error) {
+	versionFile := dir + "/" + releaseVersionFile
+	if b, err := os.ReadFile(in.path(versionFile)); err == nil && strings.TrimSpace(string(b)) == rel.Version {
 		return false, nil
 	}
-	in.logf("    downloading phpMyAdmin %s", phpMyAdmin.Version)
-	data, err := in.o.Sys.Download(ctx, phpMyAdmin.URL, pmaMaxBytes)
+	in.logf("    downloading %s %s", rel.Name, rel.Version)
+	data, err := in.o.Sys.Download(ctx, rel.URL, pmaMaxBytes)
 	if err != nil {
 		return false, err
 	}
 	sum := sha256.Sum256(data)
-	if got := hex.EncodeToString(sum[:]); got != phpMyAdmin.SHA256 {
-		return false, fmt.Errorf("download has SHA-256 %s, want %s", got, phpMyAdmin.SHA256)
+	if got := hex.EncodeToString(sum[:]); got != rel.SHA256 {
+		return false, fmt.Errorf("download has SHA-256 %s, want %s", got, rel.SHA256)
 	}
-	dst := in.path(PMADir)
+	dst := in.path(dir)
 	tmp, old := dst+".new", dst+".old"
 	if err := errors.Join(os.RemoveAll(tmp), os.RemoveAll(old)); err != nil {
 		return false, err
@@ -329,12 +346,12 @@ func (in *installer) pmaTree(ctx context.Context) (bool, error) {
 	if err := extractTarGz(data, tmp); err != nil {
 		return false, err
 	}
-	for _, d := range pmaDropped {
+	for _, d := range dropped {
 		if err := os.RemoveAll(filepath.Join(tmp, d)); err != nil {
 			return false, err
 		}
 	}
-	if err := os.WriteFile(filepath.Join(tmp, path.Base(versionFile)), []byte(phpMyAdmin.Version+"\n"), 0o644); err != nil { //nolint:forbidigo,gosec // installer, see writeFile
+	if err := os.WriteFile(filepath.Join(tmp, releaseVersionFile), []byte(rel.Version+"\n"), 0o644); err != nil { //nolint:forbidigo,gosec // installer, see writeFile
 		return false, err
 	}
 	if _, err := os.Stat(dst); err == nil {
@@ -345,7 +362,7 @@ func (in *installer) pmaTree(ctx context.Context) (bool, error) {
 	if err := os.Rename(tmp, dst); err != nil {
 		return false, err
 	}
-	in.changed("phpMyAdmin " + phpMyAdmin.Version + " in " + PMADir)
+	in.changed(rel.Name + " " + rel.Version + " in " + dir)
 	return true, os.RemoveAll(old)
 }
 

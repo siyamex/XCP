@@ -54,6 +54,8 @@ const (
 	AgentService_MailAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/MailAccountApply"
 	AgentService_MailAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/MailAccountRemove"
 	AgentService_MailSettingsApply_FullMethodName      = "/xcp.agent.v1.AgentService/MailSettingsApply"
+	AgentService_MailWebmailSignon_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailSignon"
+	AgentService_MailWebmailExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailExpire"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -132,6 +134,12 @@ type AgentServiceClient interface {
 	MailAccountRemove(ctx context.Context, in *MailAccountRemoveRequest, opts ...grpc.CallOption) (*MailAccountRemoveResponse, error)
 	// MailSettingsApply renders the mail servers' configuration.
 	MailSettingsApply(ctx context.Context, in *MailSettingsApplyRequest, opts ...grpc.CallOption) (*MailSettingsApplyResponse, error)
+	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
+	// mailbox of the account that may log in, and a one-time ticket for
+	// Roundcube (ADR-0008). NOT_FOUND: webmail is not installed.
+	MailWebmailSignon(ctx context.Context, in *MailWebmailSignonRequest, opts ...grpc.CallOption) (*MailWebmailSignonResponse, error)
+	// MailWebmailExpire drops expired temporary passwords and tickets.
+	MailWebmailExpire(ctx context.Context, in *MailWebmailExpireRequest, opts ...grpc.CallOption) (*MailWebmailExpireResponse, error)
 }
 
 type agentServiceClient struct {
@@ -402,6 +410,26 @@ func (c *agentServiceClient) MailSettingsApply(ctx context.Context, in *MailSett
 	return out, nil
 }
 
+func (c *agentServiceClient) MailWebmailSignon(ctx context.Context, in *MailWebmailSignonRequest, opts ...grpc.CallOption) (*MailWebmailSignonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailWebmailSignonResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailWebmailSignon_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailWebmailExpire(ctx context.Context, in *MailWebmailExpireRequest, opts ...grpc.CallOption) (*MailWebmailExpireResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailWebmailExpireResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailWebmailExpire_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -478,6 +506,12 @@ type AgentServiceServer interface {
 	MailAccountRemove(context.Context, *MailAccountRemoveRequest) (*MailAccountRemoveResponse, error)
 	// MailSettingsApply renders the mail servers' configuration.
 	MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error)
+	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
+	// mailbox of the account that may log in, and a one-time ticket for
+	// Roundcube (ADR-0008). NOT_FOUND: webmail is not installed.
+	MailWebmailSignon(context.Context, *MailWebmailSignonRequest) (*MailWebmailSignonResponse, error)
+	// MailWebmailExpire drops expired temporary passwords and tickets.
+	MailWebmailExpire(context.Context, *MailWebmailExpireRequest) (*MailWebmailExpireResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -565,6 +599,12 @@ func (UnimplementedAgentServiceServer) MailAccountRemove(context.Context, *MailA
 }
 func (UnimplementedAgentServiceServer) MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailSettingsApply not implemented")
+}
+func (UnimplementedAgentServiceServer) MailWebmailSignon(context.Context, *MailWebmailSignonRequest) (*MailWebmailSignonResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailWebmailSignon not implemented")
+}
+func (UnimplementedAgentServiceServer) MailWebmailExpire(context.Context, *MailWebmailExpireRequest) (*MailWebmailExpireResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailWebmailExpire not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1055,6 +1095,42 @@ func _AgentService_MailSettingsApply_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_MailWebmailSignon_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailWebmailSignonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailWebmailSignon(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailWebmailSignon_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailWebmailSignon(ctx, req.(*MailWebmailSignonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailWebmailExpire_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailWebmailExpireRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailWebmailExpire(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailWebmailExpire_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailWebmailExpire(ctx, req.(*MailWebmailExpireRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1165,6 +1241,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MailSettingsApply",
 			Handler:    _AgentService_MailSettingsApply_Handler,
+		},
+		{
+			MethodName: "MailWebmailSignon",
+			Handler:    _AgentService_MailWebmailSignon_Handler,
+		},
+		{
+			MethodName: "MailWebmailExpire",
+			Handler:    _AgentService_MailWebmailExpire_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

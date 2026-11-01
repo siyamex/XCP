@@ -52,15 +52,16 @@ type Domain struct {
 
 // Mailbox is the API view of a mailbox.
 type Mailbox struct {
-	ID        string    `json:"id"`
-	DomainID  string    `json:"domain_id"`
-	Address   string    `json:"address"`
-	QuotaMB   int64     `json:"quota_mb"`
-	Login     bool      `json:"login"`
-	Receive   bool      `json:"receive"`
-	Send      bool      `json:"send"`
-	CreatedAt time.Time `json:"created_at"`
-	JobID     string    `json:"job_id,omitempty"`
+	ID        string         `json:"id"`
+	DomainID  string         `json:"domain_id"`
+	Address   string         `json:"address"`
+	QuotaMB   int64          `json:"quota_mb"`
+	Login     bool           `json:"login"`
+	Receive   bool           `json:"receive"`
+	Send      bool           `json:"send"`
+	Reply     *Autoresponder `json:"autoresponder"`
+	CreatedAt time.Time      `json:"created_at"`
+	JobID     string         `json:"job_id,omitempty"`
 }
 
 // Forwarder is the API view of a forwarder.
@@ -70,6 +71,7 @@ type Forwarder struct {
 	Address   string    `json:"address"`
 	To        []string  `json:"to"`
 	Fail      string    `json:"fail,omitempty"`
+	Pipe      string    `json:"pipe,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	JobID     string    `json:"job_id,omitempty"`
 }
@@ -107,6 +109,7 @@ type ForwarderInput struct {
 	Local    string   `json:"local"`
 	To       []string `json:"to"`
 	Fail     string   `json:"fail"`
+	Pipe     string   `json:"pipe"` // a script relative to the account's home, run as the account
 }
 
 // HostnameSource tells the server's host name (package ssl).
@@ -266,9 +269,17 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 	if err != nil {
 		return o, err
 	}
+	replies, err := store.AccountAutoresponders(ctx, s.db.R, a.ID)
+	if err != nil {
+		return o, err
+	}
 	o.Mailboxes = make([]Mailbox, 0, len(boxes))
 	for _, m := range boxes {
-		o.Mailboxes = append(o.Mailboxes, mailboxView(m, byID[m.DomainID].Name))
+		v := mailboxView(m, byID[m.DomainID].Name)
+		if r, ok := replies[m.ID]; ok {
+			v.Reply = &Autoresponder{Subject: r.Subject, Body: r.Body, Start: r.StartDate, End: r.EndDate, Days: r.Days}
+		}
+		o.Mailboxes = append(o.Mailboxes, v)
 	}
 	fws, err := store.AccountForwarders(ctx, s.db.R, a.ID)
 	if err != nil {
@@ -293,7 +304,7 @@ func forwarderView(f store.Forwarder, domain string) Forwarder {
 	if to == nil {
 		to = []string{}
 	}
-	return Forwarder{ID: f.ID, DomainID: f.DomainID, Address: f.LocalPart + "@" + domain, To: to, Fail: f.FailMessage, CreatedAt: f.CreatedAt}
+	return Forwarder{ID: f.ID, DomainID: f.DomainID, Address: f.LocalPart + "@" + domain, To: to, Fail: f.FailMessage, Pipe: f.Pipe, CreatedAt: f.CreatedAt}
 }
 
 // HashPassword returns the {ARGON2ID} hash Dovecot checks: libsodium's
@@ -556,7 +567,16 @@ func (s *Service) CreateForwarder(ctx context.Context, c auth.Client, p *auth.Pr
 	if f.LocalPart, err = validate.MailboxName(in.Local); err != nil {
 		return Forwarder{}, validate.WithField(err, "local")
 	}
-	if fail := strings.TrimSpace(in.Fail); fail != "" {
+	if pipe := strings.TrimSpace(in.Pipe); pipe != "" {
+		if len(in.To) > 0 || in.Fail != "" {
+			return Forwarder{}, badField("pipe", validate.CodeFormat, "a forwarder forwards, rejects or runs a script")
+		}
+		rel, err := validate.RelPath(pipe)
+		if err != nil || rel != pipe || strings.ContainsAny(pipe, " \t$") {
+			return Forwarder{}, badField("pipe", validate.CodeFormat, "the script is a path inside your home folder, like bin/handle-mail.php")
+		}
+		f.Pipe = rel
+	} else if fail := strings.TrimSpace(in.Fail); fail != "" {
 		if len(fail) > 200 || strings.ContainsFunc(fail, func(r rune) bool { return r < 0x20 || r > 0x7e }) {
 			return Forwarder{}, badField("fail", validate.CodeFormat, "the message is one line of plain text, at most 200 characters")
 		}
@@ -573,13 +593,13 @@ func (s *Service) CreateForwarder(ctx context.Context, c auth.Client, p *auth.Pr
 		if err := checkLimit(n, err, lim.Forwarders, "forwarders"); err != nil {
 			return err
 		}
-		if f.FailMessage != "" {
+		if f.FailMessage != "" || f.Pipe != "" {
 			boxes, err := store.AccountMailboxes(ctx, tx, a.ID)
 			if err != nil {
 				return err
 			}
 			if slices.ContainsFunc(boxes, func(m store.Mailbox) bool { return m.DomainID == d.ID && m.LocalPart == f.LocalPart }) {
-				return apperr.NewConflict("address_taken", "a mailbox has this address; it cannot also reject its mail")
+				return apperr.NewConflict("address_taken", "a mailbox has this address; it cannot also reject its mail or pass it to a script")
 			}
 		}
 		if err := store.InsertForwarder(ctx, tx, f); errors.Is(err, store.ErrConflict) {
@@ -594,7 +614,7 @@ func (s *Service) CreateForwarder(ctx context.Context, c auth.Client, p *auth.Pr
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "mail.forwarder.create", a.ID, "forwarder", f.ID, map[string]any{
-			"address": f.LocalPart + "@" + d.Name, "to": f.Destinations, "fail": f.FailMessage,
+			"address": f.LocalPart + "@" + d.Name, "to": f.Destinations, "fail": f.FailMessage, "pipe": f.Pipe,
 		}))
 	})
 	if err != nil {

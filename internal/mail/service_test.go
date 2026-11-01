@@ -379,3 +379,72 @@ func TestSettings(t *testing.T) {
 		t.Errorf("bad settings: %v", err)
 	}
 }
+
+func TestAutoresponderPipeWebmail(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	dom := o.Domains[0].ID
+	m, err := e.svc.CreateMailbox(ctx, client, user, a.ID, mail.MailboxInput{DomainID: dom, Local: "info", Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, m.JobID)
+
+	jobID, err := e.svc.SetAutoresponder(ctx, client, user, m.ID, mail.Autoresponder{Subject: "Away", Body: "Back soon.", Start: "2026-11-01", End: "2026-11-08"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, jobID)
+	got, _ := e.fake.MailAccount("alice")
+	if r := got.Domains[0].Mailboxes[0].Reply; r == nil || r.Subject != "Away" || r.Days != 1 || r.End != "2026-11-08" {
+		t.Fatalf("autoresponder in the agent: %+v", r)
+	}
+	o, _ = e.svc.Overview(ctx, user, a.ID)
+	if o.Mailboxes[0].Reply == nil || o.Mailboxes[0].Reply.Body != "Back soon." {
+		t.Fatalf("overview: %+v", o.Mailboxes[0])
+	}
+	if _, err := e.svc.SetAutoresponder(ctx, client, user, m.ID, mail.Autoresponder{Subject: "x", Body: "y", Start: "2026-11-08", End: "2026-11-01"}); !field(err, "autoresponder") {
+		t.Errorf("end before start: %v", err)
+	}
+	if jobID, err = e.svc.DeleteAutoresponder(ctx, client, user, m.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, jobID)
+	if got, _ := e.fake.MailAccount("alice"); got.Domains[0].Mailboxes[0].Reply != nil {
+		t.Fatal("autoresponder not removed")
+	}
+
+	f, err := e.svc.CreateForwarder(ctx, client, user, a.ID, mail.ForwarderInput{DomainID: dom, Local: "orders", Pipe: "bin/orders.php"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, f.JobID)
+	got, _ = e.fake.MailAccount("alice")
+	if fw := got.Domains[0].Forwarders; len(fw) != 1 || fw[0].Pipe != "bin/orders.php" {
+		t.Fatalf("pipe in the agent: %+v", fw)
+	}
+	for _, bad := range []mail.ForwarderInput{
+		{DomainID: dom, Local: "x", Pipe: "../../etc/passwd"},
+		{DomainID: dom, Local: "y", Pipe: "/bin/sh"},
+		{DomainID: dom, Local: "z", Pipe: "a.php", To: []string{"a@b.example"}},
+	} {
+		if _, err := e.svc.CreateForwarder(ctx, client, user, a.ID, bad); !field(err, "pipe") {
+			t.Errorf("%+v: %v", bad, err)
+		}
+	}
+	if _, err := e.svc.CreateForwarder(ctx, client, user, a.ID, mail.ForwarderInput{DomainID: dom, Local: "info", Pipe: "x.php"}); !conflict(err, "address_taken") {
+		t.Errorf("pipe on a mailbox: %v", err)
+	}
+
+	ticket, err := e.svc.Webmail(ctx, client, user, m.ID)
+	if err != nil || len(ticket) != 64 {
+		t.Fatalf("webmail: %q %v", ticket, err)
+	}
+	if _, err := e.svc.UpdateMailbox(ctx, client, user, m.ID, mail.MailboxUpdate{Login: false, Receive: true, Send: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svc.Webmail(ctx, client, user, m.ID); !conflict(err, "login_off") {
+		t.Errorf("webmail with login off: %v", err)
+	}
+}

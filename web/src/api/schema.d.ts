@@ -1092,6 +1092,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mailboxes/{id}/autoresponder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a mailbox's autoresponder */
+        put: operations["setAutoresponder"];
+        post?: never;
+        /** Remove a mailbox's autoresponder */
+        delete: operations["deleteAutoresponder"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mailboxes/{id}/webmail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign a mailbox in to webmail
+         * @description Returns a one-time URL (valid 2 minutes) on the host the request came to, port 443 (ADR-0008). Needs the `webmail` feature and login on.
+         */
+        post: operations["webmailSignon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/forwarders": {
         parameters: {
             query?: never;
@@ -1471,9 +1513,20 @@ export interface components {
             login: boolean;
             receive: boolean;
             send: boolean;
+            autoresponder?: components["schemas"]["Autoresponder"] | null;
             /** Format: date-time */
             created_at: string;
             job_id?: string;
+        };
+        Autoresponder: {
+            subject: string;
+            body: string;
+            /** @description YYYY-MM-DD; empty: from now */
+            start?: string;
+            /** @description YYYY-MM-DD, inclusive; empty: until removed */
+            end?: string;
+            /** @description At most one reply per sender in this many days (0 means 1) */
+            days?: number;
         };
         Forwarder: {
             id: string;
@@ -1481,6 +1534,7 @@ export interface components {
             address: string;
             to: string[];
             fail?: string;
+            pipe?: string;
             /** Format: date-time */
             created_at: string;
             job_id?: string;
@@ -1751,6 +1805,8 @@ export interface components {
              * @example not_installed
              * @example address_taken
              * @example no_zone
+             * @example login_off
+             * @example not_ready
              */
             code: string;
             detail?: string;
@@ -3804,6 +3860,86 @@ export interface operations {
             409: components["responses"]["Problem"];
         };
     };
+    setAutoresponder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Autoresponder"];
+            };
+        };
+        responses: {
+            /** @description Set; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteAutoresponder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    webmailSignon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Where to send the browser. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url: string;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
     createForwarder: {
         parameters: {
             query?: never;
@@ -3821,6 +3957,8 @@ export interface operations {
                     to?: string[];
                     /** @description Set to reject with this message instead of forwarding */
                     fail?: string;
+                    /** @description Set to hand mail to this script (a path in the account's home) */
+                    pipe?: string;
                 };
             };
         };

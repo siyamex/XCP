@@ -133,3 +133,57 @@ func TestMailSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestAutoresponderAndPipes(t *testing.T) {
+	r := Autoresponder{Subject: `Away "now"`, Body: "Back on Monday.\nC:\\path", Start: "2026-11-01", End: "2026-11-08", Days: 3}
+	if err := checkReply(r); err != nil {
+		t.Fatal(err)
+	}
+	script := renderSieve("info@alice.example", r)
+	for _, want := range []string{
+		`require ["vacation", "date", "relational"];`,
+		`if allof(currentdate :value "ge" "date" "2026-11-01", currentdate :value "le" "date" "2026-11-08") {`,
+		`vacation :days 3 :subject "Away \"now\"" :addresses ["info@alice.example"] "Back on Monday.` + "\n" + `C:\\path";`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script lacks %q:\n%s", want, script)
+		}
+	}
+	for _, bad := range []Autoresponder{
+		{Subject: "", Body: "x", Days: 1},
+		{Subject: "a\nb", Body: "x", Days: 1},
+		{Subject: "s", Body: "x", Days: 0},
+		{Subject: "s", Body: "x", Days: 1, Start: "2026-11-08", End: "2026-11-01"},
+		{Subject: "s", Body: "x", Days: 1, Start: "1.11.2026"},
+	} {
+		if err := checkReply(bad); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%+v: want invalid, got %v", bad, err)
+		}
+	}
+
+	a := testMailAccount(t)
+	a.Domains[0].Mailboxes[0].Reply = &r
+	a.Domains[0].Forwarders = append(a.Domains[0].Forwarders, Forwarder{Local: "orders", Pipe: "bin/orders.php"})
+	if err := CheckMailAccount(a); err != nil {
+		t.Fatal(err)
+	}
+	f := renderMail([]MailAccount{a}, "/home")
+	if !strings.Contains(f.maps["transport"], "orders@alice.example xcppipe-alice-1:\n") || !strings.Contains(f.maps["mailboxes"], "orders@alice.example OK") ||
+		!strings.Contains(f.maps["aliases"], "orders@alice.example orders@alice.example\n") {
+		t.Errorf("pipe not routed:\n%s\n%s", f.maps["transport"], f.maps["mailboxes"])
+	}
+	if s, ok := f.sieve["alice.example/info.sieve"]; !ok || s.gid != 10001 {
+		t.Errorf("sieve files: %+v", f.sieve)
+	}
+	master := renderMasterCF(f.pipes)
+	if !strings.Contains(master, "xcppipe-alice-1 unix  -       n       n       -       -       pipe\n  flags=Rq user=alice argv=/home/alice/bin/orders.php ${sender} ${recipient}\n") {
+		t.Errorf("master.cf:\n%s", master)
+	}
+	for _, bad := range []string{"../etc/passwd", "/bin/sh", "bin/x y", "bin/$x"} {
+		b := testMailAccount(t)
+		b.Domains[0].Forwarders = []Forwarder{{Local: "orders", Pipe: bad}}
+		if err := CheckMailAccount(b); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("pipe %q: want invalid, got %v", bad, err)
+		}
+	}
+}

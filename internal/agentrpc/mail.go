@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -23,9 +24,14 @@ func mailAccountFrom(req *agentv1.MailAccountApplyRequest) agent.MailAccount {
 				Local: m.GetLocal(), PasswordHash: m.GetPasswordHash(), QuotaMB: m.GetQuotaMb(),
 				Login: m.GetLogin(), Receive: m.GetReceive(), Send: m.GetSend(),
 			})
+			if r := m.GetAutoresponder(); r != nil {
+				md.Mailboxes[len(md.Mailboxes)-1].Reply = &agent.Autoresponder{
+					Subject: r.GetSubject(), Body: r.GetBody(), Start: r.GetStart(), End: r.GetEnd(), Days: int(r.GetDays()),
+				}
+			}
 		}
 		for _, f := range d.GetForwarders() {
-			md.Forwarders = append(md.Forwarders, agent.Forwarder{Local: f.GetLocal(), To: f.GetTo(), Fail: f.GetFail()})
+			md.Forwarders = append(md.Forwarders, agent.Forwarder{Local: f.GetLocal(), To: f.GetTo(), Fail: f.GetFail(), Pipe: f.GetPipe()})
 		}
 		a.Domains = append(a.Domains, md)
 	}
@@ -139,4 +145,42 @@ func (f *Fake) MailSettingsApply(_ context.Context, req *agentv1.MailSettingsApp
 	defer f.mail.mu.Unlock()
 	f.mail.settings = &s
 	return &agentv1.MailSettingsApplyResponse{Changed: true}, nil
+}
+
+// MailWebmailSignon implements agentv1.AgentServiceServer.
+func (s *Server) MailWebmailSignon(ctx context.Context, req *agentv1.MailWebmailSignonRequest) (*agentv1.MailWebmailSignonResponse, error) {
+	ticket, err := s.Mail.WebmailSignon(ctx, req.GetUsername(), req.GetAddress())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MailWebmailSignonResponse{Ticket: ticket}, nil
+}
+
+// MailWebmailExpire implements agentv1.AgentServiceServer.
+func (s *Server) MailWebmailExpire(ctx context.Context, _ *agentv1.MailWebmailExpireRequest) (*agentv1.MailWebmailExpireResponse, error) {
+	if err := s.Mail.ExpireWebmail(ctx); err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MailWebmailExpireResponse{}, nil
+}
+
+// MailWebmailSignon implements Client: a ticket if the mailbox may log in.
+func (f *Fake) MailWebmailSignon(_ context.Context, req *agentv1.MailWebmailSignonRequest, _ ...grpc.CallOption) (*agentv1.MailWebmailSignonResponse, error) {
+	f.recordf("MailWebmailSignon %s", req.GetAddress())
+	f.mail.mu.Lock()
+	defer f.mail.mu.Unlock()
+	for _, d := range f.mail.accounts[req.GetUsername()].Domains {
+		for _, b := range d.Mailboxes {
+			if b.Local+"@"+d.Name == req.GetAddress() && b.Login {
+				return &agentv1.MailWebmailSignonResponse{Ticket: strings.Repeat("ab", 32)}, nil
+			}
+		}
+	}
+	return nil, fakeInvalid(agent.ErrInvalidRequest)
+}
+
+// MailWebmailExpire implements Client.
+func (f *Fake) MailWebmailExpire(context.Context, *agentv1.MailWebmailExpireRequest, ...grpc.CallOption) (*agentv1.MailWebmailExpireResponse, error) {
+	f.recordf("MailWebmailExpire")
+	return &agentv1.MailWebmailExpireResponse{}, nil
 }

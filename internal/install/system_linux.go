@@ -281,8 +281,13 @@ func (s *LinuxSystem) Download(ctx context.Context, url string, maxBytes int64) 
 // skipped: XCP writes its whole configuration.
 func (s *LinuxSystem) InstallMailServer(ctx context.Context) (bool, error) {
 	have := true
-	for _, p := range []string{"/usr/sbin/postfix", "/usr/bin/rspamd", "/usr/lib/dovecot/lmtp", "/usr/lib/dovecot/imap", "/usr/lib/dovecot/pop3", "/usr/bin/redis-server"} {
+	for _, p := range []string{"/usr/sbin/postfix", "/usr/bin/rspamd", "/usr/lib/dovecot/lmtp", "/usr/lib/dovecot/imap", "/usr/lib/dovecot/pop3", "/usr/bin/redis-server", "/usr/bin/sievec"} {
 		if _, err := os.Stat(p); err != nil {
+			have = false
+		}
+	}
+	for _, ext := range []string{"intl", "pdo_sqlite", "mbstring", "dom"} {
+		if ini, _ := filepath.Glob("/etc/php/*/mods-available/" + ext + ".ini"); len(ini) == 0 {
 			have = false
 		}
 	}
@@ -296,12 +301,21 @@ func (s *LinuxSystem) InstallMailServer(ctx context.Context) (bool, error) {
 	}); err != nil {
 		return false, fmt.Errorf("apt-get update: %w", err)
 	}
-	pkgs := []string{"postfix", "dovecot-core", "dovecot-imapd", "dovecot-pop3d", "dovecot-lmtpd", "rspamd", "redis-server"}
+	pkgs := []string{
+		"postfix", "dovecot-core", "dovecot-imapd", "dovecot-pop3d", "dovecot-lmtpd", "dovecot-sieve", "rspamd", "redis-server",
+		"php-intl", "php-sqlite3", "php-mbstring", "php-xml", // for Roundcube
+	}
 	if _, err := s.run.Run(ctx, execx.Cmd{
 		Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
 		Env: env, Timeout: 30 * time.Minute,
 	}); err != nil {
 		return false, fmt.Errorf("apt-get install %s: %w", strings.Join(pkgs, " "), err)
+	}
+	// PHP-FPM loads new extensions only when it restarts.
+	if units := fpmUnits(); len(units) > 0 {
+		if err := s.Systemctl(ctx, append([]string{"reload-or-restart"}, units...)...); err != nil {
+			return true, err
+		}
 	}
 	return true, nil
 }

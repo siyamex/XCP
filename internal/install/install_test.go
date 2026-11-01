@@ -77,8 +77,10 @@ func useRelease(t *testing.T, data []byte) {
 	t.Helper()
 	saved := phpMyAdmin
 	sum := sha256.Sum256(data)
+	savedRC := roundcube
 	phpMyAdmin.Version, phpMyAdmin.URL, phpMyAdmin.SHA256 = "test", "https://files.example/pma.tar.gz", hex.EncodeToString(sum[:])
-	t.Cleanup(func() { phpMyAdmin = saved })
+	roundcube.Version, roundcube.URL, roundcube.SHA256 = "test", "https://files.example/rc.tar.gz", hex.EncodeToString(sum[:])
+	t.Cleanup(func() { phpMyAdmin, roundcube = saved, savedRC })
 }
 
 func (f *fakeSys) EnsureSystemUser(_ context.Context, name, _ string) (bool, error) {
@@ -154,6 +156,9 @@ func newEnv(t *testing.T) *env {
 	e := &env{root: t.TempDir(), bin: t.TempDir(), sys: &fakeSys{tarball: releaseTarball(t, map[string]string{
 		"phpMyAdmin-test/index.php": "<?php // pma", "phpMyAdmin-test/setup/index.php": "<?php // setup",
 		"phpMyAdmin-test/js/app.js": "app",
+		// Roundcube's parts, so one tarball serves as both releases.
+		"phpMyAdmin-test/public_html/index.php": "<?php // rc", "phpMyAdmin-test/SQL/sqlite.initial.sql": "CREATE TABLE users (user_id INTEGER);",
+		"phpMyAdmin-test/plugins/autologon/autologon.php": "<?php",
 	})}}
 	useRelease(t, e.sys.tarball)
 	for name := range Binaries {
@@ -247,6 +252,23 @@ func TestFirstInstall(t *testing.T) {
 			t.Errorf("main.cf lacks %q", want)
 		}
 	}
+	// Roundcube: its database from its schema, sign-on only through our plugin, the sample one gone.
+	if db := e.read(t, "/var/lib/xcp-roundcube/db/roundcube.db"); !bytes.HasPrefix(db, []byte("SQLite format 3")) {
+		t.Error("Roundcube's database not created")
+	}
+	if !strings.Contains(string(e.read(t, RCDir+"/plugins/xcp_sso/xcp_sso.php")), "/var/lib/xcp-roundcube/tickets/") ||
+		!strings.Contains(string(e.read(t, RCDir+"/config/config.inc.php")), "'xcp_sso'") {
+		t.Error("Roundcube sign-on not set up")
+	}
+	if _, err := os.Stat(filepath.Join(e.root, filepath.FromSlash(RCDir+"/plugins/autologon"))); !errors.Is(err, os.ErrNotExist) {
+		t.Error("Roundcube's sample autologon plugin was kept")
+	}
+	if !strings.Contains(string(e.read(t, ApacheConf)), "Alias /webmail "+RCDir+"/public_html") {
+		t.Error("webmail not served")
+	}
+	if !strings.Contains(string(e.read(t, DovecotConf)), "sieve_before = /etc/dovecot/xcp/sieve/%d/%n.sieve") {
+		t.Error("autoresponders not set up in Dovecot")
+	}
 	if _, err := os.Stat(filepath.Join(e.root, "etc", "postfix", "xcp", "aliases")); err != nil {
 		t.Error("empty Postfix maps not created")
 	}
@@ -291,6 +313,8 @@ func TestFirstInstall(t *testing.T) {
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
 		"mail install", "systemctl enable --now redis-server.service rspamd.service dovecot.service postfix.service",
 		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart postfix.service",
+		"useradd xcp-rc", "download https://files.example/rc.tar.gz",
+		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
 		"admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
