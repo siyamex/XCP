@@ -47,7 +47,7 @@ func checkServices(cfg config.Agent) []checkResult {
 	defer closer.Close()
 	var out []checkResult
 	for _, s := range serviceChecks {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), probeWait+5*time.Second)
 		out = append(out, checkService(ctx, c, s.id, s.name, s.probe))
 		cancel()
 	}
@@ -67,11 +67,34 @@ func checkService(ctx context.Context, c agentrpc.Client, id, name string, probe
 		return checkResult{name, statusFail, fmt.Sprintf("%s is %s (%s); see: journalctl -u %s", st.GetUnit(), st.GetActiveState(), st.GetSubState(), st.GetUnit())}
 	}
 	if probe != nil {
-		if err := probe(ctx); err != nil {
+		if err := retry(ctx, probe); err != nil {
 			return checkResult{name, statusFail, fmt.Sprintf("%s runs but does not answer: %v", st.GetUnit(), err)}
 		}
 	}
 	return checkResult{name, statusOK, st.GetUnit() + " active"}
+}
+
+// probeWait is how long a service that systemd calls active may take to
+// answer: right after a (re)start, as when the installer has just run,
+// it may not listen yet.
+const probeWait = 20 * time.Second
+
+// retry runs probe until it succeeds or probeWait has passed.
+func retry(ctx context.Context, probe func(context.Context) error) error {
+	deadline := time.Now().Add(probeWait)
+	for {
+		pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		err := probe(pctx)
+		cancel()
+		if err == nil || time.Now().After(deadline) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 // checkMySQL checks that the agent can work in MariaDB (root over the socket).
