@@ -70,7 +70,6 @@ Status: `todo` · `doing` · `done`.
   host without a full domain name (like WSL) starts with none; the settings
   page says so. Zones made while the server's IPv4 was unknown got no A
   records (only a change of address moves records).
-- DNS: `xcpctl doctor` does not check PowerDNS yet.
 - SSL: expiry "alerts" are only the dashboard's highlighting; mail
   notifications need the notification system. The AutoSSL time is fixed.
 - SSL: wildcard certificates (DNS-01, USR-SSL-02) are P2; until then a
@@ -89,18 +88,21 @@ Status: `todo` · `doing` · `done`.
   root by hand) is left alone and not shown; the orphan list is ADM-DB-02 (P2).
 - phpMyAdmin: a session shows the databases that existed at sign-on; it is
   served on the host name over 443, so a firewall (P2) must keep 443 open.
-  `xcpctl doctor` checks neither MariaDB nor phpMyAdmin yet.
 - Mail: pipe scripts run as the account user with Postfix's limits only,
   not in the account's slice (that waits for the jail work, P3). Mail
   certificates are the host name's
   for every domain (per-domain SNI later); mail clients must use the
   server's host name.
-- Mail: "auto" routing follows the MX records in the zone; a DNS record
-  change re-applies mail only with the next mail change. Deleted mailboxes
-  keep their Maildir in the account's home. No quota warning mails yet.
-- Webmail: Roundcube upgrades replace the tree; its database schema
-  updates (bin/update.sh) are not run yet. The user's own Sieve filters
-  and ManageSieve are P2 (USR-MAIL-07).
+- Mail: deleted mailboxes keep their Maildir in the account's home. No
+  quota warning mails yet.
+- Webmail: the user's own Sieve filters and ManageSieve are P2 (USR-MAIL-07).
+- Done after P1 #9: `xcpctl doctor` checks every hosting service through
+  the agent (not installed = warning, stopped = failure with the journal
+  command) and that each answers (phpMyAdmin over HTTPS, a DNS query, the
+  SMTP banner, the IMAPS greeting, Rspamd's milter port, MariaDB through the
+  agent, webmail); an MX, A or AAAA change re-applies the account's mail,
+  so "auto" routing follows it at once; a Roundcube upgrade runs Roundcube's
+  own database updater as `xcp-rc`.
 - Mail on the VM and in CI is tested locally only: outgoing port 25 is
   blocked there, so delivery to other servers is not exercised.
 

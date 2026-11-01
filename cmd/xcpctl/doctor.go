@@ -69,6 +69,7 @@ func runChecks(configPath string) []checkResult {
 		return append(res, checkResult{"service user", statusFail, err.Error()})
 	}
 	res = append(res, checkDatabase(configPath), checkAgent(cfg.Agent), checkAPI(cfg))
+	res = append(res, checkServices(cfg.Agent)...)
 	return append(res, checkQuota(cfg.Paths.HomesRoot))
 }
 

@@ -72,6 +72,9 @@ type System interface {
 	// InstallMailServer installs Postfix, Dovecot, Rspamd and Redis; it
 	// reports whether anything was installed.
 	InstallMailServer(ctx context.Context) (installed bool, err error)
+	// UpdateRoundcubeDB brings Roundcube's database schema up to the
+	// installed release, as Roundcube's own user.
+	UpdateRoundcubeDB(ctx context.Context) error
 	// PHPFPMVersions lists the installed PHP-FPM versions ("8.3").
 	PHPFPMVersions() []string
 	// Download fetches a URL over HTTPS, at most maxBytes.

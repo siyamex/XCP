@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/execx"
 )
 
@@ -29,6 +30,8 @@ const (
 	aptGetPath    = "/usr/bin/apt-get"
 	a2enmodPath   = "/usr/sbin/a2enmod"
 	a2ensitePath  = "/usr/sbin/a2ensite"
+	runuserPath   = "/usr/sbin/runuser"
+	phpPath       = "/usr/bin/php"
 )
 
 // LinuxSystem is the real System for Ubuntu/Debian.
@@ -38,7 +41,7 @@ type LinuxSystem struct {
 
 // NewLinuxSystem returns the production System.
 func NewLinuxSystem() (*LinuxSystem, error) {
-	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath, aptGetPath, a2enmodPath, a2ensitePath)
+	r, err := execx.NewRunner(useraddPath, systemctlPath, xcpctlPath, aptGetPath, a2enmodPath, a2ensitePath, runuserPath)
 	if err != nil {
 		return nil, err
 	}
@@ -318,4 +321,16 @@ func (s *LinuxSystem) InstallMailServer(ctx context.Context) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// UpdateRoundcubeDB implements System with Roundcube's own updater.
+func (s *LinuxSystem) UpdateRoundcubeDB(ctx context.Context) error {
+	_, err := s.run.Run(ctx, execx.Cmd{
+		Path: runuserPath, Timeout: 10 * time.Minute,
+		Args: []string{"-u", agent.WebmailUser, "--", phpPath, RCDir + "/bin/updatedb.sh", "--package=roundcube", "--dir=" + RCDir + "/SQL"},
+	})
+	if err != nil {
+		return fmt.Errorf("update Roundcube's database: %w", err)
+	}
+	return nil
 }

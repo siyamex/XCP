@@ -162,6 +162,8 @@ func (in *installer) webmail(ctx context.Context, maxMB int64) error {
 	}); err != nil {
 		return err
 	}
+	_, statErr := os.Stat(in.path(rcDatabase))
+	upgrade := statErr == nil // a database from an earlier release
 	tree, err := in.installRelease(ctx, roundcube, RCDir, rcDropped)
 	if err != nil {
 		return fmt.Errorf("installing webmail (Roundcube %s): %w", roundcube.Version, err)
@@ -184,6 +186,13 @@ func (in *installer) webmail(ctx context.Context, maxMB int64) error {
 	}
 	if err := in.rcDatabase(); err != nil {
 		return err
+	}
+	if tree && upgrade {
+		// The new release may change the schema: Roundcube's updater knows how.
+		if err := in.o.Sys.UpdateRoundcubeDB(ctx); err != nil {
+			return err
+		}
+		in.changed("Roundcube's database updated to " + roundcube.Version)
 	}
 	ver := pmaPHP(in.o.Sys.PHPFPMVersions())
 	if ver == "" {

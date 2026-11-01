@@ -48,6 +48,11 @@ func (f *fakeSys) InstallMailServer(context.Context) (bool, error) {
 	return installed, nil
 }
 
+func (f *fakeSys) UpdateRoundcubeDB(context.Context) error {
+	f.calls = append(f.calls, "roundcube updatedb")
+	return nil
+}
+
 func (f *fakeSys) PHPFPMVersions() []string { return []string{"8.4", "8.3", "7.4"} }
 
 func (f *fakeSys) Download(_ context.Context, url string, _ int64) ([]byte, error) {
@@ -454,5 +459,25 @@ func TestPMAPHP(t *testing.T) {
 		if got := pmaPHP(c.in); got != c.want {
 			t.Errorf("pmaPHP(%v) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+func TestRoundcubeUpgradeUpdatesItsDatabase(t *testing.T) {
+	e := newEnv(t)
+	e.run(t, false)
+	if slices.Contains(e.sys.calls, "roundcube updatedb") {
+		t.Fatal("a new install has nothing to update")
+	}
+	// A new release: same tree, another version.
+	saved := roundcube
+	roundcube.Version = "test2"
+	t.Cleanup(func() { roundcube = saved })
+	e.run(t, false)
+	if !slices.Contains(e.sys.calls, "roundcube updatedb") {
+		t.Fatalf("upgrade did not update Roundcube's database: %q", e.sys.calls)
+	}
+	e.run(t, false)
+	if slices.Contains(e.sys.calls, "roundcube updatedb") {
+		t.Fatal("updated again although nothing changed")
 	}
 }

@@ -448,3 +448,27 @@ func TestAutoresponderPipeWebmail(t *testing.T) {
 		t.Errorf("webmail with login off: %v", err)
 	}
 }
+
+func TestMXChangeReappliesMail(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	if _, err := e.svc.CreateMailbox(ctx, client, user, a.ID, mail.MailboxInput{DomainID: o.Domains[0].ID, Local: "info", Password: pw}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { got, ok := e.fake.MailAccount("alice"); return ok && len(got.Domains) == 1 })
+	// Routing is "auto": pointing the MX elsewhere moves the domain's mail away.
+	zs, _ := store.AccountZones(ctx, e.db.R, a.ID)
+	recs, _ := store.ZoneRecords(ctx, e.db.R, zs[0].ID)
+	for _, r := range recs {
+		if r.Type == "MX" {
+			if _, err := e.zones.DeleteRecord(ctx, client, user, r.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if _, err := e.zones.AddRecord(ctx, client, user, zs[0].ID, zones.RecordInput{Name: "@", Type: "MX", Content: "10 mx.elsewhere.example"}); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { got, ok := e.fake.MailAccount("alice"); return ok && len(got.Domains) == 0 })
+}

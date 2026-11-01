@@ -385,6 +385,12 @@ func (s *Service) change(ctx context.Context, c auth.Client, p *auth.Principal, 
 		if jobID, err = s.enqueueApply(ctx, tx, p.Login.ID, *z); err != nil {
 			return err
 		}
+		// "auto" email routing follows the MX and address records.
+		if s.onMail != nil && (rec == nil || slices.Contains([]string{"MX", "A", "AAAA"}, rec.Type)) {
+			if err := s.onMail(ctx, tx, p.Login.ID, a.ID); err != nil {
+				return err
+			}
+		}
 		details := map[string]any{"zone": z.Name}
 		if rec != nil {
 			details["name"], details["type"], details["content"], details["ttl"] = rec.Name, rec.Type, rec.Content, rec.TTL
