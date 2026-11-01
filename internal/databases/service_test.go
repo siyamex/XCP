@@ -77,7 +77,7 @@ func newEnv(t *testing.T) *env {
 	doms := domains.NewService(db, rec, pl, q, fake, zs, domains.StaticTXT{}, []byte("test key"))
 	accts := accounts.NewService(db, rec, au, pl, q, fake, doms, zs)
 	svc := databases.NewService(db, rec, pl, q, fake, box)
-	accts.SetDatabases(svc)
+	accts.Attach("databases", svc)
 	w := jobs.NewWorker(q, "test", log)
 	w.Poll = 10 * time.Millisecond
 	for _, r := range []interface{ RegisterJobs(*jobs.Worker) }{accts, doms, zs, svc} {

@@ -126,3 +126,24 @@ func Covers(c *x509.Certificate, name string) bool {
 func Valid(c *x509.Certificate, t time.Time) bool {
 	return !t.Before(c.NotBefore) && !t.After(c.NotAfter)
 }
+
+// ParseRSAKey parses a PEM private key that must be RSA with at least
+// MinRSABits, such as a DKIM signing key.
+func ParseRSAKey(keyPEM string) (*rsa.PrivateKey, error) {
+	if len(keyPEM) > MaxPEM {
+		return nil, errors.New("key is too large")
+	}
+	b, rest := pem.Decode([]byte(keyPEM))
+	if b == nil || len(strings.TrimSpace(string(rest))) > 0 {
+		return nil, errors.New("the private key must be exactly one PEM block")
+	}
+	key, err := parseKey(b)
+	if err != nil {
+		return nil, err
+	}
+	k, ok := key.(*rsa.PrivateKey)
+	if !ok || k.N.BitLen() < MinRSABits {
+		return nil, fmt.Errorf("the key must be RSA with at least %d bits", MinRSABits)
+	}
+	return k, nil
+}

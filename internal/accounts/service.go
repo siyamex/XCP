@@ -17,7 +17,6 @@ import (
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
-	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -77,7 +76,22 @@ type Service struct {
 	agent   agentrpc.Client
 	domains *domains.Service
 	zones   *zones.Service
-	dbs     *databases.Service
+	extras  []extra
+}
+
+// Extra is a service that keeps per-account state on the server beyond the
+// Linux user and its websites, such as databases and mail.
+type Extra interface {
+	// Apply makes the server hold the account's state (a suspended account
+	// included); the result is a short summary for the job.
+	Apply(ctx context.Context, a *store.Account) (string, error)
+	// RemoveAccount removes it when the account is terminated.
+	RemoveAccount(ctx context.Context, username string) (string, error)
+}
+
+type extra struct {
+	name string
+	svc  Extra
 }
 
 // NewService returns an accounts service.
@@ -87,9 +101,9 @@ func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Se
 	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom, zones: zs}
 }
 
-// SetDatabases connects the databases service: account jobs then apply and
-// remove the account's MariaDB databases and users too.
-func (s *Service) SetDatabases(d *databases.Service) { s.dbs = d }
+// Attach connects a service whose account state the account jobs apply
+// and remove too, in the order attached.
+func (s *Service) Attach(name string, e Extra) { s.extras = append(s.extras, extra{name, e}) }
 
 // scope returns the owner filter for p: admins manage admin-owned accounts
 // (resellers get their own in P2).

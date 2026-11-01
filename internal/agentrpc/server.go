@@ -25,6 +25,7 @@ type Server struct {
 	DNS      *agent.DNS
 	HostCert *agent.HostCert
 	MySQL    *agent.MySQL
+	Mail     *agent.Mail
 	Version  string
 	Hostname string
 	Log      *slog.Logger

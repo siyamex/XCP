@@ -43,6 +43,7 @@ func run() error {
 	noWeb := flag.Bool("no-web", false, "do not install Apache and PHP-FPM")
 	noDNS := flag.Bool("no-dns", false, "do not install PowerDNS")
 	noDB := flag.Bool("no-db", false, "do not install MariaDB and phpMyAdmin")
+	noMail := flag.Bool("no-mail", false, "do not install the mail server (Postfix, Dovecot, Rspamd)")
 	flag.Parse()
 
 	fmt.Printf("XCP installer %s\n\n", version.Version)
@@ -77,7 +78,7 @@ func run() error {
 	ips := hostinfo.ServerIPs()
 	res, err := install.Run(ctx, install.Options{
 		Root: "/", BinDir: *from, Hostname: h, IPs: ips,
-		AdminUser: *adminUser, AdminPassword: password, NoWeb: *noWeb, NoDNS: *noDNS, NoDB: *noDB, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
+		AdminUser: *adminUser, AdminPassword: password, NoWeb: *noWeb, NoDNS: *noDNS, NoDB: *noDB, NoMail: *noMail, DryRun: *dryRun, Out: os.Stdout, Sys: sys,
 	})
 	if err != nil {
 		return err

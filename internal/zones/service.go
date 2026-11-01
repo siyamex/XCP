@@ -53,7 +53,16 @@ type Service struct {
 	jobs     *jobs.Queue
 	agent    agentrpc.Client
 	resolver HostResolver
+	onMail   ChangeHook
 }
+
+// ChangeHook is called inside the transaction of a change that affects an
+// account's mail, to queue the mail service's job.
+type ChangeHook func(ctx context.Context, tx *sql.Tx, createdBy, accountID string) error
+
+// SetMailHook connects the mail service: it hears when a zone's email
+// routing changes.
+func (s *Service) SetMailHook(h ChangeHook) { s.onMail = h }
 
 // NewService returns a zones service.
 func NewService(db *store.DB, rec *audit.Recorder, pl *plans.Service, q *jobs.Queue, ag agentrpc.Client, r HostResolver) *Service {
@@ -284,6 +293,11 @@ func (s *Service) SetMailRouting(ctx context.Context, c auth.Client, p *auth.Pri
 	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
 		if err := store.SetZoneMailRouting(ctx, tx, z.ID, routing); err != nil {
 			return err
+		}
+		if s.onMail != nil {
+			if err := s.onMail(ctx, tx, p.Login.ID, a.ID); err != nil {
+				return err
+			}
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "dns.mail_routing", a.ID, "zone", z.ID, map[string]any{
 			"zone": z.Name, "from": z.MailRouting, "to": routing,

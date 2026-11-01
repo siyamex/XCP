@@ -10,6 +10,7 @@ import { PackageEditPage, PackagesPage } from "./pages/PackagesPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { SslPage } from "./pages/SslPage";
 import { DatabasesPage } from "./pages/DatabasesPage";
+import { EmailPage } from "./pages/EmailPage";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -32,13 +33,14 @@ const dnsSettingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/d
 const zoneRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns/$zoneId", component: ZonePage });
 const sslRoute = createRoute({ getParentRoute: () => appRoute, path: "/ssl", component: SslPage });
 const databasesRoute = createRoute({ getParentRoute: () => appRoute, path: "/databases", component: DatabasesPage });
+const emailRoute = createRoute({ getParentRoute: () => appRoute, path: "/email", component: EmailPage });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
     accountsRoute, accountNewRoute, accountRoute, domainsRoute,
-    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute,
+    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute, emailRoute,
   ]),
 ]);
 

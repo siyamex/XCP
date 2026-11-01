@@ -1012,6 +1012,202 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's mail domains, mailboxes and forwarders */
+        get: operations["getMail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/mailboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a mailbox
+         * @description The domain's DKIM key is made with its first address and published in its zone when this server serves it.
+         */
+        post: operations["createMailbox"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mailboxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a mailbox's quota and switches */
+        put: operations["updateMailbox"];
+        post?: never;
+        /** Delete a mailbox (its mail stays in the account's home) */
+        delete: operations["deleteMailbox"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mailboxes/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a mailbox's password */
+        put: operations["setMailboxPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/forwarders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a forwarder (to addresses, or a rejection with a message) */
+        post: operations["createForwarder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forwarders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a forwarder */
+        delete: operations["deleteForwarder"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/mail/catch-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Set where mail to unknown addresses of a domain goes */
+        put: operations["setCatchAll"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/mail/deliverability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Check a domain's MX, SPF, DKIM, DMARC and the server's PTR in public DNS */
+        get: operations["getDeliverability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}/mail/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write the expected SPF, DKIM and DMARC records into the domain's zone here
+         * @description SPF and DMARC only when the zone has none; the DKIM key always. 409 no_zone when the domain's DNS is elsewhere.
+         */
+        post: operations["repairMailDNS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mail server settings (admins) */
+        get: operations["getMailSettings"];
+        /** Change the mail server settings (admins) */
+        put: operations["putMailSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{id}": {
         parameters: {
             query?: never;
@@ -1251,6 +1447,81 @@ export interface components {
             /** @description The caller may open phpMyAdmin */
             phpmyadmin: boolean;
         };
+        MailDomain: {
+            id: string;
+            name: string;
+            display_name: string;
+            kind: string;
+            /**
+             * @description The zone's email routing
+             * @enum {string}
+             */
+            routing: "local" | "remote" | "backup";
+            alias_of?: string;
+            /** @description Where unknown addresses go; empty rejects them */
+            catch_all: string[];
+            dkim: boolean;
+        };
+        Mailbox: {
+            id: string;
+            domain_id: string;
+            address: string;
+            /** @description 0 means no limit of its own */
+            quota_mb: number;
+            login: boolean;
+            receive: boolean;
+            send: boolean;
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
+        Forwarder: {
+            id: string;
+            domain_id: string;
+            address: string;
+            to: string[];
+            fail?: string;
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
+        MailOverview: {
+            domains: components["schemas"]["MailDomain"][];
+            mailboxes: components["schemas"]["Mailbox"][];
+            forwarders: components["schemas"]["Forwarder"][];
+            max_mailboxes: number | null;
+            max_forwarders: number | null;
+            max_quota_mb: number | null;
+            /** @description The host name mail clients connect to */
+            server: string;
+        };
+        DeliverabilityCheck: {
+            /** @enum {string} */
+            name: "mx" | "spf" | "dkim" | "dmarc" | "ptr";
+            /** @enum {string} */
+            status: "ok" | "warning" | "error";
+            found: string[];
+            expected?: string;
+            detail: string;
+        };
+        Deliverability: {
+            domain_id: string;
+            domain: string;
+            routing: string;
+            checks: components["schemas"]["DeliverabilityCheck"][];
+            /** @description This server serves the domain's DNS */
+            repairable: boolean;
+        };
+        MailSettings: {
+            hostname: string;
+            max_message_mb: number;
+            relay_host: string;
+            relay_user: string;
+            has_relay_password: boolean;
+            rbls: string[];
+            helo_checks: boolean;
+            greylisting: boolean;
+        };
         JobRef: {
             job_id: string;
         };
@@ -1478,6 +1749,8 @@ export interface components {
              * @example limit_reached
              * @example rename_refused
              * @example not_installed
+             * @example address_taken
+             * @example no_zone
              */
             code: string;
             detail?: string;
@@ -3380,6 +3653,361 @@ export interface operations {
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    getMail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything the mail page shows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createMailbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    domain_id: string;
+                    /** @description The part before the @ */
+                    local: string;
+                    /** Format: password */
+                    password: string;
+                    /** @description 0 means the package's largest */
+                    quota_mb?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Mailbox"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateMailbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    quota_mb: number;
+                    login: boolean;
+                    receive: boolean;
+                    send: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Changed; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Mailbox"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteMailbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setMailboxPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordInput"];
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    createForwarder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    domain_id: string;
+                    local: string;
+                    to?: string[];
+                    /** @description Set to reject with this message instead of forwarding */
+                    fail?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forwarder"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteForwarder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setCatchAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Empty rejects unknown addresses */
+                    to?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Set. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getDeliverability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checks. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deliverability"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    repairMailDNS: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether a record changed; the zone's job publishes them. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        changed: boolean;
+                    };
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getMailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings; the relay password is never returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailSettings"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putMailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    hostname: string;
+                    max_message_mb: number;
+                    /** @description host or host:port (587 by default); empty delivers directly */
+                    relay_host?: string;
+                    relay_user?: string;
+                    /**
+                     * Format: password
+                     * @description Empty keeps the stored one
+                     */
+                    relay_password?: string;
+                    rbls?: string[];
+                    helo_checks?: boolean;
+                    greylisting?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved; the job in `job_id` applies them. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["MailSettings"];
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getJob: {

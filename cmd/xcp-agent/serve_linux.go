@@ -66,6 +66,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 
 	hostname, _ := os.Hostname()
 	hostCert, hostKey := cfg.API.HostCertFiles()
+	hc := &agent.HostCert{CertFile: hostCert, KeyFile: hostKey, Group: cfg.Agent.APIUser}
 	allowedUIDs := []uint32{0, apiUID}
 	gs := grpc.NewServer(
 		grpc.Creds(agentrpc.PeerCredentials(allowedUIDs)),
@@ -89,7 +90,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			LogDir:       "/var/log/apache2/xcp", WebUser: "www-data",
 		},
 		DNS:      &agent.DNS{URL: agent.PDNSURL, KeyFile: cfg.Paths.PDNSKeyFile()},
-		HostCert: &agent.HostCert{CertFile: hostCert, KeyFile: hostKey, Group: cfg.Agent.APIUser},
+		HostCert: hc,
+		Mail: &agent.Mail{
+			Postfix: agent.PostfixBinary, FragmentDir: agent.MailFragmentDir, SettingsFile: agent.MailSettingsFile,
+			PostfixDir: agent.PostfixConfDir, DovecotDir: agent.DovecotXCPDir, DKIMDir: agent.RspamdDKIMDir,
+			RspamdDir: agent.RspamdConfDir, HomesRoot: cfg.Paths.HomesRoot, HostCert: hc,
+			PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey, Services: agent.Systemctl{Run: runner},
+		},
 		MySQL: &agent.MySQL{
 			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,
 			TicketDir: agent.PMATicketDir, TicketUser: agent.PMAUser, VersionFile: agent.PMAVersionFile,

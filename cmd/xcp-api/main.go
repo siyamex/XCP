@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
+	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/version"
 	"github.com/siyamex/XCP/internal/zones"
@@ -90,9 +92,17 @@ func serve(args []string) error {
 	doms := domains.NewService(a.DB, a.Audit, a.Plans, queue, agent, zs, net.DefaultResolver, a.DomainKey)
 	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms, zs)
 	dbs := databases.NewService(a.DB, a.Audit, a.Plans, queue, agent, a.Box)
-	accts.SetDatabases(dbs)
+	accts.Attach("databases", dbs)
 	certs := ssl.NewService(a.DB, a.Audit, a.Plans, queue, agent, doms, zs, a.Box, net.DefaultResolver,
 		ssl.Options{PanelCert: a.Cfg.API.TLSCert, ChallengeDir: ssl.ChallengeDir})
+	mails := mail.NewService(a.DB, a.Audit, a.Plans, queue, agent, zs, a.Box, net.DefaultResolver, certs)
+	accts.Attach("mail", mails)
+	mailHook := func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
+		_, err := mails.EnqueueApply(ctx, tx, by, accountID)
+		return err
+	}
+	doms.SetMailHook(mailHook)
+	zs.SetMailHook(mailHook)
 	if n, err := zs.EnsureDomains(ctx); err != nil {
 		a.Log.Error("give domains their DNS", "err", err)
 	} else if n > 0 {
@@ -105,6 +115,7 @@ func serve(args []string) error {
 	zs.RegisterJobs(worker)
 	certs.RegisterJobs(worker)
 	dbs.RegisterJobs(worker)
+	mails.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -129,7 +140,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

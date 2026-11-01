@@ -125,6 +125,18 @@ type Service struct {
 	certs    CertSource
 	resolver TXTResolver
 	key      []byte // signs verification tokens
+	onMail   zones.ChangeHook
+}
+
+// SetMailHook connects the mail service: it hears when a domain is added
+// or removed.
+func (s *Service) SetMailHook(h zones.ChangeHook) { s.onMail = h }
+
+func (s *Service) mailChanged(ctx context.Context, tx *sql.Tx, p *auth.Principal, accountID string) error {
+	if s.onMail == nil {
+		return nil
+	}
+	return s.onMail(ctx, tx, p.Login.ID, accountID)
 }
 
 // NewService returns a domains service. key signs the TXT verification
@@ -348,6 +360,9 @@ func (s *Service) Add(ctx context.Context, c auth.Client, p *auth.Principal, acc
 		if jobID, err = s.enqueue(ctx, tx, p, a.ID); err != nil {
 			return err
 		}
+		if err := s.mailChanged(ctx, tx, p, a.ID); err != nil {
+			return err
+		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "domain.add", a.ID, "domain", d.ID, map[string]any{
 			"name": d.Name, "kind": d.Kind, "parent_id": d.ParentID, "docroot": d.DocRoot,
 		}))
@@ -485,6 +500,9 @@ func (s *Service) Delete(ctx context.Context, c auth.Client, p *auth.Principal, 
 			return err
 		}
 		if jobID, err = s.enqueue(ctx, tx, p, a.ID); err != nil {
+			return err
+		}
+		if err := s.mailChanged(ctx, tx, p, a.ID); err != nil {
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "domain.delete", a.ID, "domain", d.ID, map[string]any{"name": d.Name, "kind": d.Kind}))

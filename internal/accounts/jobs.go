@@ -130,13 +130,13 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 		return nil, s.fail(ctx, j, a, err)
 	}
 	result := map[string]any{}
-	if s.dbs != nil {
-		// Suspension locks the database users; unsuspending unlocks them.
-		res, err := s.dbs.Apply(ctx, a)
+	for _, e := range s.extras {
+		// Suspension locks database users and mail logins; unsuspending unlocks them.
+		res, err := e.svc.Apply(ctx, a)
 		if err != nil {
-			return nil, s.fail(ctx, j, a, err)
+			return nil, s.fail(ctx, j, a, fmt.Errorf("%s: %w", e.name, err))
 		}
-		result["databases"] = res
+		result[e.name] = res
 	}
 	if a.Status == store.AccountCreating || a.Status == store.AccountError {
 		if err := s.db.SetAccountStatus(ctx, a.ID, store.AccountActive, ""); err != nil {
@@ -189,12 +189,12 @@ func (s *Service) terminateJob(ctx context.Context, j *jobs.Job, r jobs.Reporter
 			return nil, permanentIfRefused(err)
 		}
 	}
-	if s.dbs != nil {
-		res, err := s.dbs.RemoveAccount(ctx, a.Username)
+	for _, e := range s.extras {
+		res, err := e.svc.RemoveAccount(ctx, a.Username)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", e.name, err)
 		}
-		r.Logf("databases: %s", res)
+		r.Logf("%s: %s", e.name, res)
 	}
 	r.Logf("removing Linux user %s and its home folder", a.Username)
 	res, err := s.agent.AccountDelete(ctx, &agentv1.AccountDeleteRequest{Username: a.Username})

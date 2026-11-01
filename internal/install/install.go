@@ -69,6 +69,9 @@ type System interface {
 	// InstallDatabaseServer installs MariaDB and PHP's MySQL extension and
 	// makes sure MariaDB runs; it reports whether anything was installed.
 	InstallDatabaseServer(ctx context.Context) (installed bool, err error)
+	// InstallMailServer installs Postfix, Dovecot, Rspamd and Redis; it
+	// reports whether anything was installed.
+	InstallMailServer(ctx context.Context) (installed bool, err error)
 	// PHPFPMVersions lists the installed PHP-FPM versions ("8.3").
 	PHPFPMVersions() []string
 	// Download fetches a URL over HTTPS, at most maxBytes.
@@ -86,6 +89,7 @@ type Options struct {
 	NoWeb         bool   // skip installing Apache and PHP-FPM
 	NoDNS         bool   // skip installing PowerDNS
 	NoDB          bool   // skip installing MariaDB and phpMyAdmin
+	NoMail        bool   // skip installing the mail server
 	DryRun        bool
 	Out           io.Writer
 	Sys           System
@@ -100,15 +104,16 @@ type Result struct {
 }
 
 type installer struct {
-	o       Options
-	res     Result
-	uid     int // service user, -1 in dry runs before it exists
-	gid     int
-	pdnsGID int // PowerDNS's group, once it is installed
-	pmaUID  int // phpMyAdmin's user, once it exists
-	pmaGID  int
-	restart bool // binaries or units changed: restart services
-	reload  bool // units changed: daemon-reload
+	o        Options
+	res      Result
+	uid      int // service user, -1 in dry runs before it exists
+	gid      int
+	pdnsGID  int // PowerDNS's group, once it is installed
+	pmaUID   int // phpMyAdmin's user, once it exists
+	pmaGID   int
+	mailGIDs map[owner]int // dovecot's and rspamd's groups, once installed
+	restart  bool          // binaries or units changed: restart services
+	reload   bool          // units changed: daemon-reload
 }
 
 // Run performs the installation.
@@ -135,6 +140,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"web server (Apache + PHP-FPM)", in.web},
 		{"DNS server (PowerDNS)", in.dns},
 		{"database server (MariaDB + phpMyAdmin)", in.database},
+		{"mail server (Postfix + Dovecot + Rspamd)", in.mail},
 		{"first admin", in.admin},
 	}
 	for _, s := range steps {
@@ -188,12 +194,14 @@ func (in *installer) user(ctx context.Context) error {
 type owner int
 
 const (
-	rootRoot owner = iota // root:root
-	rootSvc               // root:xcp (service can read)
-	svcSvc                // xcp:xcp (service owns)
-	rootPDNS              // root:pdns (PowerDNS can read)
-	rootPMA               // root:xcp-pma (phpMyAdmin can read)
-	pmaPMA                // xcp-pma:xcp-pma (phpMyAdmin owns)
+	rootRoot    owner = iota // root:root
+	rootSvc                  // root:xcp (service can read)
+	svcSvc                   // xcp:xcp (service owns)
+	rootPDNS                 // root:pdns (PowerDNS can read)
+	rootPMA                  // root:xcp-pma (phpMyAdmin can read)
+	pmaPMA                   // xcp-pma:xcp-pma (phpMyAdmin owns)
+	rootDovecot              // root:dovecot (Dovecot can read)
+	rootRspamd               // root:_rspamd (Rspamd can read)
 )
 
 func (in *installer) chown(p string, o owner) error {
@@ -211,6 +219,8 @@ func (in *installer) chown(p string, o owner) error {
 		return in.o.Sys.Chown(p, 0, in.pmaGID)
 	case pmaPMA:
 		return in.o.Sys.Chown(p, in.pmaUID, in.pmaGID)
+	case rootDovecot, rootRspamd:
+		return in.o.Sys.Chown(p, 0, in.mailGIDs[o])
 	}
 	return in.o.Sys.Chown(p, 0, 0)
 }

@@ -30,6 +30,7 @@ type fakeSys struct {
 	webErr     error
 	dnsDone    bool
 	dbDone     bool
+	mailDone   bool
 	tarball    []byte // what Download returns
 }
 
@@ -37,6 +38,13 @@ func (f *fakeSys) InstallDatabaseServer(context.Context) (bool, error) {
 	f.calls = append(f.calls, "db install")
 	installed := !f.dbDone
 	f.dbDone = true
+	return installed, nil
+}
+
+func (f *fakeSys) InstallMailServer(context.Context) (bool, error) {
+	f.calls = append(f.calls, "mail install")
+	installed := !f.mailDone
+	f.mailDone = true
 	return installed, nil
 }
 
@@ -233,6 +241,15 @@ func TestFirstInstall(t *testing.T) {
 			t.Errorf("Apache site lacks %q:\n%s", want, apache)
 		}
 	}
+	mainCF := string(e.read(t, "/etc/postfix/main.cf"))
+	for _, want := range []string{"myhostname = panel.example.com\n", "virtual_mailbox_maps = texthash:/etc/postfix/xcp/mailboxes\n", "smtpd_tls_cert_file = /etc/xcp/ssl/panel.crt\n"} {
+		if !strings.Contains(mainCF, want) {
+			t.Errorf("main.cf lacks %q", want)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(e.root, "etc", "postfix", "xcp", "aliases")); err != nil {
+		t.Error("empty Postfix maps not created")
+	}
 	if !strings.Contains(string(e.read(t, MariaDBConf)), "bind-address = 127.0.0.1") {
 		t.Error("MariaDB not bound to localhost")
 	}
@@ -272,6 +289,8 @@ func TestFirstInstall(t *testing.T) {
 		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service",
 		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
+		"mail install", "systemctl enable --now redis-server.service rspamd.service dovecot.service postfix.service",
+		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart postfix.service",
 		"admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
@@ -300,7 +319,7 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 	}
 	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
 		slices.Contains(e.sys.calls, "systemctl restart pdns.service") || slices.Contains(e.sys.calls, "systemctl restart mariadb.service") ||
-		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") {
+		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") || slices.Contains(e.sys.calls, "systemctl restart postfix.service") {
 		t.Fatalf("services restarted although nothing changed: %q", e.sys.calls)
 	}
 	if !bytes.Equal(e.read(t, PDNSKeyFile), pdnsKey) {

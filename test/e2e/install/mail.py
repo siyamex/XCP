@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""End-to-end mail test (P1 #8, ADR-0007), run as root on a server where XCP
+is installed: delivery over SMTP, forwarders, the default address,
+rejections, IMAP logins, submission with DKIM signing, the switches,
+suspension and the settings. Used by run.sh."""
+import imaplib, os, pwd, smtplib, ssl, subprocess, time
+from email.message import EmailMessage
+
+from xcpe2e import Session, admin, check, finish
+
+admin_session = admin()
+api, wait_job = admin_session.call, admin_session.wait_job
+PW = "mail test password 1234"
+DOMAIN = "mail1.xcp.test"
+insecure = ssl.create_default_context()
+insecure.check_hostname, insecure.verify_mode = False, ssl.CERT_NONE
+
+
+def send(to, subject, sender="someone@example.org", port=25, login=None):
+    """Sends a message; returns None or the SMTP error."""
+    msg = EmailMessage()
+    msg["From"], msg["To"], msg["Subject"] = sender, to, subject
+    msg.set_content("Hello from the XCP mail test.\n")
+    try:
+        with smtplib.SMTP("127.0.0.1", port, timeout=30) as s:
+            if login:
+                s.starttls(context=insecure)
+                s.login(*login)
+            s.send_message(msg)
+        return None
+    except smtplib.SMTPException as e:
+        return e
+
+
+def inbox(user, password):
+    """The raw messages in a mailbox's INBOX, or the login error."""
+    try:
+        with imaplib.IMAP4_SSL("127.0.0.1", 993, ssl_context=insecure, timeout=30) as m:
+            m.login(user, password)
+            m.select("INBOX")
+            _, ids = m.search(None, "ALL")
+            out = []
+            for i in ids[0].split():
+                _, data = m.fetch(i, "(RFC822)")
+                out.append(data[0][1].decode(errors="replace"))
+            return out
+    except (imaplib.IMAP4.error, OSError) as e:
+        return e
+
+
+def wait_for(user, password, subject, seconds=30):
+    for _ in range(seconds * 2):
+        msgs = inbox(user, password)
+        if isinstance(msgs, list):
+            found = [m for m in msgs if subject in m]
+            if found:
+                return found[0]
+        time.sleep(0.5)
+    return None
+
+
+st, existing = api("GET", "/accounts")
+for a in existing["items"]:
+    if a["username"] == "mail1":  # left by an earlier run that stopped
+        st, t = api("POST", f"/accounts/{a['id']}/terminate", {"confirm": "mail1"})
+        wait_job(t["job_id"])
+st, pk = api("GET", "/packages")
+pkg = next(p for p in pk["items"] if p["name"] == "Default")["id"]
+st, a = api("POST", "/accounts", {"username": "mail1", "domain": DOMAIN, "package_id": pkg, "password": PW})
+wait_job(a["job_id"])
+acct = a["id"]
+user = Session()
+user.login("mail1", PW)
+
+st, o = user.call("GET", f"/accounts/{acct}/mail")
+check(st == 200 and o["domains"][0]["routing"] == "local", "the account's domain gets its mail here", str(o))
+dom = o["domains"][0]["id"]
+
+
+def create(path, body):
+    st, r = user.call("POST", path, body)
+    check(st == 202, f"create {body.get('local')}@{DOMAIN}", f"{st} {r}")
+    user.wait_job(r.get("job_id", ""))
+    return r
+
+
+info = create(f"/accounts/{acct}/mailboxes", {"domain_id": dom, "local": "info", "password": PW})
+quiet = create(f"/accounts/{acct}/mailboxes", {"domain_id": dom, "local": "quiet", "password": PW, "quota_mb": 1})
+create(f"/accounts/{acct}/forwarders", {"domain_id": dom, "local": "sales", "to": [f"info@{DOMAIN}"]})
+create(f"/accounts/{acct}/forwarders", {"domain_id": dom, "local": "old", "fail": "This address is no longer used"})
+INFO = (f"info@{DOMAIN}", PW)
+
+check(send(f"info@{DOMAIN}", "direct delivery") is None and wait_for(*INFO, "direct delivery"), "mail to a mailbox arrives over SMTP and IMAP")
+check(send(f"sales@{DOMAIN}", "via forwarder") is None and wait_for(*INFO, "via forwarder"), "a forwarder passes mail on")
+err = send(f"nobody@{DOMAIN}", "unknown")
+check(isinstance(err, smtplib.SMTPRecipientsRefused), "unknown addresses are refused while there is no default address", str(err))
+st, r = user.call("PUT", f"/domains/{dom}/mail/catch-all", {"to": [f"info@{DOMAIN}"]})
+user.wait_job(r["job_id"])
+check(send(f"nobody@{DOMAIN}", "to the default address") is None and wait_for(*INFO, "to the default address"),
+      "the default address takes mail for unknown addresses")
+err = send(f"old@{DOMAIN}", "rejected")
+check(isinstance(err, smtplib.SMTPRecipientsRefused) and "no longer used" in str(err), "a failing forwarder rejects with its message", str(err))
+
+# Switches: quiet neither logs in nor receives.
+st, r = user.call("PUT", f"/mailboxes/{quiet['id']}", {"quota_mb": 1, "login": False, "receive": False, "send": False})
+user.wait_job(r["job_id"])
+check(isinstance(inbox(f"quiet@{DOMAIN}", PW), Exception), "a mailbox with login off cannot log in")
+err = send(f"quiet@{DOMAIN}", "not received")
+check(isinstance(err, smtplib.SMTPRecipientsRefused), "a mailbox with receiving off refuses mail", str(err))
+
+# Submission: log in, sign with DKIM, send only as yourself.
+check(send(f"info@{DOMAIN}", "signed", sender=f"info@{DOMAIN}", port=587, login=INFO) is None, "a mailbox sends over submission (587)")
+signed = wait_for(*INFO, "signed")
+check(signed is not None and f"d={DOMAIN}" in signed and "s=xcp" in signed, "outgoing mail is DKIM-signed for the domain", (signed or "")[:600])
+err = send(f"info@{DOMAIN}", "forged", sender=f"boss@{DOMAIN}", port=587, login=INFO)
+check(isinstance(err, smtplib.SMTPException), "it cannot send as another address", str(err))
+err = send(f"info@{DOMAIN}", "unauthenticated", port=587)
+check(isinstance(err, smtplib.SMTPException), "submission needs a login", str(err))
+st, r = user.call("PUT", f"/mailboxes/{info['id']}", {"quota_mb": 0, "login": True, "receive": True, "send": False})
+user.wait_job(r["job_id"])
+err = send(f"info@{DOMAIN}", "send off", sender=f"info@{DOMAIN}", port=587, login=INFO)
+check(isinstance(err, smtplib.SMTPException) and "switched off" in str(err), "sending off refuses the mailbox's mail", str(err))
+st, r = user.call("PUT", f"/mailboxes/{info['id']}", {"quota_mb": 0, "login": True, "receive": True, "send": True})
+user.wait_job(r["job_id"])
+
+# DNS: the DKIM key is in the zone; the check runs; repair has nothing to add.
+key = subprocess.run(["dig", "@127.0.0.1", "+short", "TXT", f"xcp._domainkey.{DOMAIN}"], capture_output=True, text=True).stdout
+check("v=DKIM1" in key, "the DKIM key is published in the domain's zone", key[:120])
+st, d = user.call("GET", f"/domains/{dom}/mail/deliverability")
+check(st == 200 and [c["name"] for c in d["checks"]] == ["mx", "spf", "dkim", "dmarc", "ptr"] and d["repairable"], "the deliverability check runs", str(d)[:300])
+st, r = user.call("POST", f"/domains/{dom}/mail/repair")
+check(st == 200 and r["changed"] is False, "repair finds the zone complete", f"{st} {r}")
+
+# Suspension: no login, mail still arrives.
+st, r = api("POST", f"/accounts/{acct}/suspend", {"reason": "e2e"})
+wait_job(r["job_id"])
+check(isinstance(inbox(*INFO), Exception), "a suspended account's mailboxes cannot log in")
+check(send(f"info@{DOMAIN}", "while suspended") is None, "but still receive mail")
+st, r = api("POST", f"/accounts/{acct}/unsuspend")
+wait_job(r["job_id"])
+check(wait_for(*INFO, "while suspended") is not None, "which is there after unsuspending")
+
+# Settings.
+st, before = api("GET", "/server/mail")
+body = {k: before[k] for k in ("hostname", "max_message_mb", "relay_host", "relay_user", "rbls", "helo_checks", "greylisting")}
+st, r = api("PUT", "/server/mail", dict(body, max_message_mb=1))
+wait_job(r["job_id"])
+limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=True, text=True).stdout.strip()
+check(limit == "1048576", "the largest message size reaches Postfix", limit)
+st, r = api("PUT", "/server/mail", body)
+wait_job(r["job_id"])
+
+maildir = os.stat(f"/home/mail1/mail/{DOMAIN}/info/Maildir")
+check(pwd.getpwuid(maildir.st_uid).pw_name == "mail1" and maildir.st_mode & 0o077 == 0,
+      "mail is kept in the account's home, owned by the account and private")
+
+st, t = api("POST", f"/accounts/{acct}/terminate", {"confirm": "mail1"})
+wait_job(t["job_id"])
+passwd = open("/etc/dovecot/xcp/passwd").read()
+check(DOMAIN not in passwd and DOMAIN not in open("/etc/postfix/xcp/domains").read(), "terminating removes the account's mail")
+finish()

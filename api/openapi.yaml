@@ -40,6 +40,11 @@ tags:
       account's prefix (username and _). Changes are applied by a job
       (job_id). Users need the mysql feature, and phpmyadmin to sign in to
       phpMyAdmin.
+  - name: mail
+    description: |
+      Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
+      default address, DKIM and the deliverability check. Changes are applied
+      by a job (job_id). Users need the email feature.
   - name: domains
     description: |
       An account's domains and redirects. Admins reach every admin-owned
@@ -1460,6 +1465,284 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/mail:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [mail]
+      summary: An account's mail domains, mailboxes and forwarders
+      operationId: getMail
+      responses:
+        "200":
+          description: Everything the mail page shows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/mailboxes:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [mail]
+      summary: Create a mailbox
+      description: The domain's DKIM key is made with its first address and published in its zone when this server serves it.
+      operationId: createMailbox
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain_id, local, password]
+              properties:
+                domain_id: { type: string }
+                local: { type: string, description: The part before the @ }
+                password: { type: string, format: password }
+                quota_mb: { type: integer, description: 0 means the package's largest }
+      responses:
+        "202":
+          description: Created; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Mailbox" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /mailboxes/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [mail]
+      summary: Change a mailbox's quota and switches
+      operationId: updateMailbox
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quota_mb, login, receive, send]
+              properties:
+                quota_mb: { type: integer }
+                login: { type: boolean }
+                receive: { type: boolean }
+                send: { type: boolean }
+      responses:
+        "202":
+          description: Changed; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Mailbox" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [mail]
+      summary: Delete a mailbox (its mail stays in the account's home)
+      operationId: deleteMailbox
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /mailboxes/{id}/password:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [mail]
+      summary: Change a mailbox's password
+      operationId: setMailboxPassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordInput" }
+      responses:
+        "202":
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/forwarders:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [mail]
+      summary: Create a forwarder (to addresses, or a rejection with a message)
+      operationId: createForwarder
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain_id, local]
+              properties:
+                domain_id: { type: string }
+                local: { type: string }
+                to: { type: array, items: { type: string } }
+                fail: { type: string, description: Set to reject with this message instead of forwarding }
+      responses:
+        "202":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Forwarder" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /forwarders/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [mail]
+      summary: Delete a forwarder
+      operationId: deleteForwarder
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/mail/catch-all:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [mail]
+      summary: Set where mail to unknown addresses of a domain goes
+      operationId: setCatchAll
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                to: { type: array, items: { type: string }, description: Empty rejects unknown addresses }
+      responses:
+        "202":
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/mail/deliverability:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [mail]
+      summary: Check a domain's MX, SPF, DKIM, DMARC and the server's PTR in public DNS
+      operationId: getDeliverability
+      responses:
+        "200":
+          description: The checks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deliverability" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /domains/{id}/mail/repair:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [mail]
+      summary: Write the expected SPF, DKIM and DMARC records into the domain's zone here
+      description: SPF and DMARC only when the zone has none; the DKIM key always. 409 no_zone when the domain's DNS is elsewhere.
+      operationId: repairMailDNS
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Whether a record changed; the zone's job publishes them.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changed]
+                properties:
+                  changed: { type: boolean }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/mail:
+    get:
+      tags: [mail]
+      summary: Mail server settings (admins)
+      operationId: getMailSettings
+      responses:
+        "200":
+          description: The settings; the relay password is never returned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailSettings" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [mail]
+      summary: Change the mail server settings (admins)
+      operationId: putMailSettings
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [hostname, max_message_mb]
+              properties:
+                hostname: { type: string }
+                max_message_mb: { type: integer }
+                relay_host: { type: string, description: 'host or host:port (587 by default); empty delivers directly' }
+                relay_user: { type: string }
+                relay_password: { type: string, format: password, description: Empty keeps the stored one }
+                rbls: { type: array, items: { type: string } }
+                helo_checks: { type: boolean }
+                greylisting: { type: boolean }
+      responses:
+        "202":
+          description: Saved; the job in `job_id` applies them.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [settings, job_id]
+                properties:
+                  settings: { $ref: "#/components/schemas/MailSettings" }
+                  job_id: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /jobs/{id}:
     get:
       tags: [system]
@@ -1748,6 +2031,90 @@ components:
         host: { type: string }
         phpmyadmin: { type: boolean, description: The caller may open phpMyAdmin }
 
+    MailDomain:
+      type: object
+      required: [id, name, display_name, kind, routing, catch_all, dkim]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        display_name: { type: string }
+        kind: { type: string }
+        routing: { type: string, enum: [local, remote, backup], description: The zone's email routing }
+        alias_of: { type: string }
+        catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
+        dkim: { type: boolean }
+
+    Mailbox:
+      type: object
+      required: [id, domain_id, address, quota_mb, login, receive, send, created_at]
+      properties:
+        id: { type: string }
+        domain_id: { type: string }
+        address: { type: string }
+        quota_mb: { type: integer, description: 0 means no limit of its own }
+        login: { type: boolean }
+        receive: { type: boolean }
+        send: { type: boolean }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    Forwarder:
+      type: object
+      required: [id, domain_id, address, to, created_at]
+      properties:
+        id: { type: string }
+        domain_id: { type: string }
+        address: { type: string }
+        to: { type: array, items: { type: string } }
+        fail: { type: string }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    MailOverview:
+      type: object
+      required: [domains, mailboxes, forwarders, max_mailboxes, max_forwarders, max_quota_mb, server]
+      properties:
+        domains: { type: array, items: { $ref: "#/components/schemas/MailDomain" } }
+        mailboxes: { type: array, items: { $ref: "#/components/schemas/Mailbox" } }
+        forwarders: { type: array, items: { $ref: "#/components/schemas/Forwarder" } }
+        max_mailboxes: { type: [integer, "null"] }
+        max_forwarders: { type: [integer, "null"] }
+        max_quota_mb: { type: [integer, "null"] }
+        server: { type: string, description: The host name mail clients connect to }
+
+    DeliverabilityCheck:
+      type: object
+      required: [name, status, found, detail]
+      properties:
+        name: { type: string, enum: [mx, spf, dkim, dmarc, ptr] }
+        status: { type: string, enum: [ok, warning, error] }
+        found: { type: array, items: { type: string } }
+        expected: { type: string }
+        detail: { type: string }
+
+    Deliverability:
+      type: object
+      required: [domain_id, domain, routing, checks, repairable]
+      properties:
+        domain_id: { type: string }
+        domain: { type: string }
+        routing: { type: string }
+        checks: { type: array, items: { $ref: "#/components/schemas/DeliverabilityCheck" } }
+        repairable: { type: boolean, description: This server serves the domain's DNS }
+
+    MailSettings:
+      type: object
+      required: [hostname, max_message_mb, relay_host, relay_user, has_relay_password, rbls, helo_checks, greylisting]
+      properties:
+        hostname: { type: string }
+        max_message_mb: { type: integer }
+        relay_host: { type: string }
+        relay_user: { type: string }
+        has_relay_password: { type: boolean }
+        rbls: { type: array, items: { type: string } }
+        helo_checks: { type: boolean }
+        greylisting: { type: boolean }
+
     JobRef:
       type: object
       required: [job_id]
@@ -1948,7 +2315,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone]
         detail: { type: string }
         request_id: { type: string }
         errors:

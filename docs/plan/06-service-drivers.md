@@ -71,6 +71,9 @@ type WebServer interface {
   or one FPM master per account in large setups — decide in an ADR).
 
 ## 4. Mail (Postfix + Dovecot + Rspamd + ClamAV)
+- **Amended by ADR-0007:** per-account fragments in the agent, global
+  `texthash:` maps rebuilt from them, Argon2id passwords, routing from the
+  zone's email routing, DKIM keys made by xcp-api.
 - **Virtual domains and mailboxes:** Postfix reads lookup maps generated
   from the DB (`hash:`/`lmdb:` maps compiled with `postmap`) or a socketmap
   served by `xcp-api` (P3 option, no rebuild needed).

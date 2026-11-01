@@ -276,3 +276,32 @@ func (s *LinuxSystem) Download(ctx context.Context, url string, maxBytes int64) 
 	}
 	return b, nil
 }
+
+// InstallMailServer implements System. Postfix's own setup questions are
+// skipped: XCP writes its whole configuration.
+func (s *LinuxSystem) InstallMailServer(ctx context.Context) (bool, error) {
+	have := true
+	for _, p := range []string{"/usr/sbin/postfix", "/usr/bin/rspamd", "/usr/lib/dovecot/lmtp", "/usr/lib/dovecot/imap", "/usr/lib/dovecot/pop3", "/usr/bin/redis-server"} {
+		if _, err := os.Stat(p); err != nil {
+			have = false
+		}
+	}
+	if have {
+		return false, nil
+	}
+	env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+	lock := []string{"-o", "DPkg::Lock::Timeout=600"}
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: append(lock, "update", "-q"), Env: env, Timeout: 20 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get update: %w", err)
+	}
+	pkgs := []string{"postfix", "dovecot-core", "dovecot-imapd", "dovecot-pop3d", "dovecot-lmtpd", "rspamd", "redis-server"}
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
+		Env: env, Timeout: 30 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get install %s: %w", strings.Join(pkgs, " "), err)
+	}
+	return true, nil
+}

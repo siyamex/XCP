@@ -104,6 +104,19 @@ service AgentService {
 
   // MySQLRootPassword lets root in with a password too (next to the socket).
   rpc MySQLRootPassword(MySQLRootPasswordRequest) returns (MySQLRootPasswordResponse);
+
+  // Mail (ADR-0007). NOT_FOUND: the mail server is not installed.
+
+  // MailAccountApply stores an account's mail (domains, mailboxes,
+  // forwarders, default addresses, DKIM keys) and rebuilds the global
+  // maps. INVALID_ARGUMENT if another account has mail for one of its domains.
+  rpc MailAccountApply(MailAccountApplyRequest) returns (MailAccountApplyResponse);
+
+  // MailAccountRemove drops an account's mail from the maps.
+  rpc MailAccountRemove(MailAccountRemoveRequest) returns (MailAccountRemoveResponse);
+
+  // MailSettingsApply renders the mail servers' configuration.
+  rpc MailSettingsApply(MailSettingsApplyRequest) returns (MailSettingsApplyResponse);
 }
 
 message PingRequest {}
@@ -406,3 +419,60 @@ message MySQLRootPasswordRequest {
 }
 
 message MySQLRootPasswordResponse {}
+
+message MailAccountApplyRequest {
+  string username = 1;  // the agent looks up its uid and gid
+  repeated MailDomain domains = 2;
+}
+
+message MailDomain {
+  string name = 1;
+  string routing = 2;   // "local" or "backup"
+  string alias_of = 3;  // set: an alias domain of this one
+  repeated Mailbox mailboxes = 4;
+  repeated MailForwarder forwarders = 5;
+  repeated string catch_all = 6;  // where unknown addresses go; empty rejects
+  string dkim_key = 7;            // PEM; empty: no signing
+}
+
+message Mailbox {
+  string local = 1;
+  string password_hash = 2;  // {ARGON2ID}...
+  int64 quota_mb = 3;        // 0: no limit
+  bool login = 4;
+  bool receive = 5;
+  bool send = 6;
+}
+
+message MailForwarder {
+  string local = 1;
+  repeated string to = 2;
+  string fail = 3;  // set: reject with this message
+}
+
+message MailAccountApplyResponse {
+  bool changed = 1;
+}
+
+message MailAccountRemoveRequest {
+  string username = 1;
+}
+
+message MailAccountRemoveResponse {
+  bool removed = 1;
+}
+
+message MailSettingsApplyRequest {
+  string hostname = 1;
+  int64 max_message_mb = 2;
+  string relay_host = 3;
+  string relay_user = 4;
+  string relay_password = 5;
+  repeated string rbls = 6;
+  bool helo_checks = 7;
+  bool greylisting = 8;
+}
+
+message MailSettingsApplyResponse {
+  bool changed = 1;
+}

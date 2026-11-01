@@ -51,6 +51,9 @@ const (
 	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
 	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
 	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
+	AgentService_MailAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/MailAccountApply"
+	AgentService_MailAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/MailAccountRemove"
+	AgentService_MailSettingsApply_FullMethodName      = "/xcp.agent.v1.AgentService/MailSettingsApply"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -121,6 +124,14 @@ type AgentServiceClient interface {
 	MySQLSignonExpire(ctx context.Context, in *MySQLSignonExpireRequest, opts ...grpc.CallOption) (*MySQLSignonExpireResponse, error)
 	// MySQLRootPassword lets root in with a password too (next to the socket).
 	MySQLRootPassword(ctx context.Context, in *MySQLRootPasswordRequest, opts ...grpc.CallOption) (*MySQLRootPasswordResponse, error)
+	// MailAccountApply stores an account's mail (domains, mailboxes,
+	// forwarders, default addresses, DKIM keys) and rebuilds the global
+	// maps. INVALID_ARGUMENT if another account has mail for one of its domains.
+	MailAccountApply(ctx context.Context, in *MailAccountApplyRequest, opts ...grpc.CallOption) (*MailAccountApplyResponse, error)
+	// MailAccountRemove drops an account's mail from the maps.
+	MailAccountRemove(ctx context.Context, in *MailAccountRemoveRequest, opts ...grpc.CallOption) (*MailAccountRemoveResponse, error)
+	// MailSettingsApply renders the mail servers' configuration.
+	MailSettingsApply(ctx context.Context, in *MailSettingsApplyRequest, opts ...grpc.CallOption) (*MailSettingsApplyResponse, error)
 }
 
 type agentServiceClient struct {
@@ -361,6 +372,36 @@ func (c *agentServiceClient) MySQLRootPassword(ctx context.Context, in *MySQLRoo
 	return out, nil
 }
 
+func (c *agentServiceClient) MailAccountApply(ctx context.Context, in *MailAccountApplyRequest, opts ...grpc.CallOption) (*MailAccountApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailAccountApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailAccountApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailAccountRemove(ctx context.Context, in *MailAccountRemoveRequest, opts ...grpc.CallOption) (*MailAccountRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailAccountRemoveResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailAccountRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailSettingsApply(ctx context.Context, in *MailSettingsApplyRequest, opts ...grpc.CallOption) (*MailSettingsApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailSettingsApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailSettingsApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -429,6 +470,14 @@ type AgentServiceServer interface {
 	MySQLSignonExpire(context.Context, *MySQLSignonExpireRequest) (*MySQLSignonExpireResponse, error)
 	// MySQLRootPassword lets root in with a password too (next to the socket).
 	MySQLRootPassword(context.Context, *MySQLRootPasswordRequest) (*MySQLRootPasswordResponse, error)
+	// MailAccountApply stores an account's mail (domains, mailboxes,
+	// forwarders, default addresses, DKIM keys) and rebuilds the global
+	// maps. INVALID_ARGUMENT if another account has mail for one of its domains.
+	MailAccountApply(context.Context, *MailAccountApplyRequest) (*MailAccountApplyResponse, error)
+	// MailAccountRemove drops an account's mail from the maps.
+	MailAccountRemove(context.Context, *MailAccountRemoveRequest) (*MailAccountRemoveResponse, error)
+	// MailSettingsApply renders the mail servers' configuration.
+	MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -507,6 +556,15 @@ func (UnimplementedAgentServiceServer) MySQLSignonExpire(context.Context, *MySQL
 }
 func (UnimplementedAgentServiceServer) MySQLRootPassword(context.Context, *MySQLRootPasswordRequest) (*MySQLRootPasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLRootPassword not implemented")
+}
+func (UnimplementedAgentServiceServer) MailAccountApply(context.Context, *MailAccountApplyRequest) (*MailAccountApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailAccountApply not implemented")
+}
+func (UnimplementedAgentServiceServer) MailAccountRemove(context.Context, *MailAccountRemoveRequest) (*MailAccountRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailAccountRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailSettingsApply not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -943,6 +1001,60 @@ func _AgentService_MySQLRootPassword_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_MailAccountApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailAccountApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailAccountApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailAccountApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailAccountApply(ctx, req.(*MailAccountApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailAccountRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailAccountRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailAccountRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailAccountRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailAccountRemove(ctx, req.(*MailAccountRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailSettingsApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailSettingsApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailSettingsApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailSettingsApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailSettingsApply(ctx, req.(*MailSettingsApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1041,6 +1153,18 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MySQLRootPassword",
 			Handler:    _AgentService_MySQLRootPassword_Handler,
+		},
+		{
+			MethodName: "MailAccountApply",
+			Handler:    _AgentService_MailAccountApply_Handler,
+		},
+		{
+			MethodName: "MailAccountRemove",
+			Handler:    _AgentService_MailAccountRemove_Handler,
+		},
+		{
+			MethodName: "MailSettingsApply",
+			Handler:    _AgentService_MailSettingsApply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

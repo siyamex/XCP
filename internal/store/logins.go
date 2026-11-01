@@ -83,6 +83,9 @@ type querier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+// Querier is querier for other packages: a *sql.DB or a *sql.Tx.
+type Querier = querier
+
 func nullIfEmpty(s string) any {
 	if s == "" {
 		return nil

@@ -20,6 +20,7 @@ import (
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
+	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/store"
@@ -33,6 +34,7 @@ type Deps struct {
 	Accounts  *accounts.Service
 	Domains   *domains.Service
 	Databases *databases.Service
+	Mail      *mail.Service
 	Zones     *zones.Service
 	SSL       *ssl.Service
 	Jobs      *jobs.Queue
@@ -161,6 +163,18 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/phpmyadmin", access: authed, roles: adminOrUser, h: s.phpMyAdminSignon},
 		{method: "GET", path: "/api/v1/server/mysql", access: authed, roles: adminOnly, h: s.mysqlStatus},
 		{method: "PUT", path: "/api/v1/server/mysql/root-password", access: authed, roles: adminOnly, h: s.setMySQLRootPassword},
+		{method: "GET", path: "/api/v1/accounts/{id}/mail", access: authed, roles: adminOrUser, h: s.mailOverview},
+		{method: "POST", path: "/api/v1/accounts/{id}/mailboxes", access: authed, roles: adminOrUser, h: s.createMailbox},
+		{method: "PUT", path: "/api/v1/mailboxes/{id}", access: authed, roles: adminOrUser, h: s.updateMailbox},
+		{method: "PUT", path: "/api/v1/mailboxes/{id}/password", access: authed, roles: adminOrUser, h: s.setMailboxPassword},
+		{method: "DELETE", path: "/api/v1/mailboxes/{id}", access: authed, roles: adminOrUser, h: s.deleteMailbox},
+		{method: "POST", path: "/api/v1/accounts/{id}/forwarders", access: authed, roles: adminOrUser, h: s.createForwarder},
+		{method: "DELETE", path: "/api/v1/forwarders/{id}", access: authed, roles: adminOrUser, h: s.deleteForwarder},
+		{method: "PUT", path: "/api/v1/domains/{id}/mail/catch-all", access: authed, roles: adminOrUser, h: s.setCatchAll},
+		{method: "GET", path: "/api/v1/domains/{id}/mail/deliverability", access: authed, roles: adminOrUser, h: s.mailDeliverability},
+		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
+		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
+		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
 		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}

@@ -7,6 +7,7 @@ import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
+import { generatePassword } from "../lib/password";
 
 type Overview = components["schemas"]["DatabaseOverview"];
 type Database = components["schemas"]["Database"];
@@ -14,12 +15,6 @@ type DBUser = components["schemas"]["DatabaseUser"];
 
 const selectClass = "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900";
 
-/** A random password without look-alike characters. */
-function generatePassword() {
-  const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(20));
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
-}
 
 function formatSize(bytes: number | null | undefined) {
   if (bytes == null) return "-";

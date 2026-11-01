@@ -27,6 +27,11 @@ func (s *Server) HostCertificateInstall(ctx context.Context, req *agentv1.HostCe
 		if err := s.Services.Do(ctx, "web", agent.ActionReload); err != nil {
 			s.Log.Warn("reload Apache for the new host name certificate", "err", err)
 		}
+		if s.Mail != nil {
+			if _, err := s.Mail.RefreshTLS(ctx); err != nil {
+				s.Log.Warn("give mail the new host name certificate", "err", err)
+			}
+		}
 	}
 	return &agentv1.HostCertificateInstallResponse{Changed: changed}, nil
 }
