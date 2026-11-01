@@ -19,11 +19,13 @@ import (
 	"time"
 
 	"github.com/siyamex/XCP/internal/accounts"
+	agentpkg "github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/config"
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
+	"github.com/siyamex/XCP/internal/files"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
@@ -93,6 +95,7 @@ func serve(args []string) error {
 	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms, zs)
 	dbs := databases.NewService(a.DB, a.Audit, a.Plans, queue, agent, a.Box)
 	accts.Attach("databases", dbs)
+	fls := files.NewService(a.DB, a.Audit, a.Plans, agent, agentpkg.UserHelperSocket)
 	certs := ssl.NewService(a.DB, a.Audit, a.Plans, queue, agent, doms, zs, a.Box, net.DefaultResolver,
 		ssl.Options{PanelCert: a.Cfg.API.TLSCert, ChallengeDir: ssl.ChallengeDir})
 	mails := mail.NewService(a.DB, a.Audit, a.Plans, queue, agent, zs, a.Box, net.DefaultResolver, certs)
@@ -143,7 +146,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

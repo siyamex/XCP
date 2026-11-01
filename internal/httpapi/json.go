@@ -16,11 +16,16 @@ const maxJSONBody = 1 << 20
 // without a CORS preflight (that we never allow), and rejects unknown fields
 // so typos fail loudly instead of being ignored.
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	return decodeJSONLimit(w, r, dst, maxJSONBody)
+}
+
+// decodeJSONLimit is decodeJSON with another size limit (the editor's files).
+func decodeJSONLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) error {
 	mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mt != "application/json" {
 		return errMediaType
 	}
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody))
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		var mbe *http.MaxBytesError

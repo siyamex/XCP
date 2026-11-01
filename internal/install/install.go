@@ -18,10 +18,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/secretbox"
 )
 
-//go:embed units/*.service
+//go:embed units/*
 var units embed.FS
 
 // ServiceUser is the account xcp-api and xcp-worker run as.
@@ -32,6 +33,7 @@ var Binaries = map[string]string{
 	"xcp-agent": "/usr/sbin/xcp-agent",
 	"xcp-api":   "/usr/sbin/xcp-api",
 	"xcpctl":    "/usr/bin/xcpctl",
+	"xcp-userd": "/usr/sbin/xcp-userd",
 }
 
 // Well-known paths (without Options.Root).
@@ -253,6 +255,8 @@ func (in *installer) dirs(context.Context) error {
 		{UnitDir, 0o755, rootRoot},
 		{"/usr/sbin", 0o755, rootRoot},
 		{"/usr/bin", 0o755, rootRoot},
+		{agent.UserHelperDir, 0o750, rootSvc}, // file helper sockets (ADR-0009)
+		{"/etc/tmpfiles.d", 0o755, rootRoot},
 	})
 }
 
@@ -401,7 +405,13 @@ func (in *installer) certificate(context.Context) error {
 	return nil
 }
 
+// helperTmpfiles makes /run/xcp-userd again after every boot.
+const helperTmpfiles = "# Managed by XCP (xcp-install). The file helpers' sockets (ADR-0009).\nd /run/xcp-userd 0750 root xcp -\n"
+
 func (in *installer) units(context.Context) error {
+	if _, err := in.writeFile("/etc/tmpfiles.d/xcp-userd.conf", []byte(helperTmpfiles), 0o644, rootRoot, false); err != nil {
+		return err
+	}
 	ents, err := units.ReadDir("units")
 	if err != nil {
 		return err

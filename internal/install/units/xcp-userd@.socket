@@ -1,0 +1,16 @@
+[Unit]
+Description=XCP file helper socket for %i
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/adr/0009-file-manager.md
+
+# Started by xcp-agent for one account (UserHelperStart). Only root and the
+# xcp group (xcp-api) can enter /run/xcp-userd (made by tmpfiles.d), so the
+# account itself cannot connect. Not /run/xcp: systemd re-owns that
+# directory, sockets included, whenever xcp-agent starts.
+[Socket]
+ListenStream=/run/xcp-userd/%i.sock
+SocketUser=%i
+SocketGroup=xcp
+SocketMode=0660
+Accept=no
+# A stopped helper (suspension, removal) leaves no socket file behind.
+RemoveOnStop=yes

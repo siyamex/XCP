@@ -34,7 +34,7 @@ Helper daemons (small, single-purpose binaries):
 | `xcp-api` | `xcp` | HTTP API, UI, auth, DB owner |
 | `xcp-worker` | `xcp` | Executes queued jobs; calls agent for privileged steps |
 | `xcp-agent` | `root` | Privileged typed operations only |
-| `xcp-userd` | per-user (spawned by agent, setuid to user) | File manager, terminal PTY, git, app installs: runs **as the account user** |
+| `xcp-userd` | the account user (socket-activated template unit `xcp-userd@<user>`, in the account's slice; ADR-0009) | File manager, terminal PTY, git, app installs: runs **as the account user** |
 | `xcp-logd` | `xcp` + `adm` group | Ingests web/mail/FTP logs → bandwidth & stats, brute-force detection |
 | `xcp-ftpauth` | `root` (socket only) | Pure-FTPd external auth handler backed by the DB |
 | `xcp-mailpolicy` | `xcp` | Postfix policy server: per-account send limits, outbound-spam brake |
@@ -65,7 +65,7 @@ ServiceReload(service) / ServiceRestart / ServiceStatus
 WebVhostApply(accountID)    PHPPoolApply(accountID)   MailDomainApply(domainID)
 DNSZoneApply(zoneID)        DBCreate/DBUserGrant      FTPAccountApply
 CertInstall(certID)         FirewallApply(rulesetVersion)
-CronApply(username)         SpawnUserHelper(username, helperKind) → fd/socket
+CronApply(username)         UserHelperStart(username) → socket (ADR-0009)
 PackageInstall(pkgSet)      (allow-listed package sets only)
 ```
 

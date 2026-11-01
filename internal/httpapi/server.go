@@ -18,6 +18,7 @@ import (
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
+	"github.com/siyamex/XCP/internal/files"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
@@ -35,6 +36,7 @@ type Deps struct {
 	Domains   *domains.Service
 	Databases *databases.Service
 	Mail      *mail.Service
+	Files     *files.Service
 	Zones     *zones.Service
 	SSL       *ssl.Service
 	Jobs      *jobs.Queue
@@ -178,6 +180,14 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/accounts/{id}/files", access: authed, roles: adminOrUser, h: s.listFiles},
+		{method: "GET", path: "/api/v1/accounts/{id}/files/download", access: authed, roles: adminOrUser, h: s.downloadFile},
+		{method: "PUT", path: "/api/v1/accounts/{id}/files/upload", access: authed, roles: adminOrUser, h: s.uploadFile},
+		{method: "POST", path: "/api/v1/accounts/{id}/files/{op}", access: authed, roles: adminOrUser, h: s.fileOp},
+		{method: "GET", path: "/api/v1/accounts/{id}/files/search", access: authed, roles: adminOrUser, h: s.searchFiles},
+		{method: "GET", path: "/api/v1/accounts/{id}/files/usage", access: authed, roles: adminOrUser, h: s.fileUsage},
+		{method: "GET", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.readFileText},
+		{method: "PUT", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.writeFileText},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
 		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}
@@ -249,7 +259,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) securityHeaders(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
-	h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+	h.Set("Content-Security-Policy", cspPolicy(""))
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Referrer-Policy", "no-referrer")

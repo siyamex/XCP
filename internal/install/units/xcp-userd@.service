@@ -1,0 +1,38 @@
+[Unit]
+Description=XCP file helper for %i
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/adr/0009-file-manager.md
+Requires=xcp-userd@%i.socket
+
+# The file manager's work for one account, as the account's user, in its
+# slice (its limits apply), seeing only its own home. Exits when idle.
+[Service]
+Type=simple
+User=%i
+Group=%i
+Slice=xcp-u-%i.slice
+ExecStart=/usr/sbin/xcp-userd --home /home/%i
+UMask=0022
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindPaths=/home/%i
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+# No RestrictSUIDSGID=: its filter blocks openat2, which fsx needs (STATUS).
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM

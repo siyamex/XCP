@@ -156,3 +156,35 @@ func TestChownNeverFollowsSymlinks(t *testing.T) {
 		t.Fatalf("owner = %d:%d", st.Uid, st.Gid)
 	}
 }
+
+// TestReadDirInfoIsRelativeToTheRoot guards against entries whose Info()
+// looks names up from the process's working directory (os.File.ReadDir
+// does that for a File named by a relative path).
+func TestReadDirInfoIsRelativeToTheRoot(t *testing.T) {
+	r, _ := attackSetup(t)
+	wd, _ := os.Getwd()
+	must(t, os.Chdir("/"))
+	t.Cleanup(func() { _ = os.Chdir(wd) })
+	ents, err := r.ReadDir("real")
+	must(t, err)
+	if len(ents) != 1 || ents[0].Name() != "file.txt" {
+		t.Fatalf("entries: %v", ents)
+	}
+	fi, err := ents[0].Info()
+	must(t, err)
+	if fi.Size() != 2 || !fi.Mode().IsRegular() {
+		t.Fatalf("info of real/file.txt: size %d mode %v", fi.Size(), fi.Mode())
+	}
+	top, err := r.ReadDir(".")
+	must(t, err)
+	for _, e := range top {
+		info, err := e.Info()
+		must(t, err)
+		if e.Name() == "link-out" && info.Mode()&fs.ModeSymlink == 0 {
+			t.Errorf("link-out is reported as %v, not a symlink", info.Mode())
+		}
+		if e.Name() == "real" && !info.IsDir() {
+			t.Errorf("real is reported as %v", info.Mode())
+		}
+	}
+}

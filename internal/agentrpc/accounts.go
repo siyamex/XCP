@@ -136,3 +136,20 @@ func (f *Fake) AccountDelete(_ context.Context, req *agentv1.AccountDeleteReques
 	delete(f.accounts.users, req.GetUsername())
 	return &agentv1.AccountDeleteResponse{Deleted: ok}, nil
 }
+
+// UserHelperStart implements agentv1.AgentServiceServer.
+func (s *Server) UserHelperStart(ctx context.Context, req *agentv1.UserHelperStartRequest) (*agentv1.UserHelperStartResponse, error) {
+	if err := s.Accounts.StartUserHelper(ctx, req.GetUsername()); err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.UserHelperStartResponse{Socket: agent.UserHelperSocket(req.GetUsername())}, nil
+}
+
+// UserHelperStart implements Client. The fake agent has no helper; tests
+// use their own socket.
+func (f *Fake) UserHelperStart(_ context.Context, req *agentv1.UserHelperStartRequest, _ ...grpc.CallOption) (*agentv1.UserHelperStartResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.record("UserHelperStart %s", req.GetUsername())
+	return &agentv1.UserHelperStartResponse{Socket: agent.UserHelperSocket(req.GetUsername())}, nil
+}

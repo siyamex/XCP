@@ -3804,6 +3804,94 @@ func (*MailWebmailExpireResponse) Descriptor() ([]byte, []int) {
 	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{66}
 }
 
+type UserHelperStartRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserHelperStartRequest) Reset() {
+	*x = UserHelperStartRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserHelperStartRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserHelperStartRequest) ProtoMessage() {}
+
+func (x *UserHelperStartRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserHelperStartRequest.ProtoReflect.Descriptor instead.
+func (*UserHelperStartRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *UserHelperStartRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type UserHelperStartResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Socket        string                 `protobuf:"bytes,1,opt,name=socket,proto3" json:"socket,omitempty"` // where the helper listens
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserHelperStartResponse) Reset() {
+	*x = UserHelperStartResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserHelperStartResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserHelperStartResponse) ProtoMessage() {}
+
+func (x *UserHelperStartResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserHelperStartResponse.ProtoReflect.Descriptor instead.
+func (*UserHelperStartResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *UserHelperStartResponse) GetSocket() string {
+	if x != nil {
+		return x.Socket
+	}
+	return ""
+}
+
 var File_xcp_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_xcp_agent_v1_agent_proto_rawDesc = "" +
@@ -4045,7 +4133,11 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x19MailWebmailSignonResponse\x12\x16\n" +
 	"\x06ticket\x18\x01 \x01(\tR\x06ticket\"\x1a\n" +
 	"\x18MailWebmailExpireRequest\"\x1b\n" +
-	"\x19MailWebmailExpireResponse*\xb6\x01\n" +
+	"\x19MailWebmailExpireResponse\"4\n" +
+	"\x16UserHelperStartRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"1\n" +
+	"\x17UserHelperStartResponse\x12\x16\n" +
+	"\x06socket\x18\x01 \x01(\tR\x06socket*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -4067,7 +4159,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\tCanonical\x12\x19\n" +
 	"\x15CANONICAL_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rCANONICAL_WWW\x10\x01\x12\x12\n" +
-	"\x0eCANONICAL_BARE\x10\x022\xfc\x14\n" +
+	"\x0eCANONICAL_BARE\x10\x022\xdc\x15\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -4097,7 +4189,8 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x11MailAccountRemove\x12&.xcp.agent.v1.MailAccountRemoveRequest\x1a'.xcp.agent.v1.MailAccountRemoveResponse\x12d\n" +
 	"\x11MailSettingsApply\x12&.xcp.agent.v1.MailSettingsApplyRequest\x1a'.xcp.agent.v1.MailSettingsApplyResponse\x12d\n" +
 	"\x11MailWebmailSignon\x12&.xcp.agent.v1.MailWebmailSignonRequest\x1a'.xcp.agent.v1.MailWebmailSignonResponse\x12d\n" +
-	"\x11MailWebmailExpire\x12&.xcp.agent.v1.MailWebmailExpireRequest\x1a'.xcp.agent.v1.MailWebmailExpireResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\x11MailWebmailExpire\x12&.xcp.agent.v1.MailWebmailExpireRequest\x1a'.xcp.agent.v1.MailWebmailExpireResponse\x12^\n" +
+	"\x0fUserHelperStart\x12$.xcp.agent.v1.UserHelperStartRequest\x1a%.xcp.agent.v1.UserHelperStartResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -4112,7 +4205,7 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 68)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 70)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(ServiceActionKind)(0),                 // 0: xcp.agent.v1.ServiceActionKind
 	(Validator)(0),                         // 1: xcp.agent.v1.Validator
@@ -4185,7 +4278,9 @@ var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(*MailWebmailSignonResponse)(nil),      // 68: xcp.agent.v1.MailWebmailSignonResponse
 	(*MailWebmailExpireRequest)(nil),       // 69: xcp.agent.v1.MailWebmailExpireRequest
 	(*MailWebmailExpireResponse)(nil),      // 70: xcp.agent.v1.MailWebmailExpireResponse
-	nil,                                    // 71: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	(*UserHelperStartRequest)(nil),         // 71: xcp.agent.v1.UserHelperStartRequest
+	(*UserHelperStartResponse)(nil),        // 72: xcp.agent.v1.UserHelperStartResponse
+	nil,                                    // 73: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -4202,7 +4297,7 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	23, // 11: xcp.agent.v1.HostCertificateInstallRequest.tls:type_name -> xcp.agent.v1.TLS
 	40, // 12: xcp.agent.v1.MySQLAccountApplyRequest.users:type_name -> xcp.agent.v1.MySQLUser
 	41, // 13: xcp.agent.v1.MySQLUser.grants:type_name -> xcp.agent.v1.MySQLGrant
-	71, // 14: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	73, // 14: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 	58, // 15: xcp.agent.v1.MailAccountApplyRequest.domains:type_name -> xcp.agent.v1.MailDomain
 	59, // 16: xcp.agent.v1.MailDomain.mailboxes:type_name -> xcp.agent.v1.Mailbox
 	61, // 17: xcp.agent.v1.MailDomain.forwarders:type_name -> xcp.agent.v1.MailForwarder
@@ -4235,36 +4330,38 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	65, // 44: xcp.agent.v1.AgentService.MailSettingsApply:input_type -> xcp.agent.v1.MailSettingsApplyRequest
 	67, // 45: xcp.agent.v1.AgentService.MailWebmailSignon:input_type -> xcp.agent.v1.MailWebmailSignonRequest
 	69, // 46: xcp.agent.v1.AgentService.MailWebmailExpire:input_type -> xcp.agent.v1.MailWebmailExpireRequest
-	5,  // 47: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	7,  // 48: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	9,  // 49: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	11, // 50: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	13, // 51: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	16, // 52: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	18, // 53: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	20, // 54: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	25, // 55: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
-	27, // 56: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
-	29, // 57: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
-	32, // 58: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
-	34, // 59: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
-	36, // 60: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
-	38, // 61: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
-	42, // 62: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
-	44, // 63: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
-	46, // 64: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
-	48, // 65: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
-	50, // 66: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
-	52, // 67: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
-	54, // 68: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
-	56, // 69: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
-	62, // 70: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
-	64, // 71: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
-	66, // 72: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
-	68, // 73: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
-	70, // 74: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
-	47, // [47:75] is the sub-list for method output_type
-	19, // [19:47] is the sub-list for method input_type
+	71, // 47: xcp.agent.v1.AgentService.UserHelperStart:input_type -> xcp.agent.v1.UserHelperStartRequest
+	5,  // 48: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	7,  // 49: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	9,  // 50: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	11, // 51: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	13, // 52: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	16, // 53: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	18, // 54: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	20, // 55: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	25, // 56: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	27, // 57: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	29, // 58: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	32, // 59: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
+	34, // 60: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
+	36, // 61: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
+	38, // 62: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
+	42, // 63: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
+	44, // 64: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
+	46, // 65: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
+	48, // 66: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
+	50, // 67: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
+	52, // 68: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
+	54, // 69: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
+	56, // 70: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
+	62, // 71: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
+	64, // 72: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
+	66, // 73: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
+	68, // 74: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
+	70, // 75: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
+	72, // 76: xcp.agent.v1.AgentService.UserHelperStart:output_type -> xcp.agent.v1.UserHelperStartResponse
+	48, // [48:77] is the sub-list for method output_type
+	19, // [19:48] is the sub-list for method input_type
 	19, // [19:19] is the sub-list for extension type_name
 	19, // [19:19] is the sub-list for extension extendee
 	0,  // [0:19] is the sub-list for field type_name
@@ -4282,7 +4379,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   68,
+			NumMessages:   70,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

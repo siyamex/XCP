@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: files
+    description: |
+      The file manager (ADR-0009): an account's home folder, handled by its
+      xcp-userd as the account's user. Paths are relative to the home folder.
+      Users need the file_manager feature; the account must be active.
   - name: domains
     description: |
       An account's domains and redirects. Admins reach every admin-owned
@@ -1803,6 +1808,186 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/files:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, schema: { type: string }, description: Relative to the account's home; empty is the home }
+    get:
+      tags: [files]
+      summary: List a folder
+      operationId: listFiles
+      responses:
+        "200":
+          description: The folder and what is in it, folders first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dir, items]
+                properties:
+                  dir: { $ref: "#/components/schemas/FileEntry" }
+                  items: { type: array, items: { $ref: "#/components/schemas/FileEntry" } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/download:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, required: true, schema: { type: string } }
+      - { name: inline, in: query, schema: { type: string, enum: ["1"] }, description: Show PNG, JPEG, GIF or WebP images instead of saving }
+    get:
+      tags: [files]
+      summary: Download a file
+      operationId: downloadFile
+      responses:
+        "200":
+          description: The file's content.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/upload:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, required: true, schema: { type: string } }
+      - { name: overwrite, in: query, schema: { type: boolean } }
+    put:
+      tags: [files]
+      summary: Upload a file (the raw body, up to 4 GB; missing folders are made)
+      operationId: uploadFile
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileEntry" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/{op}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: op, in: path, required: true, schema: { type: string, enum: [mkdir, rename, copy, trash, chmod, compress, extract] } }
+    post:
+      tags: [files]
+      summary: Change files
+      description: |
+        mkdir {path}; rename {from, to}; copy {from, to}; trash {paths} (moves
+        them into ~/.trash); chmod {path, mode ("644"), recursive}; compress
+        {paths, to, format: zip | tar.gz}; extract {path, to} (zip, tar,
+        tar.gz, tgz, tar.zst, 7z, into a new folder). Nothing is ever replaced.
+      operationId: fileOp
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: The new or changed entry ({trash} for trash).
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/search:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, schema: { type: string } }
+      - { name: q, in: query, required: true, schema: { type: string } }
+    get:
+      tags: [files]
+      summary: Find files and folders whose names contain q (up to 500)
+      operationId: searchFiles
+      responses:
+        "200":
+          description: Matches; more is true when there were more.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, more]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/FileEntry" } }
+                  more: { type: boolean }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/usage:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, schema: { type: string } }
+    get:
+      tags: [files]
+      summary: What takes space below a folder
+      operationId: fileUsage
+      responses:
+        "200":
+          description: Sizes of what is in the folder, and the largest files below it.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [path, total, children, largest, partial]
+                properties:
+                  path: { type: string }
+                  total: { type: integer }
+                  children: { type: array, items: { $ref: "#/components/schemas/FileEntry" } }
+                  largest: { type: array, items: { $ref: "#/components/schemas/FileEntry" } }
+                  partial: { type: boolean }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/text:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: path, in: query, required: true, schema: { type: string } }
+    get:
+      tags: [files]
+      summary: Open a text file in the editor (up to 2 MB)
+      operationId: readFileText
+      parameters:
+        - { name: encoding, in: query, schema: { type: string, enum: [utf-8, iso-8859-1, iso-8859-15, windows-1252] }, description: Empty guesses }
+      responses:
+        "200":
+          description: The text.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileText" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [files]
+      summary: Save the editor's text (makes the file if needed)
+      operationId: writeFileText
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FileText" }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileEntry" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /jobs/{id}:
     get:
       tags: [system]
@@ -2191,6 +2376,27 @@ components:
         helo_checks: { type: boolean }
         greylisting: { type: boolean }
 
+    FileEntry:
+      type: object
+      required: [name, path, type, size, mode, mod_time, owner, group]
+      properties:
+        name: { type: string }
+        path: { type: string, description: Relative to the home folder }
+        type: { type: string, enum: [file, dir, link, other] }
+        size: { type: integer }
+        mode: { type: string, examples: ["0644"] }
+        mod_time: { type: string, format: date-time }
+        owner: { type: string }
+        group: { type: string }
+
+    FileText:
+      type: object
+      additionalProperties: false
+      required: [content]
+      properties:
+        content: { type: string }
+        encoding: { type: string, enum: [utf-8, iso-8859-1, iso-8859-15, windows-1252] }
+
     JobRef:
       type: object
       required: [job_id]
@@ -2391,7 +2597,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many]
         detail: { type: string }
         request_id: { type: string }
         errors:

@@ -1,6 +1,9 @@
 package httpapi
 
 import (
+	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"io/fs"
 	"net/http"
@@ -45,8 +48,30 @@ func (s *Server) spa() http.Handler {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		// A fresh nonce lets the code editor (CodeMirror) add its own <style>
+		// element; nothing else may add styles, and scripts stay 'self' only.
+		nonce := styleNonce()
+		w.Header().Set("Content-Security-Policy", cspPolicy("'nonce-"+nonce+"'"))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
-		_, _ = w.Write(index)
+		meta := []byte(`<meta name="csp-nonce" content="` + nonce + `">`)
+		_, _ = w.Write(bytes.Replace(index, []byte("<head>"), append([]byte("<head>"), meta...), 1))
 	})
+}
+
+// styleNonce returns a random CSP nonce for one HTML response.
+func styleNonce() string {
+	b := make([]byte, 18)
+	_, _ = rand.Read(b) // never fails (crypto/rand)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+// cspPolicy is the Content-Security-Policy, with extra style sources
+// (an HTML page's nonce) when given.
+func cspPolicy(styles string) string {
+	style := ""
+	if styles != "" {
+		style = " style-src 'self' " + styles + ";"
+	}
+	return "default-src 'self'; img-src 'self' data:;" + style + " object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 }

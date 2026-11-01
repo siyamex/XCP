@@ -125,6 +125,11 @@ service AgentService {
 
   // MailWebmailExpire drops expired temporary passwords and tickets.
   rpc MailWebmailExpire(MailWebmailExpireRequest) returns (MailWebmailExpireResponse);
+
+  // UserHelperStart starts an account's file helper socket (ADR-0009):
+  // xcp-userd then runs as the account's user on the first connection.
+  // FAILED_PRECONDITION: not an XCP account.
+  rpc UserHelperStart(UserHelperStartRequest) returns (UserHelperStartResponse);
 }
 
 message PingRequest {}
@@ -507,3 +512,11 @@ message MailWebmailSignonResponse {
 message MailWebmailExpireRequest {}
 
 message MailWebmailExpireResponse {}
+
+message UserHelperStartRequest {
+  string username = 1;
+}
+
+message UserHelperStartResponse {
+  string socket = 1;  // where the helper listens
+}

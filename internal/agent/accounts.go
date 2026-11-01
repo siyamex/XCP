@@ -374,6 +374,7 @@ func (a *Accounts) SetSuspended(ctx context.Context, username string, suspended 
 	if _, err := a.Run.Run(ctx, execx.Cmd{Path: UsermodPath, Args: []string{"--lock", "--shell", "/usr/sbin/nologin", "--", username}}); err != nil {
 		return err
 	}
+	a.stopUserHelper(ctx, username)
 	return a.killAll(ctx, username)
 }
 
@@ -396,6 +397,9 @@ func (a *Accounts) Delete(ctx context.Context, username string) (bool, error) {
 	u, err := lookup(username)
 	if err != nil || u == nil {
 		return false, err
+	}
+	if u.Name == AccountMarker {
+		a.stopUserHelper(ctx, username)
 	}
 	if u.Name != AccountMarker {
 		return false, ErrNotOurUser

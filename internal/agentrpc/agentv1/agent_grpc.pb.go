@@ -56,6 +56,7 @@ const (
 	AgentService_MailSettingsApply_FullMethodName      = "/xcp.agent.v1.AgentService/MailSettingsApply"
 	AgentService_MailWebmailSignon_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailSignon"
 	AgentService_MailWebmailExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailExpire"
+	AgentService_UserHelperStart_FullMethodName        = "/xcp.agent.v1.AgentService/UserHelperStart"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -140,6 +141,10 @@ type AgentServiceClient interface {
 	MailWebmailSignon(ctx context.Context, in *MailWebmailSignonRequest, opts ...grpc.CallOption) (*MailWebmailSignonResponse, error)
 	// MailWebmailExpire drops expired temporary passwords and tickets.
 	MailWebmailExpire(ctx context.Context, in *MailWebmailExpireRequest, opts ...grpc.CallOption) (*MailWebmailExpireResponse, error)
+	// UserHelperStart starts an account's file helper socket (ADR-0009):
+	// xcp-userd then runs as the account's user on the first connection.
+	// FAILED_PRECONDITION: not an XCP account.
+	UserHelperStart(ctx context.Context, in *UserHelperStartRequest, opts ...grpc.CallOption) (*UserHelperStartResponse, error)
 }
 
 type agentServiceClient struct {
@@ -430,6 +435,16 @@ func (c *agentServiceClient) MailWebmailExpire(ctx context.Context, in *MailWebm
 	return out, nil
 }
 
+func (c *agentServiceClient) UserHelperStart(ctx context.Context, in *UserHelperStartRequest, opts ...grpc.CallOption) (*UserHelperStartResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserHelperStartResponse)
+	err := c.cc.Invoke(ctx, AgentService_UserHelperStart_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -512,6 +527,10 @@ type AgentServiceServer interface {
 	MailWebmailSignon(context.Context, *MailWebmailSignonRequest) (*MailWebmailSignonResponse, error)
 	// MailWebmailExpire drops expired temporary passwords and tickets.
 	MailWebmailExpire(context.Context, *MailWebmailExpireRequest) (*MailWebmailExpireResponse, error)
+	// UserHelperStart starts an account's file helper socket (ADR-0009):
+	// xcp-userd then runs as the account's user on the first connection.
+	// FAILED_PRECONDITION: not an XCP account.
+	UserHelperStart(context.Context, *UserHelperStartRequest) (*UserHelperStartResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -605,6 +624,9 @@ func (UnimplementedAgentServiceServer) MailWebmailSignon(context.Context, *MailW
 }
 func (UnimplementedAgentServiceServer) MailWebmailExpire(context.Context, *MailWebmailExpireRequest) (*MailWebmailExpireResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailWebmailExpire not implemented")
+}
+func (UnimplementedAgentServiceServer) UserHelperStart(context.Context, *UserHelperStartRequest) (*UserHelperStartResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserHelperStart not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1131,6 +1153,24 @@ func _AgentService_MailWebmailExpire_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_UserHelperStart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserHelperStartRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).UserHelperStart(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_UserHelperStart_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).UserHelperStart(ctx, req.(*UserHelperStartRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1249,6 +1289,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MailWebmailExpire",
 			Handler:    _AgentService_MailWebmailExpire_Handler,
+		},
+		{
+			MethodName: "UserHelperStart",
+			Handler:    _AgentService_UserHelperStart_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

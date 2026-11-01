@@ -75,3 +75,20 @@ func TestSPANotBuilt(t *testing.T) {
 		}
 	}
 }
+
+func TestIndexGetsAStyleNonce(t *testing.T) {
+	s := spaServer(fstest.MapFS{"index.html": {Data: []byte("<html><head><title>x</title></head></html>")}})
+	a, b := get(t, s, "GET", "/files"), get(t, s, "GET", "/files")
+	csp := a.Header().Get("Content-Security-Policy")
+	i := strings.Index(csp, "'nonce-")
+	if i < 0 || !strings.Contains(csp, "default-src 'self'") || strings.Contains(csp, "script-src") {
+		t.Fatalf("CSP %q", csp)
+	}
+	nonce := csp[i+7 : i+7+strings.Index(csp[i+7:], "'")]
+	if !strings.Contains(a.Body.String(), `<meta name="csp-nonce" content="`+nonce+`">`) {
+		t.Fatalf("page lacks its nonce %q", nonce)
+	}
+	if b.Header().Get("Content-Security-Policy") == csp {
+		t.Fatal("the nonce must differ per response")
+	}
+}

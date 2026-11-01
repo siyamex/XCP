@@ -1250,6 +1250,164 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/files": {
+        parameters: {
+            query?: {
+                /** @description Relative to the account's home; empty is the home */
+                path?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** List a folder */
+        get: operations["listFiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/download": {
+        parameters: {
+            query: {
+                path: string;
+                /** @description Show PNG */
+                inline?: "1";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Download a file */
+        get: operations["downloadFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/upload": {
+        parameters: {
+            query: {
+                path: string;
+                overwrite?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload a file (the raw body, up to 4 GB; missing folders are made) */
+        put: operations["uploadFile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/{op}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                op: "mkdir" | "rename" | "copy" | "trash" | "chmod" | "compress" | "extract";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change files
+         * @description mkdir {path}; rename {from, to}; copy {from, to}; trash {paths} (moves
+         *     them into ~/.trash); chmod {path, mode ("644"), recursive}; compress
+         *     {paths, to, format: zip | tar.gz}; extract {path, to} (zip, tar,
+         *     tar.gz, tgz, tar.zst, 7z, into a new folder). Nothing is ever replaced.
+         */
+        post: operations["fileOp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/search": {
+        parameters: {
+            query: {
+                path?: string;
+                q: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Find files and folders whose names contain q (up to 500) */
+        get: operations["searchFiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/usage": {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** What takes space below a folder */
+        get: operations["fileUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/text": {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Open a text file in the editor (up to 2 MB) */
+        get: operations["readFileText"];
+        /** Save the editor's text (makes the file if needed) */
+        put: operations["writeFileText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{id}": {
         parameters: {
             query?: never;
@@ -1576,6 +1734,25 @@ export interface components {
             helo_checks: boolean;
             greylisting: boolean;
         };
+        FileEntry: {
+            name: string;
+            /** @description Relative to the home folder */
+            path: string;
+            /** @enum {string} */
+            type: "file" | "dir" | "link" | "other";
+            size: number;
+            /** @example 0644 */
+            mode: string;
+            /** Format: date-time */
+            mod_time: string;
+            owner: string;
+            group: string;
+        };
+        FileText: {
+            content: string;
+            /** @enum {string} */
+            encoding?: "utf-8" | "iso-8859-1" | "iso-8859-15" | "windows-1252";
+        };
         JobRef: {
             job_id: string;
         };
@@ -1807,6 +1984,9 @@ export interface components {
              * @example no_zone
              * @example login_off
              * @example not_ready
+             * @example exists
+             * @example too_large
+             * @example too_many
              */
             code: string;
             detail?: string;
@@ -4146,6 +4326,249 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    listFiles: {
+        parameters: {
+            query?: {
+                /** @description Relative to the account's home; empty is the home */
+                path?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The folder and what is in it, folders first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dir: components["schemas"]["FileEntry"];
+                        items: components["schemas"]["FileEntry"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    downloadFile: {
+        parameters: {
+            query: {
+                path: string;
+                /** @description Show PNG */
+                inline?: "1";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The file's content. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    uploadFile: {
+        parameters: {
+            query: {
+                path: string;
+                overwrite?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileEntry"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    fileOp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                op: "mkdir" | "rename" | "copy" | "trash" | "chmod" | "compress" | "extract";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description The new or changed entry ({trash} for trash). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    searchFiles: {
+        parameters: {
+            query: {
+                path?: string;
+                q: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches; more is true when there were more. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["FileEntry"][];
+                        more: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+        };
+    };
+    fileUsage: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sizes of what is in the folder, and the largest files below it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        path: string;
+                        total: number;
+                        children: components["schemas"]["FileEntry"][];
+                        largest: components["schemas"]["FileEntry"][];
+                        partial: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+        };
+    };
+    readFileText: {
+        parameters: {
+            query: {
+                path: string;
+                /** @description Empty guesses */
+                encoding?: "utf-8" | "iso-8859-1" | "iso-8859-15" | "windows-1252";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileText"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    writeFileText: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileText"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileEntry"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     getJob: {

@@ -26,6 +26,11 @@ export function setCsrfToken(token: string) {
   csrfToken = token;
 }
 
+/** The CSRF token, for requests made outside this client (file uploads). */
+export function getCsrfToken() {
+  return csrfToken;
+}
+
 const csrfMiddleware: Middleware = {
   onRequest({ request }) {
     if (request.method !== "GET" && request.method !== "HEAD" && csrfToken) {
