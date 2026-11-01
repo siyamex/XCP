@@ -14,11 +14,19 @@ import (
 )
 
 // HostCertificateInstall implements agentv1.AgentServiceServer.
-func (s *Server) HostCertificateInstall(_ context.Context, req *agentv1.HostCertificateInstallRequest) (*agentv1.HostCertificateInstallResponse, error) {
+func (s *Server) HostCertificateInstall(ctx context.Context, req *agentv1.HostCertificateInstallRequest) (*agentv1.HostCertificateInstallResponse, error) {
 	t := req.GetTls()
 	changed, err := s.HostCert.InstallCertificate(req.GetHostname(), agent.TLS{CertPEM: t.GetCertPem(), KeyPEM: t.GetKeyPem()})
 	if err != nil {
 		return nil, s.toStatus(err)
+	}
+	if changed {
+		// Apache serves it on the host name too (phpMyAdmin, ADR-0006). The
+		// certificate is in place either way, so a failed reload only waits
+		// for the next one.
+		if err := s.Services.Do(ctx, "web", agent.ActionReload); err != nil {
+			s.Log.Warn("reload Apache for the new host name certificate", "err", err)
+		}
 	}
 	return &agentv1.HostCertificateInstallResponse{Changed: changed}, nil
 }

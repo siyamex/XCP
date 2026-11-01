@@ -6,6 +6,7 @@ toolchain go1.26.10
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/go-sql-driver/mysql v1.10.1
 	github.com/miekg/dns v1.1.73
 	github.com/robfig/cron/v3 v3.0.1
 	go.yaml.in/yaml/v3 v3.0.5
@@ -19,6 +20,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

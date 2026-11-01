@@ -114,8 +114,10 @@ type WebServer interface {
   MX target not an IP, TXT split at 255 chars, CAA format).
 
 ## 6. Databases
-- **MariaDB/MySQL:** the agent holds the root credentials (file readable by
-  root only). Naming: `<user>_<name>` for DBs and DB users (prefix enforced).
+- **Amended by ADR-0006:** the agent connects as root over MariaDB's socket
+  (unix_socket authentication), with no credential file; phpMyAdmin
+  sign-on uses temporary users and one-time tickets.
+- **MariaDB/MySQL:** the agent has root access (ADR-0006). Naming: `<user>_<name>` for DBs and DB users (prefix enforced).
   Grants are recomputed from the DB on apply. Quota counting via
   `information_schema` sizes (added to the account's usage).
 - **PostgreSQL (P3):** role per account (`NOLOGIN` owner) and login roles;

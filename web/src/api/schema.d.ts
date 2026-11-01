@@ -813,6 +813,205 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's databases, users and privileges, with sizes */
+        get: operations["getDatabases"];
+        put?: never;
+        /** Create a database */
+        post: operations["createDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/database-wizard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a database and a user with privileges on it in one step */
+        post: operations["databaseWizard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename a database
+         * @description MariaDB moves the tables right away; databases with views, triggers, routines or events are refused (409 rename_refused).
+         */
+        put: operations["renameDatabase"];
+        post?: never;
+        /** Delete a database with all its data */
+        delete: operations["deleteDatabase"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/database-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a database user */
+        post: operations["createDatabaseUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/database-users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a database user */
+        delete: operations["deleteDatabaseUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/database-users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a database user's password */
+        put: operations["setDatabaseUserPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/database-users/{id}/grants/{database_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a user's privileges on a database of the same account */
+        put: operations["setDatabaseGrant"];
+        post?: never;
+        /** Take a user's privileges on a database away */
+        delete: operations["revokeDatabaseGrant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/phpmyadmin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in to phpMyAdmin for the account's databases
+         * @description Returns a one-time URL (valid 2 minutes) on the host the request came to, port 443 (ADR-0006). Needs the `phpmyadmin` feature.
+         */
+        post: operations["phpMyAdminSignon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mysql": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The database server and phpMyAdmin (admins) */
+        get: operations["getMySQLStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mysql/root-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set MariaDB's root password (admins)
+         * @description Root on the server keeps signing in through the socket; the password is for the admin's own tools.
+         */
+        put: operations["setMySQLRootPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{id}": {
         parameters: {
             query?: never;
@@ -1001,6 +1200,56 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             finished_at?: string;
+        };
+        NameInput: {
+            /** @description With or without the account's prefix */
+            name: string;
+        };
+        PasswordInput: {
+            /** Format: password */
+            password: string;
+        };
+        DatabaseAccess: {
+            /** @description The other side's ID (user in a Database */
+            id: string;
+            name: string;
+            privileges: string[];
+        };
+        Database: {
+            id: string;
+            account_id: string;
+            /** @description Full name with the account's prefix */
+            name: string;
+            /** @description Data and indexes; null when the server did not say */
+            size_bytes: number | null;
+            users: components["schemas"]["DatabaseAccess"][];
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
+        DatabaseUser: {
+            id: string;
+            account_id: string;
+            name: string;
+            databases: components["schemas"]["DatabaseAccess"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            job_id?: string;
+        };
+        DatabaseOverview: {
+            prefix: string;
+            databases: components["schemas"]["Database"][];
+            users: components["schemas"]["DatabaseUser"][];
+            privileges: string[];
+            max_databases: number | null;
+            max_users: number | null;
+            /** @description ok */
+            server: string;
+            host: string;
+            /** @description The caller may open phpMyAdmin */
+            phpmyadmin: boolean;
         };
         JobRef: {
             job_id: string;
@@ -1226,6 +1475,9 @@ export interface components {
              * @example username_taken
              * @example domain_taken
              * @example bad_status
+             * @example limit_reached
+             * @example rename_refused
+             * @example not_installed
              */
             code: string;
             detail?: string;
@@ -2754,6 +3006,380 @@ export interface operations {
                 };
             };
             403: components["responses"]["Problem"];
+        };
+    };
+    getDatabases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything the databases page shows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` creates it in MariaDB. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    databaseWizard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    database: string;
+                    user: string;
+                    /** Format: password */
+                    password: string;
+                    /** @description Empty means ALL */
+                    privileges?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        database: components["schemas"]["Database"];
+                        user: components["schemas"]["DatabaseUser"];
+                        /** @description What applications on this server connect to */
+                        host: string;
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    renameDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Renamed; the job in `job_id` moves the users' privileges. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed; the job drops it in MariaDB. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    createDatabaseUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** Format: password */
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` creates it in MariaDB. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseUser"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteDatabaseUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed; the job drops it in MariaDB. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setDatabaseUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordInput"];
+            };
+        };
+        responses: {
+            /** @description Changed; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setDatabaseGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description ALL alone, or names from the overview's privileges; empty means ALL */
+                    privileges?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Set; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    revokeDatabaseGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    phpMyAdminSignon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Where to send the browser. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url: string;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getMySQLStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        installed: boolean;
+                        version?: string;
+                        /** @description Installed version */
+                        phpmyadmin?: string;
+                        detail?: string;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    setMySQLRootPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordInput"];
+            };
+        };
+        responses: {
+            /** @description Set. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     getJob: {

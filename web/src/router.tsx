@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { PackageEditPage, PackagesPage } from "./pages/PackagesPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { SslPage } from "./pages/SslPage";
+import { DatabasesPage } from "./pages/DatabasesPage";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
@@ -30,13 +31,14 @@ const zonesRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns", c
 const dnsSettingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns/settings", component: DnsSettingsPage });
 const zoneRoute = createRoute({ getParentRoute: () => appRoute, path: "/dns/$zoneId", component: ZonePage });
 const sslRoute = createRoute({ getParentRoute: () => appRoute, path: "/ssl", component: SslPage });
+const databasesRoute = createRoute({ getParentRoute: () => appRoute, path: "/databases", component: DatabasesPage });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
     accountsRoute, accountNewRoute, accountRoute, domainsRoute,
-    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute,
+    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute,
   ]),
 ]);
 

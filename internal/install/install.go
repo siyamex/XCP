@@ -66,6 +66,13 @@ type System interface {
 	InstallDNSServer(ctx context.Context) (installed bool, err error)
 	// PDNSSchema returns the SQLite schema that comes with PowerDNS.
 	PDNSSchema() ([]byte, error)
+	// InstallDatabaseServer installs MariaDB and PHP's MySQL extension and
+	// makes sure MariaDB runs; it reports whether anything was installed.
+	InstallDatabaseServer(ctx context.Context) (installed bool, err error)
+	// PHPFPMVersions lists the installed PHP-FPM versions ("8.3").
+	PHPFPMVersions() []string
+	// Download fetches a URL over HTTPS, at most maxBytes.
+	Download(ctx context.Context, url string, maxBytes int64) ([]byte, error)
 }
 
 // Options configure an install.
@@ -78,6 +85,7 @@ type Options struct {
 	AdminPassword string // empty: generate one and print it once
 	NoWeb         bool   // skip installing Apache and PHP-FPM
 	NoDNS         bool   // skip installing PowerDNS
+	NoDB          bool   // skip installing MariaDB and phpMyAdmin
 	DryRun        bool
 	Out           io.Writer
 	Sys           System
@@ -96,7 +104,9 @@ type installer struct {
 	res     Result
 	uid     int // service user, -1 in dry runs before it exists
 	gid     int
-	pdnsGID int  // PowerDNS's group, once it is installed
+	pdnsGID int // PowerDNS's group, once it is installed
+	pmaUID  int // phpMyAdmin's user, once it exists
+	pmaGID  int
 	restart bool // binaries or units changed: restart services
 	reload  bool // units changed: daemon-reload
 }
@@ -124,6 +134,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"services", in.services},
 		{"web server (Apache + PHP-FPM)", in.web},
 		{"DNS server (PowerDNS)", in.dns},
+		{"database server (MariaDB + phpMyAdmin)", in.database},
 		{"first admin", in.admin},
 	}
 	for _, s := range steps {
@@ -181,6 +192,8 @@ const (
 	rootSvc               // root:xcp (service can read)
 	svcSvc                // xcp:xcp (service owns)
 	rootPDNS              // root:pdns (PowerDNS can read)
+	rootPMA               // root:xcp-pma (phpMyAdmin can read)
+	pmaPMA                // xcp-pma:xcp-pma (phpMyAdmin owns)
 )
 
 func (in *installer) chown(p string, o owner) error {
@@ -194,16 +207,22 @@ func (in *installer) chown(p string, o owner) error {
 		return in.o.Sys.Chown(p, in.uid, in.gid)
 	case rootPDNS:
 		return in.o.Sys.Chown(p, 0, in.pdnsGID)
+	case rootPMA:
+		return in.o.Sys.Chown(p, 0, in.pmaGID)
+	case pmaPMA:
+		return in.o.Sys.Chown(p, in.pmaUID, in.pmaGID)
 	}
 	return in.o.Sys.Chown(p, 0, 0)
 }
 
+type dirSpec struct {
+	path string
+	mode fs.FileMode
+	own  owner
+}
+
 func (in *installer) dirs(context.Context) error {
-	for _, d := range []struct {
-		path string
-		mode fs.FileMode
-		own  owner
-	}{
+	return in.makeDirs([]dirSpec{
 		{"/etc/xcp", 0o755, rootRoot},
 		{SecretsDir, 0o750, rootSvc},
 		{SSLDir, 0o750, rootSvc},
@@ -213,7 +232,12 @@ func (in *installer) dirs(context.Context) error {
 		{UnitDir, 0o755, rootRoot},
 		{"/usr/sbin", 0o755, rootRoot},
 		{"/usr/bin", 0o755, rootRoot},
-	} {
+	})
+}
+
+// makeDirs creates directories with their mode and owner, or fixes both.
+func (in *installer) makeDirs(dirs []dirSpec) error {
+	for _, d := range dirs {
 		p := in.path(d.path)
 		fi, err := os.Stat(p)
 		if err == nil && fi.IsDir() && (fi.Mode().Perm() == d.mode || os.PathSeparator != '/') {
@@ -386,9 +410,18 @@ const ApacheConf = "/etc/apache2/sites-available/xcp.conf"
 // serves it for every host name (ADR-0005).
 const ChallengeDir = "/var/www/xcp-acme"
 
+// The host name certificate AutoSSL installs (ADR-0005); Apache uses it
+// for the host name once it exists.
+const (
+	HostCertFile = SSLDir + "/hostname.crt"
+	HostKeyFile  = SSLDir + "/hostname.key"
+)
+
 // apacheConf is the site that includes the per-account virtual hosts. Its
 // default HTTPS host comes first, so a name without a certificate here gets
-// an error, never a customer's site (like 000-default on port 80).
+// an error, never a customer's site (like 000-default on port 80). That
+// host is the server's own name: it serves phpMyAdmin (ADR-0006), on an
+// origin of its own, and nothing else.
 func apacheConf(hostname string) string {
 	return "# Managed by XCP: per-account virtual hosts written by xcp-agent.\n" +
 		"# Certificates are validated over HTTP for every host name (ADR-0005).\n" +
@@ -398,15 +431,45 @@ func apacheConf(hostname string) string {
 		"    AllowOverride None\n" +
 		"    Require all granted\n" +
 		"</Directory>\n" +
+		"<Directory " + PMADir + ">\n" +
+		"    Options None\n" +
+		"    AllowOverride None\n" +
+		"    DirectoryIndex index.php\n" +
+		"    <FilesMatch \"\\.php$\">\n" +
+		"        SetHandler \"proxy:unix:" + PMASocket + "|fcgi://" + pmaPool + "\"\n" +
+		"    </FilesMatch>\n" +
+		"</Directory>\n" +
 		"<IfModule ssl_module>\n" +
 		"<VirtualHost *:443>\n" +
 		"    ServerName " + hostname + "\n" +
 		"    SSLEngine on\n" +
-		"    SSLCertificateFile " + CertFile + "\n" +
-		"    SSLCertificateKeyFile " + KeyFile + "\n" +
+		"    <IfFile " + HostCertFile + ">\n" +
+		"        SSLCertificateFile " + HostCertFile + "\n" +
+		"        SSLCertificateKeyFile " + HostKeyFile + "\n" +
+		"    </IfFile>\n" +
+		"    <IfFile !" + HostCertFile + ">\n" +
+		"        SSLCertificateFile " + CertFile + "\n" +
+		"        SSLCertificateKeyFile " + KeyFile + "\n" +
+		"    </IfFile>\n" +
 		"    <Location />\n" +
 		"        Require all denied\n" +
 		"    </Location>\n" +
+		"    <IfFile " + PMADir + "/index.php>\n" +
+		"        Alias /phpmyadmin " + PMADir + "\n" +
+		"        <Location /phpmyadmin>\n" +
+		"            Require all granted\n" +
+		"            # Names without an HTTPS host of their own land here too; phpMyAdmin\n" +
+		"            # answers only for this server's name, localhost and addresses.\n" +
+		"            <If \"%{SERVER_NAME} != '" + hostname + "' && %{SERVER_NAME} != 'localhost' && %{SERVER_NAME} !~ /^[0-9.]+$|:/\">\n" +
+		"                Require all denied\n" +
+		"            </If>\n" +
+		"            # Cookies ignore ports: the panel's session must not reach phpMyAdmin.\n" +
+		"            RequestHeader edit* Cookie \"(^|;\\s*)(__Host-)?xcp_session=[^;]*\" \"\"\n" +
+		"        </Location>\n" +
+		"        <LocationMatch \"^/phpmyadmin/(libraries|templates|vendor|sql|locale|\\.)\">\n" +
+		"            Require all denied\n" +
+		"        </LocationMatch>\n" +
+		"    </IfFile>\n" +
 		"</VirtualHost>\n" +
 		"</IfModule>\n" +
 		"IncludeOptional /etc/apache2/xcp/vhosts/*.conf\n" +

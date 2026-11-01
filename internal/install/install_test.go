@@ -1,12 +1,17 @@
 package install
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,6 +29,48 @@ type fakeSys struct {
 	webDone    bool
 	webErr     error
 	dnsDone    bool
+	dbDone     bool
+	tarball    []byte // what Download returns
+}
+
+func (f *fakeSys) InstallDatabaseServer(context.Context) (bool, error) {
+	f.calls = append(f.calls, "db install")
+	installed := !f.dbDone
+	f.dbDone = true
+	return installed, nil
+}
+
+func (f *fakeSys) PHPFPMVersions() []string { return []string{"8.4", "8.3", "7.4"} }
+
+func (f *fakeSys) Download(_ context.Context, url string, _ int64) ([]byte, error) {
+	f.calls = append(f.calls, "download "+url)
+	return f.tarball, nil
+}
+
+// releaseTarball builds a phpMyAdmin-like release with the given files.
+func releaseTarball(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(zw)
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0o644, Size: int64(len(files[name])), Typeflag: tar.TypeReg}); err != nil {
+			t.Fatal(err)
+		}
+		tw.Write([]byte(files[name]))
+	}
+	tw.Close()
+	zw.Close()
+	return buf.Bytes()
+}
+
+// useRelease makes the installer expect this tarball as the pinned release.
+func useRelease(t *testing.T, data []byte) {
+	t.Helper()
+	saved := phpMyAdmin
+	sum := sha256.Sum256(data)
+	phpMyAdmin.Version, phpMyAdmin.URL, phpMyAdmin.SHA256 = "test", "https://files.example/pma.tar.gz", hex.EncodeToString(sum[:])
+	t.Cleanup(func() { phpMyAdmin = saved })
 }
 
 func (f *fakeSys) EnsureSystemUser(_ context.Context, name, _ string) (bool, error) {
@@ -96,7 +143,11 @@ type env struct {
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
-	e := &env{root: t.TempDir(), bin: t.TempDir(), sys: &fakeSys{}}
+	e := &env{root: t.TempDir(), bin: t.TempDir(), sys: &fakeSys{tarball: releaseTarball(t, map[string]string{
+		"phpMyAdmin-test/index.php": "<?php // pma", "phpMyAdmin-test/setup/index.php": "<?php // setup",
+		"phpMyAdmin-test/js/app.js": "app",
+	})}}
+	useRelease(t, e.sys.tarball)
 	for name := range Binaries {
 		writeBin(t, e, name, "v1")
 	}
@@ -157,6 +208,34 @@ func TestFirstInstall(t *testing.T) {
 			t.Errorf("PowerDNS config lacks %q (key %q):\n%s", want, key, pdns)
 		}
 	}
+	// phpMyAdmin: the release without its setup wizard, sign-on only, its own pool on PHP 8.3.
+	if got := string(e.read(t, PMADir+"/index.php")); got != "<?php // pma" {
+		t.Errorf("phpMyAdmin not unpacked: %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(e.root, filepath.FromSlash(PMADir+"/setup"))); !errors.Is(err, os.ErrNotExist) {
+		t.Error("phpMyAdmin's setup wizard was kept")
+	}
+	pmaCfg := string(e.read(t, PMAConfigDir+"/config.inc.php"))
+	for _, want := range []string{"'auth_type'] = 'signon'", "'AllowRoot'] = false", "sodium_hex2bin('"} {
+		if !strings.Contains(pmaCfg, want) {
+			t.Errorf("phpMyAdmin config lacks %q", want)
+		}
+	}
+	if !strings.Contains(string(e.read(t, PMADir+"/xcp-signon.php")), "/var/lib/xcp-phpmyadmin/tickets/") {
+		t.Error("sign-on script not written")
+	}
+	if !strings.Contains(string(e.read(t, "/etc/php/8.3/fpm/pool.d/xcp_phpmyadmin.conf")), "user = xcp-pma") {
+		t.Error("phpMyAdmin pool not written for PHP 8.3")
+	}
+	apache := string(e.read(t, ApacheConf))
+	for _, want := range []string{"Alias /phpmyadmin " + PMADir, "<IfFile " + HostCertFile + ">", `RequestHeader edit* Cookie "(^|;\s*)(__Host-)?xcp_session=[^;]*" ""`} {
+		if !strings.Contains(apache, want) {
+			t.Errorf("Apache site lacks %q:\n%s", want, apache)
+		}
+	}
+	if !strings.Contains(string(e.read(t, MariaDBConf)), "bind-address = 127.0.0.1") {
+		t.Error("MariaDB not bound to localhost")
+	}
 	if db := e.read(t, PDNSDatabase); !bytes.HasPrefix(db, []byte("SQLite format 3")) {
 		t.Error("PowerDNS database not created")
 	}
@@ -190,7 +269,10 @@ func TestFirstInstall(t *testing.T) {
 	want := []string{
 		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
 		"systemctl restart xcp-agent.service xcp-api.service", "health", "web install", "a2ensite xcp",
-		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service", "admin admin",
+		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service",
+		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",
+		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
+		"admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
 		t.Fatalf("calls =\n%q\nwant\n%q", e.sys.calls, want)
@@ -217,7 +299,8 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 		t.Fatal("master key or certificate was replaced: this would lock out encrypted secrets / break pinning")
 	}
 	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
-		slices.Contains(e.sys.calls, "systemctl restart pdns.service") {
+		slices.Contains(e.sys.calls, "systemctl restart pdns.service") || slices.Contains(e.sys.calls, "systemctl restart mariadb.service") ||
+		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") {
 		t.Fatalf("services restarted although nothing changed: %q", e.sys.calls)
 	}
 	if !bytes.Equal(e.read(t, PDNSKeyFile), pdnsKey) {
@@ -298,5 +381,35 @@ func TestGeneratePassword(t *testing.T) {
 			t.Fatalf("bad password %q", p)
 		}
 		seen[p] = true
+	}
+}
+
+func TestPHPMyAdminReleaseChecks(t *testing.T) {
+	e := newEnv(t)
+	e.sys.tarball = append(slices.Clone(e.sys.tarball), 0) // not the pinned release
+	_, err := Run(context.Background(), Options{
+		Root: e.root, BinDir: e.bin, Hostname: "panel.example.com", AdminUser: "admin", Out: io.Discard, Sys: e.sys,
+	})
+	if err == nil || !strings.Contains(err.Error(), "SHA-256") {
+		t.Fatalf("a download with the wrong hash was installed: %v", err)
+	}
+	if err := extractTarGz(releaseTarball(t, map[string]string{"top/../../escape.php": "x"}), t.TempDir()); err == nil {
+		t.Fatal("an entry leaving the folder was unpacked")
+	}
+}
+
+func TestPMAPHP(t *testing.T) {
+	for _, c := range []struct {
+		in   []string
+		want string
+	}{
+		{[]string{"8.4", "8.3", "7.4"}, "8.3"},
+		{[]string{"8.1", "8.10"}, "8.1"},
+		{[]string{"8.4"}, "8.4"},
+		{nil, ""},
+	} {
+		if got := pmaPHP(c.in); got != c.want {
+			t.Errorf("pmaPHP(%v) = %q, want %q", c.in, got, c.want)
+		}
 	}
 }

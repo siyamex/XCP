@@ -129,6 +129,15 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 	case err != nil:
 		return nil, s.fail(ctx, j, a, err)
 	}
+	result := map[string]any{}
+	if s.dbs != nil {
+		// Suspension locks the database users; unsuspending unlocks them.
+		res, err := s.dbs.Apply(ctx, a)
+		if err != nil {
+			return nil, s.fail(ctx, j, a, err)
+		}
+		result["databases"] = res
+	}
 	if a.Status == store.AccountCreating || a.Status == store.AccountError {
 		if err := s.db.SetAccountStatus(ctx, a.ID, store.AccountActive, ""); err != nil {
 			return nil, err
@@ -137,10 +146,9 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 	if !res.GetQuotaApplied() {
 		r.Logf("disk quota not applied: the home filesystem has no user quotas enabled")
 	}
-	return map[string]any{
-		"created": res.GetCreated(), "quota_applied": res.GetQuotaApplied(), "home": res.GetHome(),
-		"website": website, "php_version": site.GetPhpVersion(),
-	}, nil
+	result["created"], result["quota_applied"], result["home"] = res.GetCreated(), res.GetQuotaApplied(), res.GetHome()
+	result["website"], result["php_version"] = website, site.GetPhpVersion()
+	return result, nil
 }
 
 // fail records the error on the account. On the last attempt (or a
@@ -180,6 +188,13 @@ func (s *Service) terminateJob(ctx context.Context, j *jobs.Job, r jobs.Reporter
 		if err != nil && status.Code(err) != codes.NotFound {
 			return nil, permanentIfRefused(err)
 		}
+	}
+	if s.dbs != nil {
+		res, err := s.dbs.RemoveAccount(ctx, a.Username)
+		if err != nil {
+			return nil, err
+		}
+		r.Logf("databases: %s", res)
 	}
 	r.Logf("removing Linux user %s and its home folder", a.Username)
 	res, err := s.agent.AccountDelete(ctx, &agentv1.AccountDeleteRequest{Username: a.Username})

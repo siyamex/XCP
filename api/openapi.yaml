@@ -34,6 +34,12 @@ tags:
       Certificates (ADR-0005). AutoSSL issues free certificates through ACME
       for domains that point here; users may upload their own. Private keys
       are never returned. Users need the `ssl` feature.
+  - name: databases
+    description: |
+      MariaDB databases and users of an account (ADR-0006). Names carry the
+      account's prefix (username and _). Changes are applied by a job
+      (job_id). Users need the mysql feature, and phpmyadmin to sign in to
+      phpMyAdmin.
   - name: domains
     description: |
       An account's domains and redirects. Admins reach every admin-owned
@@ -1167,6 +1173,293 @@ paths:
                     items: { type: string, examples: ["8.3"] }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/databases:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [databases]
+      summary: An account's databases, users and privileges, with sizes
+      operationId: getDatabases
+      responses:
+        "200":
+          description: Everything the databases page shows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatabaseOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [databases]
+      summary: Create a database
+      operationId: createDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NameInput" }
+      responses:
+        "202":
+          description: Created; the job in `job_id` creates it in MariaDB.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Database" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/database-wizard:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Create a database and a user with privileges on it in one step
+      operationId: databaseWizard
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [database, user, password]
+              properties:
+                database: { type: string }
+                user: { type: string }
+                password: { type: string, format: password }
+                privileges: { type: array, items: { type: string }, description: Empty means ALL }
+      responses:
+        "202":
+          description: Created; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [database, user, host, job_id]
+                properties:
+                  database: { $ref: "#/components/schemas/Database" }
+                  user: { $ref: "#/components/schemas/DatabaseUser" }
+                  host: { type: string, description: What applications on this server connect to }
+                  job_id: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /databases/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [databases]
+      summary: Rename a database
+      description: MariaDB moves the tables right away; databases with views, triggers, routines or events are refused (409 rename_refused).
+      operationId: renameDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NameInput" }
+      responses:
+        "202":
+          description: Renamed; the job in `job_id` moves the users' privileges.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Database" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [databases]
+      summary: Delete a database with all its data
+      operationId: deleteDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed; the job drops it in MariaDB.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/database-users:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Create a database user
+      operationId: createDatabaseUser
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, password]
+              properties:
+                name: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "202":
+          description: Created; the job in `job_id` creates it in MariaDB.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatabaseUser" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /database-users/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [databases]
+      summary: Delete a database user
+      operationId: deleteDatabaseUser
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed; the job drops it in MariaDB.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /database-users/{id}/password:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [databases]
+      summary: Change a database user's password
+      operationId: setDatabaseUserPassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordInput" }
+      responses:
+        "202":
+          description: Changed; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /database-users/{id}/grants/{database_id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: database_id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [databases]
+      summary: Set a user's privileges on a database of the same account
+      operationId: setDatabaseGrant
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                privileges:
+                  type: array
+                  items: { type: string }
+                  description: ALL alone, or names from the overview's privileges; empty means ALL
+      responses:
+        "202":
+          description: Set; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [databases]
+      summary: Take a user's privileges on a database away
+      operationId: revokeDatabaseGrant
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/phpmyadmin:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Sign in to phpMyAdmin for the account's databases
+      description: Returns a one-time URL (valid 2 minutes) on the host the request came to, port 443 (ADR-0006). Needs the `phpmyadmin` feature.
+      operationId: phpMyAdminSignon
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Where to send the browser.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url: { type: string }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/mysql:
+    get:
+      tags: [databases]
+      summary: The database server and phpMyAdmin (admins)
+      operationId: getMySQLStatus
+      responses:
+        "200":
+          description: Status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [installed]
+                properties:
+                  installed: { type: boolean }
+                  version: { type: string }
+                  phpmyadmin: { type: string, description: Installed version }
+                  detail: { type: string }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/mysql/root-password:
+    put:
+      tags: [databases]
+      summary: Set MariaDB's root password (admins)
+      description: Root on the server keeps signing in through the socket; the password is for the admin's own tools.
+      operationId: setMySQLRootPassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordInput" }
+      responses:
+        "204": { description: Set. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /jobs/{id}:
     get:
       tags: [system]
@@ -1395,6 +1688,66 @@ components:
         created_at: { type: string, format: date-time }
         finished_at: { type: string, format: date-time }
 
+    NameInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, description: With or without the account's prefix }
+
+    PasswordInput:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string, format: password }
+
+    DatabaseAccess:
+      type: object
+      required: [id, name, privileges]
+      properties:
+        id: { type: string, description: The other side's ID (user in a Database, database in a DatabaseUser) }
+        name: { type: string }
+        privileges: { type: array, items: { type: string } }
+
+    Database:
+      type: object
+      required: [id, account_id, name, size_bytes, users, created_at]
+      properties:
+        id: { type: string }
+        account_id: { type: string }
+        name: { type: string, description: Full name with the account's prefix }
+        size_bytes: { type: [integer, "null"], description: Data and indexes; null when the server did not say }
+        users: { type: array, items: { $ref: "#/components/schemas/DatabaseAccess" } }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    DatabaseUser:
+      type: object
+      required: [id, account_id, name, databases, created_at, updated_at]
+      properties:
+        id: { type: string }
+        account_id: { type: string }
+        name: { type: string }
+        databases: { type: array, items: { $ref: "#/components/schemas/DatabaseAccess" } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    DatabaseOverview:
+      type: object
+      required: [prefix, databases, users, privileges, max_databases, max_users, server, host, phpmyadmin]
+      properties:
+        prefix: { type: string }
+        databases: { type: array, items: { $ref: "#/components/schemas/Database" } }
+        users: { type: array, items: { $ref: "#/components/schemas/DatabaseUser" } }
+        privileges: { type: array, items: { type: string } }
+        max_databases: { type: [integer, "null"] }
+        max_users: { type: [integer, "null"] }
+        server: { type: string, description: ok, or why sizes are missing }
+        host: { type: string }
+        phpmyadmin: { type: boolean, description: The caller may open phpMyAdmin }
+
     JobRef:
       type: object
       required: [job_id]
@@ -1595,7 +1948,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed]
         detail: { type: string }
         request_id: { type: string }
         errors:

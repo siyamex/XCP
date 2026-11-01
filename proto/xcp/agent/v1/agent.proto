@@ -68,6 +68,42 @@ service AgentService {
   // and FTP. It must cover the host name and be valid now; xcp-api picks it
   // up without a restart.
   rpc HostCertificateInstall(HostCertificateInstallRequest) returns (HostCertificateInstallResponse);
+
+  // MariaDB (ADR-0006). The agent connects as root over the socket. Every
+  // database and user name carries the account's prefix "<username>_",
+  // checked by the agent. NOT_FOUND: MariaDB (or, for sign-on, phpMyAdmin)
+  // is not installed.
+
+  // MySQLStatus reports MariaDB's version and the installed phpMyAdmin.
+  rpc MySQLStatus(MySQLStatusRequest) returns (MySQLStatusResponse);
+
+  // MySQLAccountApply makes the account's users, password hashes, grants
+  // and lock state exactly as given, and creates missing databases. It
+  // never drops a database.
+  rpc MySQLAccountApply(MySQLAccountApplyRequest) returns (MySQLAccountApplyResponse);
+
+  // MySQLAccountRemove drops all databases and users of an account.
+  rpc MySQLAccountRemove(MySQLAccountRemoveRequest) returns (MySQLAccountRemoveResponse);
+
+  // MySQLDatabaseSizes lists the account's databases with their sizes.
+  rpc MySQLDatabaseSizes(MySQLDatabaseSizesRequest) returns (MySQLDatabaseSizesResponse);
+
+  // MySQLDatabaseDrop drops one database with its data.
+  rpc MySQLDatabaseDrop(MySQLDatabaseDropRequest) returns (MySQLDatabaseDropResponse);
+
+  // MySQLDatabaseRename moves all tables to a new database and drops the
+  // old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
+  rpc MySQLDatabaseRename(MySQLDatabaseRenameRequest) returns (MySQLDatabaseRenameResponse);
+
+  // MySQLSignon creates a temporary user for phpMyAdmin with all privileges
+  // on the given databases and a one-time ticket to sign in with it.
+  rpc MySQLSignon(MySQLSignonRequest) returns (MySQLSignonResponse);
+
+  // MySQLSignonExpire drops expired sign-on users and unused tickets.
+  rpc MySQLSignonExpire(MySQLSignonExpireRequest) returns (MySQLSignonExpireResponse);
+
+  // MySQLRootPassword lets root in with a password too (next to the socket).
+  rpc MySQLRootPassword(MySQLRootPasswordRequest) returns (MySQLRootPasswordResponse);
 }
 
 message PingRequest {}
@@ -286,3 +322,87 @@ message HostCertificateInstallRequest {
 message HostCertificateInstallResponse {
   bool changed = 1;
 }
+
+message MySQLStatusRequest {}
+
+message MySQLStatusResponse {
+  string version = 1;     // MariaDB's
+  string phpmyadmin = 2;  // installed phpMyAdmin version, empty if none
+}
+
+message MySQLAccountApplyRequest {
+  string username = 1;
+  repeated string databases = 2;  // full names: <username>_<name>
+  repeated MySQLUser users = 3;
+  bool locked = 4;                // suspended: users locked, sign-on users dropped
+}
+
+message MySQLUser {
+  string name = 1;
+  string password_hash = 2;  // mysql_native_password: "*" and 40 hex digits
+  repeated MySQLGrant grants = 3;
+}
+
+message MySQLGrant {
+  string database = 1;
+  repeated string privileges = 2;  // "ALL", or names like "SELECT"
+}
+
+message MySQLAccountApplyResponse {
+  bool changed = 1;
+}
+
+message MySQLAccountRemoveRequest {
+  string username = 1;
+}
+
+message MySQLAccountRemoveResponse {
+  uint32 databases = 1;
+  uint32 users = 2;
+}
+
+message MySQLDatabaseSizesRequest {
+  string username = 1;
+}
+
+message MySQLDatabaseSizesResponse {
+  map<string, int64> sizes = 1;  // database -> bytes of data and indexes
+}
+
+message MySQLDatabaseDropRequest {
+  string username = 1;
+  string database = 2;
+}
+
+message MySQLDatabaseDropResponse {
+  bool dropped = 1;  // false if it did not exist
+}
+
+message MySQLDatabaseRenameRequest {
+  string username = 1;
+  string from = 2;
+  string to = 3;
+}
+
+message MySQLDatabaseRenameResponse {}
+
+message MySQLSignonRequest {
+  string username = 1;
+  repeated string databases = 2;
+}
+
+message MySQLSignonResponse {
+  string ticket = 1;  // for /phpmyadmin/xcp-signon.php?ticket=
+}
+
+message MySQLSignonExpireRequest {}
+
+message MySQLSignonExpireResponse {
+  uint32 dropped = 1;
+}
+
+message MySQLRootPasswordRequest {
+  string password_hash = 1;
+}
+
+message MySQLRootPasswordResponse {}

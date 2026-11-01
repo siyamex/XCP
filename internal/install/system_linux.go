@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/user"
@@ -201,4 +202,77 @@ func (s *LinuxSystem) EnableApacheSite(ctx context.Context) error {
 		return fmt.Errorf("a2ensite xcp: %w", err)
 	}
 	return s.Systemctl(ctx, "reload-or-restart", "apache2.service")
+}
+
+// databaseInstalled reports whether MariaDB and PHP's MySQL extension exist.
+func databaseInstalled() bool {
+	if _, err := os.Stat("/usr/sbin/mariadbd"); err != nil {
+		return false
+	}
+	ini, _ := filepath.Glob("/etc/php/*/mods-available/mysqli.ini")
+	return len(ini) > 0
+}
+
+// InstallDatabaseServer implements System.
+func (s *LinuxSystem) InstallDatabaseServer(ctx context.Context) (bool, error) {
+	installed := false
+	if !databaseInstalled() {
+		env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+		lock := []string{"-o", "DPkg::Lock::Timeout=600"}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: append(lock, "update", "-q"), Env: env, Timeout: 20 * time.Minute,
+		}); err != nil {
+			return false, fmt.Errorf("apt-get update: %w", err)
+		}
+		pkgs := []string{"mariadb-server", "php-mysql", "php-mbstring", "php-xml"}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
+			Env: env, Timeout: 30 * time.Minute,
+		}); err != nil {
+			return false, fmt.Errorf("apt-get install %s: %w", strings.Join(pkgs, " "), err)
+		}
+		installed = true
+		// PHP-FPM loads new extensions only when it restarts.
+		if units := fpmUnits(); len(units) > 0 {
+			if err := s.Systemctl(ctx, append([]string{"reload-or-restart"}, units...)...); err != nil {
+				return installed, err
+			}
+		}
+	}
+	return installed, s.Systemctl(ctx, "enable", "--now", "mariadb.service")
+}
+
+// PHPFPMVersions implements System.
+func (s *LinuxSystem) PHPFPMVersions() []string {
+	var out []string
+	bins, _ := filepath.Glob("/usr/sbin/php-fpm[0-9]*")
+	for _, b := range bins {
+		out = append(out, strings.TrimPrefix(filepath.Base(b), "php-fpm"))
+	}
+	return out
+}
+
+// Download implements System.
+func (s *LinuxSystem) Download(ctx context.Context, url string, maxBytes int64) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	hc := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("download %s: %s", url, resp.Status)
+	}
+	b, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(b)) > maxBytes {
+		return nil, fmt.Errorf("download %s: larger than %d bytes", url, maxBytes)
+	}
+	return b, nil
 }

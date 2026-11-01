@@ -16,6 +16,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -27,15 +28,16 @@ import (
 
 // Deps are the services the HTTP layer needs.
 type Deps struct {
-	Auth     *auth.Service
-	Plans    *plans.Service
-	Accounts *accounts.Service
-	Domains  *domains.Service
-	Zones    *zones.Service
-	SSL      *ssl.Service
-	Jobs     *jobs.Queue
-	Agent    agentrpc.Client
-	Log      *slog.Logger
+	Auth      *auth.Service
+	Plans     *plans.Service
+	Accounts  *accounts.Service
+	Domains   *domains.Service
+	Databases *databases.Service
+	Zones     *zones.Service
+	SSL       *ssl.Service
+	Jobs      *jobs.Queue
+	Agent     agentrpc.Client
+	Log       *slog.Logger
 	// SecureCookies is false only in local development over plain HTTP
 	// (api.insecure_dev_http); it also controls HSTS.
 	SecureCookies bool
@@ -146,6 +148,19 @@ func New(d Deps) *Server {
 		{method: "PUT", path: "/api/v1/domains/{id}/ssl", access: authed, roles: adminOrUser, h: s.setDomainSSL},
 		{method: "PUT", path: "/api/v1/domains/{id}/certificate", access: authed, roles: adminOrUser, h: s.uploadCertificate},
 		{method: "DELETE", path: "/api/v1/domains/{id}/certificate", access: authed, roles: adminOrUser, h: s.deleteCertificate},
+		{method: "GET", path: "/api/v1/accounts/{id}/databases", access: authed, roles: adminOrUser, h: s.databasesOverview},
+		{method: "POST", path: "/api/v1/accounts/{id}/databases", access: authed, roles: adminOrUser, h: s.createDatabase},
+		{method: "POST", path: "/api/v1/accounts/{id}/database-wizard", access: authed, roles: adminOrUser, h: s.databaseWizard},
+		{method: "PUT", path: "/api/v1/databases/{id}", access: authed, roles: adminOrUser, h: s.renameDatabase},
+		{method: "DELETE", path: "/api/v1/databases/{id}", access: authed, roles: adminOrUser, h: s.deleteDatabase},
+		{method: "POST", path: "/api/v1/accounts/{id}/database-users", access: authed, roles: adminOrUser, h: s.createDBUser},
+		{method: "PUT", path: "/api/v1/database-users/{id}/password", access: authed, roles: adminOrUser, h: s.setDBUserPassword},
+		{method: "DELETE", path: "/api/v1/database-users/{id}", access: authed, roles: adminOrUser, h: s.deleteDBUser},
+		{method: "PUT", path: "/api/v1/database-users/{id}/grants/{database_id}", access: authed, roles: adminOrUser, h: s.setDBGrant},
+		{method: "DELETE", path: "/api/v1/database-users/{id}/grants/{database_id}", access: authed, roles: adminOrUser, h: s.revokeDBGrant},
+		{method: "POST", path: "/api/v1/accounts/{id}/phpmyadmin", access: authed, roles: adminOrUser, h: s.phpMyAdminSignon},
+		{method: "GET", path: "/api/v1/server/mysql", access: authed, roles: adminOnly, h: s.mysqlStatus},
+		{method: "PUT", path: "/api/v1/server/mysql/root-password", access: authed, roles: adminOnly, h: s.setMySQLRootPassword},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
 		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
 	}

@@ -90,6 +90,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		},
 		DNS:      &agent.DNS{URL: agent.PDNSURL, KeyFile: cfg.Paths.PDNSKeyFile()},
 		HostCert: &agent.HostCert{CertFile: hostCert, KeyFile: hostKey, Group: cfg.Agent.APIUser},
+		MySQL: &agent.MySQL{
+			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,
+			TicketDir: agent.PMATicketDir, TicketUser: agent.PMAUser, VersionFile: agent.PMAVersionFile,
+		},
 		Version:  version.Version,
 		Hostname: hostname,
 		Log:      log,

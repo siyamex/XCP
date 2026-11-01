@@ -42,6 +42,15 @@ const (
 	AgentService_DNSZoneApply_FullMethodName           = "/xcp.agent.v1.AgentService/DNSZoneApply"
 	AgentService_DNSZoneDelete_FullMethodName          = "/xcp.agent.v1.AgentService/DNSZoneDelete"
 	AgentService_HostCertificateInstall_FullMethodName = "/xcp.agent.v1.AgentService/HostCertificateInstall"
+	AgentService_MySQLStatus_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLStatus"
+	AgentService_MySQLAccountApply_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLAccountApply"
+	AgentService_MySQLAccountRemove_FullMethodName     = "/xcp.agent.v1.AgentService/MySQLAccountRemove"
+	AgentService_MySQLDatabaseSizes_FullMethodName     = "/xcp.agent.v1.AgentService/MySQLDatabaseSizes"
+	AgentService_MySQLDatabaseDrop_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLDatabaseDrop"
+	AgentService_MySQLDatabaseRename_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseRename"
+	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
+	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
+	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -90,6 +99,28 @@ type AgentServiceClient interface {
 	// and FTP. It must cover the host name and be valid now; xcp-api picks it
 	// up without a restart.
 	HostCertificateInstall(ctx context.Context, in *HostCertificateInstallRequest, opts ...grpc.CallOption) (*HostCertificateInstallResponse, error)
+	// MySQLStatus reports MariaDB's version and the installed phpMyAdmin.
+	MySQLStatus(ctx context.Context, in *MySQLStatusRequest, opts ...grpc.CallOption) (*MySQLStatusResponse, error)
+	// MySQLAccountApply makes the account's users, password hashes, grants
+	// and lock state exactly as given, and creates missing databases. It
+	// never drops a database.
+	MySQLAccountApply(ctx context.Context, in *MySQLAccountApplyRequest, opts ...grpc.CallOption) (*MySQLAccountApplyResponse, error)
+	// MySQLAccountRemove drops all databases and users of an account.
+	MySQLAccountRemove(ctx context.Context, in *MySQLAccountRemoveRequest, opts ...grpc.CallOption) (*MySQLAccountRemoveResponse, error)
+	// MySQLDatabaseSizes lists the account's databases with their sizes.
+	MySQLDatabaseSizes(ctx context.Context, in *MySQLDatabaseSizesRequest, opts ...grpc.CallOption) (*MySQLDatabaseSizesResponse, error)
+	// MySQLDatabaseDrop drops one database with its data.
+	MySQLDatabaseDrop(ctx context.Context, in *MySQLDatabaseDropRequest, opts ...grpc.CallOption) (*MySQLDatabaseDropResponse, error)
+	// MySQLDatabaseRename moves all tables to a new database and drops the
+	// old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
+	MySQLDatabaseRename(ctx context.Context, in *MySQLDatabaseRenameRequest, opts ...grpc.CallOption) (*MySQLDatabaseRenameResponse, error)
+	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
+	// on the given databases and a one-time ticket to sign in with it.
+	MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error)
+	// MySQLSignonExpire drops expired sign-on users and unused tickets.
+	MySQLSignonExpire(ctx context.Context, in *MySQLSignonExpireRequest, opts ...grpc.CallOption) (*MySQLSignonExpireResponse, error)
+	// MySQLRootPassword lets root in with a password too (next to the socket).
+	MySQLRootPassword(ctx context.Context, in *MySQLRootPasswordRequest, opts ...grpc.CallOption) (*MySQLRootPasswordResponse, error)
 }
 
 type agentServiceClient struct {
@@ -240,6 +271,96 @@ func (c *agentServiceClient) HostCertificateInstall(ctx context.Context, in *Hos
 	return out, nil
 }
 
+func (c *agentServiceClient) MySQLStatus(ctx context.Context, in *MySQLStatusRequest, opts ...grpc.CallOption) (*MySQLStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLStatusResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLAccountApply(ctx context.Context, in *MySQLAccountApplyRequest, opts ...grpc.CallOption) (*MySQLAccountApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLAccountApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLAccountApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLAccountRemove(ctx context.Context, in *MySQLAccountRemoveRequest, opts ...grpc.CallOption) (*MySQLAccountRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLAccountRemoveResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLAccountRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseSizes(ctx context.Context, in *MySQLDatabaseSizesRequest, opts ...grpc.CallOption) (*MySQLDatabaseSizesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseSizesResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseSizes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseDrop(ctx context.Context, in *MySQLDatabaseDropRequest, opts ...grpc.CallOption) (*MySQLDatabaseDropResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseDropResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseDrop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseRename(ctx context.Context, in *MySQLDatabaseRenameRequest, opts ...grpc.CallOption) (*MySQLDatabaseRenameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseRenameResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseRename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLSignonResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLSignon_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLSignonExpire(ctx context.Context, in *MySQLSignonExpireRequest, opts ...grpc.CallOption) (*MySQLSignonExpireResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLSignonExpireResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLSignonExpire_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLRootPassword(ctx context.Context, in *MySQLRootPasswordRequest, opts ...grpc.CallOption) (*MySQLRootPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLRootPasswordResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLRootPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -286,6 +407,28 @@ type AgentServiceServer interface {
 	// and FTP. It must cover the host name and be valid now; xcp-api picks it
 	// up without a restart.
 	HostCertificateInstall(context.Context, *HostCertificateInstallRequest) (*HostCertificateInstallResponse, error)
+	// MySQLStatus reports MariaDB's version and the installed phpMyAdmin.
+	MySQLStatus(context.Context, *MySQLStatusRequest) (*MySQLStatusResponse, error)
+	// MySQLAccountApply makes the account's users, password hashes, grants
+	// and lock state exactly as given, and creates missing databases. It
+	// never drops a database.
+	MySQLAccountApply(context.Context, *MySQLAccountApplyRequest) (*MySQLAccountApplyResponse, error)
+	// MySQLAccountRemove drops all databases and users of an account.
+	MySQLAccountRemove(context.Context, *MySQLAccountRemoveRequest) (*MySQLAccountRemoveResponse, error)
+	// MySQLDatabaseSizes lists the account's databases with their sizes.
+	MySQLDatabaseSizes(context.Context, *MySQLDatabaseSizesRequest) (*MySQLDatabaseSizesResponse, error)
+	// MySQLDatabaseDrop drops one database with its data.
+	MySQLDatabaseDrop(context.Context, *MySQLDatabaseDropRequest) (*MySQLDatabaseDropResponse, error)
+	// MySQLDatabaseRename moves all tables to a new database and drops the
+	// old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
+	MySQLDatabaseRename(context.Context, *MySQLDatabaseRenameRequest) (*MySQLDatabaseRenameResponse, error)
+	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
+	// on the given databases and a one-time ticket to sign in with it.
+	MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error)
+	// MySQLSignonExpire drops expired sign-on users and unused tickets.
+	MySQLSignonExpire(context.Context, *MySQLSignonExpireRequest) (*MySQLSignonExpireResponse, error)
+	// MySQLRootPassword lets root in with a password too (next to the socket).
+	MySQLRootPassword(context.Context, *MySQLRootPasswordRequest) (*MySQLRootPasswordResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -337,6 +480,33 @@ func (UnimplementedAgentServiceServer) DNSZoneDelete(context.Context, *DNSZoneDe
 }
 func (UnimplementedAgentServiceServer) HostCertificateInstall(context.Context, *HostCertificateInstallRequest) (*HostCertificateInstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HostCertificateInstall not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLStatus(context.Context, *MySQLStatusRequest) (*MySQLStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLStatus not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLAccountApply(context.Context, *MySQLAccountApplyRequest) (*MySQLAccountApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLAccountApply not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLAccountRemove(context.Context, *MySQLAccountRemoveRequest) (*MySQLAccountRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLAccountRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseSizes(context.Context, *MySQLDatabaseSizesRequest) (*MySQLDatabaseSizesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseSizes not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseDrop(context.Context, *MySQLDatabaseDropRequest) (*MySQLDatabaseDropResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseDrop not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseRename(context.Context, *MySQLDatabaseRenameRequest) (*MySQLDatabaseRenameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseRename not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLSignon not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLSignonExpire(context.Context, *MySQLSignonExpireRequest) (*MySQLSignonExpireResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLSignonExpire not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLRootPassword(context.Context, *MySQLRootPasswordRequest) (*MySQLRootPasswordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLRootPassword not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -611,6 +781,168 @@ func _AgentService_HostCertificateInstall_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_MySQLStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLStatus(ctx, req.(*MySQLStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLAccountApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLAccountApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLAccountApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLAccountApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLAccountApply(ctx, req.(*MySQLAccountApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLAccountRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLAccountRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLAccountRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLAccountRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLAccountRemove(ctx, req.(*MySQLAccountRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseSizes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseSizesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseSizes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseSizes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseSizes(ctx, req.(*MySQLDatabaseSizesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseDrop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseDropRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseDrop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseDrop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseDrop(ctx, req.(*MySQLDatabaseDropRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseRename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseRenameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseRename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseRename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseRename(ctx, req.(*MySQLDatabaseRenameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLSignon_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLSignonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLSignon(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLSignon_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLSignon(ctx, req.(*MySQLSignonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLSignonExpire_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLSignonExpireRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLSignonExpire(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLSignonExpire_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLSignonExpire(ctx, req.(*MySQLSignonExpireRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLRootPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLRootPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLRootPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLRootPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLRootPassword(ctx, req.(*MySQLRootPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -673,6 +1005,42 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HostCertificateInstall",
 			Handler:    _AgentService_HostCertificateInstall_Handler,
+		},
+		{
+			MethodName: "MySQLStatus",
+			Handler:    _AgentService_MySQLStatus_Handler,
+		},
+		{
+			MethodName: "MySQLAccountApply",
+			Handler:    _AgentService_MySQLAccountApply_Handler,
+		},
+		{
+			MethodName: "MySQLAccountRemove",
+			Handler:    _AgentService_MySQLAccountRemove_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseSizes",
+			Handler:    _AgentService_MySQLDatabaseSizes_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseDrop",
+			Handler:    _AgentService_MySQLDatabaseDrop_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseRename",
+			Handler:    _AgentService_MySQLDatabaseRename_Handler,
+		},
+		{
+			MethodName: "MySQLSignon",
+			Handler:    _AgentService_MySQLSignon_Handler,
+		},
+		{
+			MethodName: "MySQLSignonExpire",
+			Handler:    _AgentService_MySQLSignonExpire_Handler,
+		},
+		{
+			MethodName: "MySQLRootPassword",
+			Handler:    _AgentService_MySQLRootPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

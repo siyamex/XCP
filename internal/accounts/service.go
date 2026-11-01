@@ -17,6 +17,7 @@ import (
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -76,6 +77,7 @@ type Service struct {
 	agent   agentrpc.Client
 	domains *domains.Service
 	zones   *zones.Service
+	dbs     *databases.Service
 }
 
 // NewService returns an accounts service.
@@ -84,6 +86,10 @@ func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Se
 ) *Service {
 	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom, zones: zs}
 }
+
+// SetDatabases connects the databases service: account jobs then apply and
+// remove the account's MariaDB databases and users too.
+func (s *Service) SetDatabases(d *databases.Service) { s.dbs = d }
 
 // scope returns the owner filter for p: admins manage admin-owned accounts
 // (resellers get their own in P2).

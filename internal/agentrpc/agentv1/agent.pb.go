@@ -2036,6 +2036,950 @@ func (x *HostCertificateInstallResponse) GetChanged() bool {
 	return false
 }
 
+type MySQLStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLStatusRequest) Reset() {
+	*x = MySQLStatusRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLStatusRequest) ProtoMessage() {}
+
+func (x *MySQLStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLStatusRequest.ProtoReflect.Descriptor instead.
+func (*MySQLStatusRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{33}
+}
+
+type MySQLStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`       // MariaDB's
+	Phpmyadmin    string                 `protobuf:"bytes,2,opt,name=phpmyadmin,proto3" json:"phpmyadmin,omitempty"` // installed phpMyAdmin version, empty if none
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLStatusResponse) Reset() {
+	*x = MySQLStatusResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLStatusResponse) ProtoMessage() {}
+
+func (x *MySQLStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLStatusResponse.ProtoReflect.Descriptor instead.
+func (*MySQLStatusResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *MySQLStatusResponse) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *MySQLStatusResponse) GetPhpmyadmin() string {
+	if x != nil {
+		return x.Phpmyadmin
+	}
+	return ""
+}
+
+type MySQLAccountApplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Databases     []string               `protobuf:"bytes,2,rep,name=databases,proto3" json:"databases,omitempty"` // full names: <username>_<name>
+	Users         []*MySQLUser           `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
+	Locked        bool                   `protobuf:"varint,4,opt,name=locked,proto3" json:"locked,omitempty"` // suspended: users locked, sign-on users dropped
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLAccountApplyRequest) Reset() {
+	*x = MySQLAccountApplyRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLAccountApplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLAccountApplyRequest) ProtoMessage() {}
+
+func (x *MySQLAccountApplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLAccountApplyRequest.ProtoReflect.Descriptor instead.
+func (*MySQLAccountApplyRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *MySQLAccountApplyRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MySQLAccountApplyRequest) GetDatabases() []string {
+	if x != nil {
+		return x.Databases
+	}
+	return nil
+}
+
+func (x *MySQLAccountApplyRequest) GetUsers() []*MySQLUser {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *MySQLAccountApplyRequest) GetLocked() bool {
+	if x != nil {
+		return x.Locked
+	}
+	return false
+}
+
+type MySQLUser struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	PasswordHash  string                 `protobuf:"bytes,2,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"` // mysql_native_password: "*" and 40 hex digits
+	Grants        []*MySQLGrant          `protobuf:"bytes,3,rep,name=grants,proto3" json:"grants,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLUser) Reset() {
+	*x = MySQLUser{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLUser) ProtoMessage() {}
+
+func (x *MySQLUser) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLUser.ProtoReflect.Descriptor instead.
+func (*MySQLUser) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *MySQLUser) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *MySQLUser) GetPasswordHash() string {
+	if x != nil {
+		return x.PasswordHash
+	}
+	return ""
+}
+
+func (x *MySQLUser) GetGrants() []*MySQLGrant {
+	if x != nil {
+		return x.Grants
+	}
+	return nil
+}
+
+type MySQLGrant struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Privileges    []string               `protobuf:"bytes,2,rep,name=privileges,proto3" json:"privileges,omitempty"` // "ALL", or names like "SELECT"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLGrant) Reset() {
+	*x = MySQLGrant{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLGrant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLGrant) ProtoMessage() {}
+
+func (x *MySQLGrant) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLGrant.ProtoReflect.Descriptor instead.
+func (*MySQLGrant) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *MySQLGrant) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *MySQLGrant) GetPrivileges() []string {
+	if x != nil {
+		return x.Privileges
+	}
+	return nil
+}
+
+type MySQLAccountApplyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changed       bool                   `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLAccountApplyResponse) Reset() {
+	*x = MySQLAccountApplyResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLAccountApplyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLAccountApplyResponse) ProtoMessage() {}
+
+func (x *MySQLAccountApplyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLAccountApplyResponse.ProtoReflect.Descriptor instead.
+func (*MySQLAccountApplyResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *MySQLAccountApplyResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+type MySQLAccountRemoveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLAccountRemoveRequest) Reset() {
+	*x = MySQLAccountRemoveRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLAccountRemoveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLAccountRemoveRequest) ProtoMessage() {}
+
+func (x *MySQLAccountRemoveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLAccountRemoveRequest.ProtoReflect.Descriptor instead.
+func (*MySQLAccountRemoveRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *MySQLAccountRemoveRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type MySQLAccountRemoveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Databases     uint32                 `protobuf:"varint,1,opt,name=databases,proto3" json:"databases,omitempty"`
+	Users         uint32                 `protobuf:"varint,2,opt,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLAccountRemoveResponse) Reset() {
+	*x = MySQLAccountRemoveResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLAccountRemoveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLAccountRemoveResponse) ProtoMessage() {}
+
+func (x *MySQLAccountRemoveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLAccountRemoveResponse.ProtoReflect.Descriptor instead.
+func (*MySQLAccountRemoveResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *MySQLAccountRemoveResponse) GetDatabases() uint32 {
+	if x != nil {
+		return x.Databases
+	}
+	return 0
+}
+
+func (x *MySQLAccountRemoveResponse) GetUsers() uint32 {
+	if x != nil {
+		return x.Users
+	}
+	return 0
+}
+
+type MySQLDatabaseSizesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseSizesRequest) Reset() {
+	*x = MySQLDatabaseSizesRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseSizesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseSizesRequest) ProtoMessage() {}
+
+func (x *MySQLDatabaseSizesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseSizesRequest.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseSizesRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *MySQLDatabaseSizesRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type MySQLDatabaseSizesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sizes         map[string]int64       `protobuf:"bytes,1,rep,name=sizes,proto3" json:"sizes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // database -> bytes of data and indexes
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseSizesResponse) Reset() {
+	*x = MySQLDatabaseSizesResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseSizesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseSizesResponse) ProtoMessage() {}
+
+func (x *MySQLDatabaseSizesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseSizesResponse.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseSizesResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *MySQLDatabaseSizesResponse) GetSizes() map[string]int64 {
+	if x != nil {
+		return x.Sizes
+	}
+	return nil
+}
+
+type MySQLDatabaseDropRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Database      string                 `protobuf:"bytes,2,opt,name=database,proto3" json:"database,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseDropRequest) Reset() {
+	*x = MySQLDatabaseDropRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseDropRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseDropRequest) ProtoMessage() {}
+
+func (x *MySQLDatabaseDropRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseDropRequest.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseDropRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *MySQLDatabaseDropRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MySQLDatabaseDropRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+type MySQLDatabaseDropResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dropped       bool                   `protobuf:"varint,1,opt,name=dropped,proto3" json:"dropped,omitempty"` // false if it did not exist
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseDropResponse) Reset() {
+	*x = MySQLDatabaseDropResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseDropResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseDropResponse) ProtoMessage() {}
+
+func (x *MySQLDatabaseDropResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseDropResponse.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseDropResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *MySQLDatabaseDropResponse) GetDropped() bool {
+	if x != nil {
+		return x.Dropped
+	}
+	return false
+}
+
+type MySQLDatabaseRenameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	From          string                 `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To            string                 `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseRenameRequest) Reset() {
+	*x = MySQLDatabaseRenameRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseRenameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseRenameRequest) ProtoMessage() {}
+
+func (x *MySQLDatabaseRenameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseRenameRequest.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseRenameRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *MySQLDatabaseRenameRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MySQLDatabaseRenameRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *MySQLDatabaseRenameRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+type MySQLDatabaseRenameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLDatabaseRenameResponse) Reset() {
+	*x = MySQLDatabaseRenameResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLDatabaseRenameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLDatabaseRenameResponse) ProtoMessage() {}
+
+func (x *MySQLDatabaseRenameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLDatabaseRenameResponse.ProtoReflect.Descriptor instead.
+func (*MySQLDatabaseRenameResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{46}
+}
+
+type MySQLSignonRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Databases     []string               `protobuf:"bytes,2,rep,name=databases,proto3" json:"databases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLSignonRequest) Reset() {
+	*x = MySQLSignonRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLSignonRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLSignonRequest) ProtoMessage() {}
+
+func (x *MySQLSignonRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLSignonRequest.ProtoReflect.Descriptor instead.
+func (*MySQLSignonRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *MySQLSignonRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MySQLSignonRequest) GetDatabases() []string {
+	if x != nil {
+		return x.Databases
+	}
+	return nil
+}
+
+type MySQLSignonResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ticket        string                 `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"` // for /phpmyadmin/xcp-signon.php?ticket=
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLSignonResponse) Reset() {
+	*x = MySQLSignonResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLSignonResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLSignonResponse) ProtoMessage() {}
+
+func (x *MySQLSignonResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLSignonResponse.ProtoReflect.Descriptor instead.
+func (*MySQLSignonResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *MySQLSignonResponse) GetTicket() string {
+	if x != nil {
+		return x.Ticket
+	}
+	return ""
+}
+
+type MySQLSignonExpireRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLSignonExpireRequest) Reset() {
+	*x = MySQLSignonExpireRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLSignonExpireRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLSignonExpireRequest) ProtoMessage() {}
+
+func (x *MySQLSignonExpireRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLSignonExpireRequest.ProtoReflect.Descriptor instead.
+func (*MySQLSignonExpireRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{49}
+}
+
+type MySQLSignonExpireResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dropped       uint32                 `protobuf:"varint,1,opt,name=dropped,proto3" json:"dropped,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLSignonExpireResponse) Reset() {
+	*x = MySQLSignonExpireResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLSignonExpireResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLSignonExpireResponse) ProtoMessage() {}
+
+func (x *MySQLSignonExpireResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLSignonExpireResponse.ProtoReflect.Descriptor instead.
+func (*MySQLSignonExpireResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *MySQLSignonExpireResponse) GetDropped() uint32 {
+	if x != nil {
+		return x.Dropped
+	}
+	return 0
+}
+
+type MySQLRootPasswordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PasswordHash  string                 `protobuf:"bytes,1,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLRootPasswordRequest) Reset() {
+	*x = MySQLRootPasswordRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLRootPasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLRootPasswordRequest) ProtoMessage() {}
+
+func (x *MySQLRootPasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLRootPasswordRequest.ProtoReflect.Descriptor instead.
+func (*MySQLRootPasswordRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *MySQLRootPasswordRequest) GetPasswordHash() string {
+	if x != nil {
+		return x.PasswordHash
+	}
+	return ""
+}
+
+type MySQLRootPasswordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MySQLRootPasswordResponse) Reset() {
+	*x = MySQLRootPasswordResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MySQLRootPasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MySQLRootPasswordResponse) ProtoMessage() {}
+
+func (x *MySQLRootPasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MySQLRootPasswordResponse.ProtoReflect.Descriptor instead.
+func (*MySQLRootPasswordResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{52}
+}
+
 var File_xcp_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_xcp_agent_v1_agent_proto_rawDesc = "" +
@@ -2160,7 +3104,64 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12#\n" +
 	"\x03tls\x18\x02 \x01(\v2\x11.xcp.agent.v1.TLSR\x03tls\":\n" +
 	"\x1eHostCertificateInstallResponse\x12\x18\n" +
-	"\achanged\x18\x01 \x01(\bR\achanged*\xb6\x01\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\"\x14\n" +
+	"\x12MySQLStatusRequest\"O\n" +
+	"\x13MySQLStatusResponse\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1e\n" +
+	"\n" +
+	"phpmyadmin\x18\x02 \x01(\tR\n" +
+	"phpmyadmin\"\x9b\x01\n" +
+	"\x18MySQLAccountApplyRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1c\n" +
+	"\tdatabases\x18\x02 \x03(\tR\tdatabases\x12-\n" +
+	"\x05users\x18\x03 \x03(\v2\x17.xcp.agent.v1.MySQLUserR\x05users\x12\x16\n" +
+	"\x06locked\x18\x04 \x01(\bR\x06locked\"v\n" +
+	"\tMySQLUser\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rpassword_hash\x18\x02 \x01(\tR\fpasswordHash\x120\n" +
+	"\x06grants\x18\x03 \x03(\v2\x18.xcp.agent.v1.MySQLGrantR\x06grants\"H\n" +
+	"\n" +
+	"MySQLGrant\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
+	"\n" +
+	"privileges\x18\x02 \x03(\tR\n" +
+	"privileges\"5\n" +
+	"\x19MySQLAccountApplyResponse\x12\x18\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\"7\n" +
+	"\x19MySQLAccountRemoveRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"P\n" +
+	"\x1aMySQLAccountRemoveResponse\x12\x1c\n" +
+	"\tdatabases\x18\x01 \x01(\rR\tdatabases\x12\x14\n" +
+	"\x05users\x18\x02 \x01(\rR\x05users\"7\n" +
+	"\x19MySQLDatabaseSizesRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"\xa1\x01\n" +
+	"\x1aMySQLDatabaseSizesResponse\x12I\n" +
+	"\x05sizes\x18\x01 \x03(\v23.xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntryR\x05sizes\x1a8\n" +
+	"\n" +
+	"SizesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"R\n" +
+	"\x18MySQLDatabaseDropRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
+	"\bdatabase\x18\x02 \x01(\tR\bdatabase\"5\n" +
+	"\x19MySQLDatabaseDropResponse\x12\x18\n" +
+	"\adropped\x18\x01 \x01(\bR\adropped\"\\\n" +
+	"\x1aMySQLDatabaseRenameRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x12\n" +
+	"\x04from\x18\x02 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x03 \x01(\tR\x02to\"\x1d\n" +
+	"\x1bMySQLDatabaseRenameResponse\"N\n" +
+	"\x12MySQLSignonRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1c\n" +
+	"\tdatabases\x18\x02 \x03(\tR\tdatabases\"-\n" +
+	"\x13MySQLSignonResponse\x12\x16\n" +
+	"\x06ticket\x18\x01 \x01(\tR\x06ticket\"\x1a\n" +
+	"\x18MySQLSignonExpireRequest\"5\n" +
+	"\x19MySQLSignonExpireResponse\x12\x18\n" +
+	"\adropped\x18\x01 \x01(\rR\adropped\"?\n" +
+	"\x18MySQLRootPasswordRequest\x12#\n" +
+	"\rpassword_hash\x18\x01 \x01(\tR\fpasswordHash\"\x1b\n" +
+	"\x19MySQLRootPasswordResponse*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -2182,8 +3183,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\tCanonical\x12\x19\n" +
 	"\x15CANONICAL_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rCANONICAL_WWW\x10\x01\x12\x12\n" +
-	"\x0eCANONICAL_BARE\x10\x022\x83\n" +
-	"\n" +
+	"\x0eCANONICAL_BARE\x10\x022\x81\x11\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -2199,7 +3199,16 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\vPHPVersions\x12 .xcp.agent.v1.PHPVersionsRequest\x1a!.xcp.agent.v1.PHPVersionsResponse\x12U\n" +
 	"\fDNSZoneApply\x12!.xcp.agent.v1.DNSZoneApplyRequest\x1a\".xcp.agent.v1.DNSZoneApplyResponse\x12X\n" +
 	"\rDNSZoneDelete\x12\".xcp.agent.v1.DNSZoneDeleteRequest\x1a#.xcp.agent.v1.DNSZoneDeleteResponse\x12s\n" +
-	"\x16HostCertificateInstall\x12+.xcp.agent.v1.HostCertificateInstallRequest\x1a,.xcp.agent.v1.HostCertificateInstallResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\x16HostCertificateInstall\x12+.xcp.agent.v1.HostCertificateInstallRequest\x1a,.xcp.agent.v1.HostCertificateInstallResponse\x12R\n" +
+	"\vMySQLStatus\x12 .xcp.agent.v1.MySQLStatusRequest\x1a!.xcp.agent.v1.MySQLStatusResponse\x12d\n" +
+	"\x11MySQLAccountApply\x12&.xcp.agent.v1.MySQLAccountApplyRequest\x1a'.xcp.agent.v1.MySQLAccountApplyResponse\x12g\n" +
+	"\x12MySQLAccountRemove\x12'.xcp.agent.v1.MySQLAccountRemoveRequest\x1a(.xcp.agent.v1.MySQLAccountRemoveResponse\x12g\n" +
+	"\x12MySQLDatabaseSizes\x12'.xcp.agent.v1.MySQLDatabaseSizesRequest\x1a(.xcp.agent.v1.MySQLDatabaseSizesResponse\x12d\n" +
+	"\x11MySQLDatabaseDrop\x12&.xcp.agent.v1.MySQLDatabaseDropRequest\x1a'.xcp.agent.v1.MySQLDatabaseDropResponse\x12j\n" +
+	"\x13MySQLDatabaseRename\x12(.xcp.agent.v1.MySQLDatabaseRenameRequest\x1a).xcp.agent.v1.MySQLDatabaseRenameResponse\x12R\n" +
+	"\vMySQLSignon\x12 .xcp.agent.v1.MySQLSignonRequest\x1a!.xcp.agent.v1.MySQLSignonResponse\x12d\n" +
+	"\x11MySQLSignonExpire\x12&.xcp.agent.v1.MySQLSignonExpireRequest\x1a'.xcp.agent.v1.MySQLSignonExpireResponse\x12d\n" +
+	"\x11MySQLRootPassword\x12&.xcp.agent.v1.MySQLRootPasswordRequest\x1a'.xcp.agent.v1.MySQLRootPasswordResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -2214,7 +3223,7 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(ServiceActionKind)(0),                 // 0: xcp.agent.v1.ServiceActionKind
 	(Validator)(0),                         // 1: xcp.agent.v1.Validator
@@ -2253,6 +3262,27 @@ var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(*DNSZoneDeleteResponse)(nil),          // 34: xcp.agent.v1.DNSZoneDeleteResponse
 	(*HostCertificateInstallRequest)(nil),  // 35: xcp.agent.v1.HostCertificateInstallRequest
 	(*HostCertificateInstallResponse)(nil), // 36: xcp.agent.v1.HostCertificateInstallResponse
+	(*MySQLStatusRequest)(nil),             // 37: xcp.agent.v1.MySQLStatusRequest
+	(*MySQLStatusResponse)(nil),            // 38: xcp.agent.v1.MySQLStatusResponse
+	(*MySQLAccountApplyRequest)(nil),       // 39: xcp.agent.v1.MySQLAccountApplyRequest
+	(*MySQLUser)(nil),                      // 40: xcp.agent.v1.MySQLUser
+	(*MySQLGrant)(nil),                     // 41: xcp.agent.v1.MySQLGrant
+	(*MySQLAccountApplyResponse)(nil),      // 42: xcp.agent.v1.MySQLAccountApplyResponse
+	(*MySQLAccountRemoveRequest)(nil),      // 43: xcp.agent.v1.MySQLAccountRemoveRequest
+	(*MySQLAccountRemoveResponse)(nil),     // 44: xcp.agent.v1.MySQLAccountRemoveResponse
+	(*MySQLDatabaseSizesRequest)(nil),      // 45: xcp.agent.v1.MySQLDatabaseSizesRequest
+	(*MySQLDatabaseSizesResponse)(nil),     // 46: xcp.agent.v1.MySQLDatabaseSizesResponse
+	(*MySQLDatabaseDropRequest)(nil),       // 47: xcp.agent.v1.MySQLDatabaseDropRequest
+	(*MySQLDatabaseDropResponse)(nil),      // 48: xcp.agent.v1.MySQLDatabaseDropResponse
+	(*MySQLDatabaseRenameRequest)(nil),     // 49: xcp.agent.v1.MySQLDatabaseRenameRequest
+	(*MySQLDatabaseRenameResponse)(nil),    // 50: xcp.agent.v1.MySQLDatabaseRenameResponse
+	(*MySQLSignonRequest)(nil),             // 51: xcp.agent.v1.MySQLSignonRequest
+	(*MySQLSignonResponse)(nil),            // 52: xcp.agent.v1.MySQLSignonResponse
+	(*MySQLSignonExpireRequest)(nil),       // 53: xcp.agent.v1.MySQLSignonExpireRequest
+	(*MySQLSignonExpireResponse)(nil),      // 54: xcp.agent.v1.MySQLSignonExpireResponse
+	(*MySQLRootPasswordRequest)(nil),       // 55: xcp.agent.v1.MySQLRootPasswordRequest
+	(*MySQLRootPasswordResponse)(nil),      // 56: xcp.agent.v1.MySQLRootPasswordResponse
+	nil,                                    // 57: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -2267,39 +3297,60 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	23, // 9: xcp.agent.v1.VirtualHost.tls:type_name -> xcp.agent.v1.TLS
 	31, // 10: xcp.agent.v1.DNSZoneApplyRequest.records:type_name -> xcp.agent.v1.DNSRecord
 	23, // 11: xcp.agent.v1.HostCertificateInstallRequest.tls:type_name -> xcp.agent.v1.TLS
-	4,  // 12: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
-	6,  // 13: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
-	8,  // 14: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
-	10, // 15: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
-	12, // 16: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
-	15, // 17: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
-	17, // 18: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
-	19, // 19: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
-	21, // 20: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
-	26, // 21: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
-	28, // 22: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
-	30, // 23: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
-	33, // 24: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
-	35, // 25: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
-	5,  // 26: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	7,  // 27: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	9,  // 28: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	11, // 29: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	13, // 30: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	16, // 31: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	18, // 32: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	20, // 33: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	25, // 34: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
-	27, // 35: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
-	29, // 36: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
-	32, // 37: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
-	34, // 38: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
-	36, // 39: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
-	26, // [26:40] is the sub-list for method output_type
-	12, // [12:26] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	40, // 12: xcp.agent.v1.MySQLAccountApplyRequest.users:type_name -> xcp.agent.v1.MySQLUser
+	41, // 13: xcp.agent.v1.MySQLUser.grants:type_name -> xcp.agent.v1.MySQLGrant
+	57, // 14: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	4,  // 15: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
+	6,  // 16: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
+	8,  // 17: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
+	10, // 18: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
+	12, // 19: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
+	15, // 20: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
+	17, // 21: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
+	19, // 22: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
+	21, // 23: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
+	26, // 24: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
+	28, // 25: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
+	30, // 26: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
+	33, // 27: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
+	35, // 28: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
+	37, // 29: xcp.agent.v1.AgentService.MySQLStatus:input_type -> xcp.agent.v1.MySQLStatusRequest
+	39, // 30: xcp.agent.v1.AgentService.MySQLAccountApply:input_type -> xcp.agent.v1.MySQLAccountApplyRequest
+	43, // 31: xcp.agent.v1.AgentService.MySQLAccountRemove:input_type -> xcp.agent.v1.MySQLAccountRemoveRequest
+	45, // 32: xcp.agent.v1.AgentService.MySQLDatabaseSizes:input_type -> xcp.agent.v1.MySQLDatabaseSizesRequest
+	47, // 33: xcp.agent.v1.AgentService.MySQLDatabaseDrop:input_type -> xcp.agent.v1.MySQLDatabaseDropRequest
+	49, // 34: xcp.agent.v1.AgentService.MySQLDatabaseRename:input_type -> xcp.agent.v1.MySQLDatabaseRenameRequest
+	51, // 35: xcp.agent.v1.AgentService.MySQLSignon:input_type -> xcp.agent.v1.MySQLSignonRequest
+	53, // 36: xcp.agent.v1.AgentService.MySQLSignonExpire:input_type -> xcp.agent.v1.MySQLSignonExpireRequest
+	55, // 37: xcp.agent.v1.AgentService.MySQLRootPassword:input_type -> xcp.agent.v1.MySQLRootPasswordRequest
+	5,  // 38: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	7,  // 39: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	9,  // 40: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	11, // 41: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	13, // 42: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	16, // 43: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	18, // 44: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	20, // 45: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	25, // 46: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	27, // 47: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	29, // 48: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	32, // 49: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
+	34, // 50: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
+	36, // 51: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
+	38, // 52: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
+	42, // 53: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
+	44, // 54: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
+	46, // 55: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
+	48, // 56: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
+	50, // 57: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
+	52, // 58: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
+	54, // 59: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
+	56, // 60: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
+	38, // [38:61] is the sub-list for method output_type
+	15, // [15:38] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_xcp_agent_v1_agent_proto_init() }
@@ -2314,7 +3365,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   33,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

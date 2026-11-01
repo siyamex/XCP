@@ -21,6 +21,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/config"
+	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -88,6 +89,8 @@ func serve(args []string) error {
 	}
 	doms := domains.NewService(a.DB, a.Audit, a.Plans, queue, agent, zs, net.DefaultResolver, a.DomainKey)
 	accts := accounts.NewService(a.DB, a.Audit, a.Auth, a.Plans, queue, agent, doms, zs)
+	dbs := databases.NewService(a.DB, a.Audit, a.Plans, queue, agent, a.Box)
+	accts.SetDatabases(dbs)
 	certs := ssl.NewService(a.DB, a.Audit, a.Plans, queue, agent, doms, zs, a.Box, net.DefaultResolver,
 		ssl.Options{PanelCert: a.Cfg.API.TLSCert, ChallengeDir: ssl.ChallengeDir})
 	if n, err := zs.EnsureDomains(ctx); err != nil {
@@ -101,6 +104,7 @@ func serve(args []string) error {
 	doms.RegisterJobs(worker)
 	zs.RegisterJobs(worker)
 	certs.RegisterJobs(worker)
+	dbs.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -113,6 +117,9 @@ func serve(args []string) error {
 	if err := certs.Schedule(sched); err != nil {
 		return err
 	}
+	if err := dbs.Schedule(sched); err != nil {
+		return err
+	}
 	go sched.Run(ctx)
 	// Catch up at once: zones may wait for a DNS server that is there now.
 	if _, err := queue.Enqueue(ctx, zones.JobSync, struct{}{}, jobs.EnqueueOptions{
@@ -122,7 +129,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})
