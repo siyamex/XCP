@@ -108,6 +108,15 @@ check(isinstance(inbox(f"quiet@{DOMAIN}", PW), Exception), "a mailbox with login
 err = send(f"quiet@{DOMAIN}", "not received")
 check(isinstance(err, smtplib.SMTPRecipientsRefused), "a mailbox with receiving off refuses mail", str(err))
 
+# Dovecot caches logins: a new password must count at once all the same.
+check(isinstance(inbox(*INFO), list), "info logs in (and Dovecot caches the login)")
+st, r = user.call("PUT", f"/mailboxes/{info['id']}/password", {"password": "a changed password 99"})
+user.wait_job(r["job_id"])
+check(isinstance(inbox(*INFO), Exception) and isinstance(inbox(f"info@{DOMAIN}", "a changed password 99"), list),
+      "a new password replaces the old one at once")
+st, r = user.call("PUT", f"/mailboxes/{info['id']}/password", {"password": PW})
+user.wait_job(r["job_id"])
+
 # Submission: log in, sign with DKIM, send only as yourself.
 check(send(f"info@{DOMAIN}", "signed", sender=f"info@{DOMAIN}", port=587, login=INFO) is None, "a mailbox sends over submission (587)")
 signed = wait_for(*INFO, "signed")

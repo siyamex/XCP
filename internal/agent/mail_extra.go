@@ -25,6 +25,7 @@ import (
 // Paths of mail part 2 (ADR-0008).
 const (
 	SievecPath        = "/usr/bin/sievec"
+	DoveadmPath       = "/usr/bin/doveadm"
 	DovecotSieveDir   = DovecotXCPDir + "/sieve"
 	WebmailStateFile  = "/etc/xcp/mail/webmail.json"
 	WebmailTicketDir  = "/var/lib/xcp-roundcube/tickets"
@@ -304,7 +305,7 @@ func (m *Mail) loadTokens() ([]webmailToken, error) {
 
 // writeTokens keeps the tokens that are not expired and whose mailbox may
 // log in, and writes Dovecot's second passdb from them. Callers hold m.mu.
-func (m *Mail) writeTokens(all []MailAccount, ts []webmailToken) error {
+func (m *Mail) writeTokens(all []MailAccount, ts []webmailToken) (bool, error) {
 	may := map[string]bool{}
 	for _, a := range all {
 		for _, d := range a.Domains {
@@ -319,17 +320,29 @@ func (m *Mail) writeTokens(all []MailAccount, ts []webmailToken) error {
 	ts = slices.DeleteFunc(slices.Clone(ts), func(t webmailToken) bool { return !may[t.Address] || !t.Expires.After(now) })
 	b, err := json.Marshal(ts)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if _, err := writeFile(filepath.Dir(m.WebmailState), filepath.Base(m.WebmailState), string(b), 0o600, ""); err != nil {
-		return err
+		return false, err
 	}
 	var passdb strings.Builder
 	for _, t := range ts {
 		fmt.Fprintf(&passdb, "%s:%s\n", t.Address, t.Hash)
 	}
-	_, err = writeFile(m.DovecotDir, "tokens", passdb.String(), 0o640, dovecotGroup)
-	return err
+	return writeFile(m.DovecotDir, "tokens", passdb.String(), 0o640, dovecotGroup)
+}
+
+// flushAuthCache empties Dovecot's login cache, so a new password, login
+// switched off or a dropped webmail password counts at once rather than
+// when the cached login expires.
+func (m *Mail) flushAuthCache(ctx context.Context) error {
+	if m.Run == nil {
+		return nil // tests
+	}
+	if _, err := m.Run.Run(ctx, execx.Cmd{Path: DoveadmPath, Args: []string{"auth", "cache", "flush"}}); err != nil {
+		return fmt.Errorf("flush Dovecot's login cache: %w", err)
+	}
+	return nil
 }
 
 func (m *Mail) now() time.Time {
@@ -388,7 +401,7 @@ func (m *Mail) WebmailSignon(_ context.Context, username, address string) (strin
 	token := randomString(32, lowerAlnum+"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	now := m.now()
 	ts = append(ts, webmailToken{Address: address, Hash: tokenHash(token), Expires: now.Add(WebmailTokenTTL)})
-	if err := m.writeTokens(all, ts); err != nil {
+	if _, err := m.writeTokens(all, ts); err != nil {
 		return "", err
 	}
 	id := randomString(64, "0123456789abcdef")
@@ -410,7 +423,7 @@ func (m *Mail) WebmailSignon(_ context.Context, username, address string) (strin
 }
 
 // ExpireWebmail drops expired temporary passwords and unused tickets.
-func (m *Mail) ExpireWebmail(context.Context) error {
+func (m *Mail) ExpireWebmail(ctx context.Context) error {
 	if m.installed() != nil {
 		return nil
 	}
@@ -424,8 +437,14 @@ func (m *Mail) ExpireWebmail(context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := m.writeTokens(all, ts); err != nil {
+	changed, err := m.writeTokens(all, ts)
+	if err != nil {
 		return err
+	}
+	if changed {
+		if err := m.flushAuthCache(ctx); err != nil {
+			return err
+		}
 	}
 	if root, err := fsx.OpenRoot(m.WebmailTickets); err == nil {
 		m.pruneTickets(root, m.now())

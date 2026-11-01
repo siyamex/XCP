@@ -693,8 +693,14 @@ func (m *Mail) rebuild(ctx context.Context, all []MailAccount) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := m.writeTokens(all, tokens); err != nil {
+	tokensChanged, err := m.writeTokens(all, tokens)
+	if err != nil {
 		return false, err
+	}
+	if passwdChanged || tokensChanged {
+		if err := m.flushAuthCache(ctx); err != nil {
+			return true, err
+		}
 	}
 	if postfixChanged {
 		if err := m.Services.Do(ctx, "postfix.service", ActionReload); err != nil {
