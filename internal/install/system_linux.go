@@ -71,6 +71,15 @@ func (s *LinuxSystem) LookupIDs(name string) (int, int, error) {
 	return uid, gid, errors.Join(err1, err2)
 }
 
+// LookupGroup implements System.
+func (s *LinuxSystem) LookupGroup(name string) (int, error) {
+	g, err := user.LookupGroup(name)
+	if err != nil {
+		return -1, err
+	}
+	return strconv.Atoi(g.Gid)
+}
+
 // Chown implements System. It never follows symlinks.
 func (s *LinuxSystem) Chown(path string, uid, gid int) error { return os.Lchown(path, uid, gid) }
 
@@ -243,6 +252,28 @@ func (s *LinuxSystem) InstallDatabaseServer(ctx context.Context) (bool, error) {
 		}
 	}
 	return installed, s.Systemctl(ctx, "enable", "--now", "mariadb.service")
+}
+
+// InstallBase implements System. Minimal images (containers) lack D-Bus;
+// Ubuntu servers have it.
+func (s *LinuxSystem) InstallBase(ctx context.Context) (bool, error) {
+	installed := false
+	if _, err := os.Stat("/usr/bin/dbus-daemon"); err != nil {
+		env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+		lock := []string{"-o", "DPkg::Lock::Timeout=600"}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: append(lock, "update", "-q"), Env: env, Timeout: 20 * time.Minute,
+		}); err != nil {
+			return false, fmt.Errorf("apt-get update: %w", err)
+		}
+		if _, err := s.run.Run(ctx, execx.Cmd{
+			Path: aptGetPath, Args: append(lock, "install", "-y", "-q", "--no-install-recommends", "dbus"), Env: env, Timeout: 30 * time.Minute,
+		}); err != nil {
+			return false, fmt.Errorf("apt-get install dbus: %w", err)
+		}
+		installed = true
+	}
+	return installed, s.Systemctl(ctx, "start", "dbus.socket", "dbus.service")
 }
 
 // PHPFPMVersions implements System.

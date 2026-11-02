@@ -26,6 +26,9 @@ import (
 // ApachectlPath is Apache's control program, used for "apachectl -t".
 const ApachectlPath = "/usr/sbin/apachectl"
 
+// LogGroup may read the accounts' web logs (xcp-logd runs with it).
+const LogGroup = "adm"
+
 // PHPFPMPaths lists every php-fpm binary the agent may run (for "-t"); a
 // fixed set so the execx allow-list stays static.
 func PHPFPMPaths() []string {
@@ -258,7 +261,7 @@ var (
 {{- end}}
 {{- end}}
     ErrorLog {{.S.LogDir}}/{{.S.Username}}.error.log
-    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log combined
+    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log vhost_combined
 {{- end -}}
 # Managed by XCP. Do not edit: changes are overwritten.
 {{- range .Vhosts}}
@@ -271,7 +274,7 @@ var (
     RewriteRule "^/\.well-known/acme-challenge/" - [L]
     RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
     ErrorLog {{.S.LogDir}}/{{.S.Username}}.error.log
-    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log combined
+    CustomLog {{.S.LogDir}}/{{.S.Username}}.access.log vhost_combined
 {{- else}}
 {{- template "site" .}}
 {{- end}}
@@ -629,6 +632,17 @@ func (w *Web) ensureSupport() error {
 	}
 	if err := os.MkdirAll(w.CertDir, 0o700); err != nil { // private keys: root only
 		return err
+	}
+	// Only root and adm (xcp-logd) may read the accounts' logs (ADR-0012);
+	// Apache writes them as root.
+	if g, err := user.LookupGroup(LogGroup); err == nil {
+		gid, _ := strconv.Atoi(g.Gid)
+		if err := os.Chown(w.LogDir, 0, gid); err != nil && os.Geteuid() == 0 {
+			return err
+		}
+		if err := os.Chmod(w.LogDir, 0o750); err != nil { //nolint:gosec // G302: a folder: adm must enter it
+			return err
+		}
 	}
 	page := filepath.Join(w.SuspendedDir, "index.html")
 	if _, err := os.Stat(page); err == nil {

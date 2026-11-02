@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -362,5 +363,28 @@ func TestPHPVersionRules(t *testing.T) {
 	}
 	if v, err := e.svc.PHPVersions(ctx, e.admin); err != nil || len(v) != 2 {
 		t.Fatalf("PHPVersions = %v, %v", v, err)
+	}
+}
+
+func TestApplyAfterUpgrade(t *testing.T) {
+	e := newEnv(t)
+	a := e.create(t, "alice", "alice.example")
+	e.waitStatus(t, a.ID, store.AccountActive)
+	before := len(e.fake.Calls())
+	n, err := e.svc.ApplyAfterUpgrade(ctx)
+	if err != nil || n != 1 {
+		t.Fatalf("first start of this release: %d %v", n, err)
+	}
+	applied := func() bool {
+		return slices.ContainsFunc(e.fake.Calls()[before:], func(c string) bool { return strings.HasPrefix(c, "SiteApply") })
+	}
+	for deadline := time.Now().Add(10 * time.Second); !applied() && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !applied() {
+		t.Errorf("the sites were not applied again: %q", e.fake.Calls()[before:])
+	}
+	if n, err = e.svc.ApplyAfterUpgrade(ctx); err != nil || n != 0 {
+		t.Fatalf("a second start: %d %v", n, err)
 	}
 }

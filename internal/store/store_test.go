@@ -143,3 +143,21 @@ func TestTimeFormatSortsAsText(t *testing.T) {
 		t.Fatalf("ParseTime = %v, %v", got, err)
 	}
 }
+
+func TestOpenMigratedWaitsForMigrations(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "xcp.db")
+	if _, err := OpenMigrated(ctx, path); !errors.Is(err, ErrNotMigrated) {
+		t.Fatalf("a new database: %v", err)
+	}
+	db, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	db, err = OpenMigrated(ctx, path)
+	if err != nil {
+		t.Fatalf("after xcp-api migrated: %v", err)
+	}
+	db.Close()
+}

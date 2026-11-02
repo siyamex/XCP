@@ -36,6 +36,7 @@ var Binaries = map[string]string{
 	"xcp-userd":   "/usr/sbin/xcp-userd",
 	"xcp-ftpauth": "/usr/sbin/xcp-ftpauth",
 	"xcp-cronrun": "/usr/sbin/xcp-cronrun",
+	"xcp-logd":    "/usr/sbin/xcp-logd",
 }
 
 // Well-known paths (without Options.Root).
@@ -54,11 +55,17 @@ const (
 type System interface {
 	EnsureSystemUser(ctx context.Context, name, home string) (created bool, err error)
 	LookupIDs(name string) (uid, gid int, err error)
+	// LookupGroup returns a group's ID.
+	LookupGroup(name string) (gid int, err error)
 	Chown(path string, uid, gid int) error
 	Systemctl(ctx context.Context, args ...string) error
 	// CreateFirstAdmin runs `xcpctl admin create --if-none`; it reports whether a login was created.
 	CreateFirstAdmin(ctx context.Context, username, password string, mustChange bool) (created bool, err error)
 	WaitHealthy(ctx context.Context, url string, caPEM []byte) error
+	// InstallBase installs what XCP itself needs from the system (D-Bus,
+	// which systemd-run needs for cron jobs) and starts it; it reports
+	// whether anything was installed.
+	InstallBase(ctx context.Context) (installed bool, err error)
 	// InstallWebStack installs Apache and PHP-FPM, enables the Apache modules
 	// XCP needs and makes sure both services run at boot and now. It reports
 	// whether anything was installed.
@@ -146,6 +153,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"master key", in.masterKey},
 		{"TLS certificate", in.certificate},
 		{"systemd units", in.units},
+		{"base packages (D-Bus)", in.base},
 		// Restart right after binaries and units: a later failure (the web
 		// step needs the network) must not leave the old binaries running,
 		// because a re-run sees the files unchanged and would not restart.
@@ -218,6 +226,7 @@ const (
 	rootRspamd               // root:_rspamd (Rspamd can read)
 	rootRC                   // root:xcp-rc (Roundcube can read)
 	rcRC                     // xcp-rc:xcp-rc (Roundcube owns)
+	rootAdm                  // root:adm (xcp-logd and admins can read logs)
 )
 
 func (in *installer) chown(p string, o owner) error {
@@ -241,6 +250,12 @@ func (in *installer) chown(p string, o owner) error {
 		return in.o.Sys.Chown(p, in.rcUID, in.rcGID)
 	case rootDovecot, rootRspamd:
 		return in.o.Sys.Chown(p, 0, in.mailGIDs[o])
+	case rootAdm:
+		gid, err := in.o.Sys.LookupGroup(LogGroup)
+		if err != nil {
+			return err
+		}
+		return in.o.Sys.Chown(p, 0, gid)
 	}
 	return in.o.Sys.Chown(p, 0, 0)
 }
@@ -267,6 +282,7 @@ func (in *installer) dirs(context.Context) error {
 		{agent.CronFragmentDir, 0o700, rootRoot},
 		{agent.CronStateDir, 0o700, rootRoot},
 		{"/etc/tmpfiles.d", 0o755, rootRoot},
+		{"/etc/logrotate.d", 0o755, rootRoot},
 	})
 }
 
@@ -441,6 +457,46 @@ func (in *installer) units(context.Context) error {
 	return nil
 }
 
+// Logs of the accounts' sites and their rotation (ADR-0012).
+const (
+	SiteLogDir    = "/var/log/apache2/xcp"
+	SiteLogrotate = "/etc/logrotate.d/xcp-sites"
+	FTPLogrotate  = "/etc/logrotate.d/xcp-pure-ftpd"
+	LogGroup      = "adm"
+)
+
+const siteLogrotate = `# Managed by XCP (xcp-install; ADR-0012). Changes are overwritten.
+` + SiteLogDir + `/*.log {
+	daily
+	missingok
+	rotate 14
+	compress
+	delaycompress
+	notifempty
+	create 640 root adm
+	sharedscripts
+	postrotate
+		if pgrep -f ^/usr/sbin/apache2 > /dev/null; then
+			invoke-rc.d apache2 reload 2>&1 | logger -t apache2.logrotate
+		fi
+	endscript
+}
+`
+
+// ftpLogrotate rotates the xferlog in place: restarting Pure-FTPd would end
+// its sessions.
+const ftpLogrotate = `# Managed by XCP (xcp-install; ADR-0012). Changes are overwritten.
+` + agent.FTPXferLog + ` {
+	weekly
+	missingok
+	rotate 8
+	compress
+	delaycompress
+	notifempty
+	copytruncate
+}
+`
+
 // ApacheConf includes the per-account virtual hosts the agent writes. It is
 // a site, not a conf: Apache reads sites-enabled after conf-enabled and in
 // name order, so 000-default stays the default host and a request for an
@@ -537,6 +593,18 @@ func apacheConf(hostname string) string {
 		"IncludeOptional /etc/apache2/xcp/wildcards/*.conf\n"
 }
 
+func (in *installer) base(ctx context.Context) error {
+	if in.o.DryRun {
+		in.logf("    would install dbus if missing")
+		return nil
+	}
+	installed, err := in.o.Sys.InstallBase(ctx)
+	if installed {
+		in.changed("installed dbus")
+	}
+	return err
+}
+
 func (in *installer) web(ctx context.Context) error {
 	if in.o.NoWeb {
 		in.logf("    skipped (--no-web)")
@@ -562,6 +630,13 @@ func (in *installer) web(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// The accounts' logs: only root and adm (xcp-logd) may read them (ADR-0012).
+	if err := in.makeDirs([]dirSpec{{SiteLogDir, 0o750, rootAdm}}); err != nil {
+		return err
+	}
+	if _, err := in.writeFile(SiteLogrotate, []byte(siteLogrotate), 0o644, rootRoot, false); err != nil {
+		return err
+	}
 	if wrote || installed {
 		return in.o.Sys.EnableApacheSite(ctx)
 	}
@@ -579,12 +654,12 @@ func (in *installer) services(ctx context.Context) error {
 			return err
 		}
 	}
-	if err := sys.Systemctl(ctx, "enable", "--now", "xcp-agent.service", "xcp-api.service"); err != nil {
+	if err := sys.Systemctl(ctx, "enable", "--now", "xcp-agent.service", "xcp-api.service", "xcp-logd.service"); err != nil {
 		return err
 	}
 	if in.restart {
 		in.logf("    restarting services (binaries or units changed)")
-		if err := sys.Systemctl(ctx, "restart", "xcp-agent.service", "xcp-api.service"); err != nil {
+		if err := sys.Systemctl(ctx, "restart", "xcp-agent.service", "xcp-api.service", "xcp-logd.service"); err != nil {
 			return err
 		}
 	}

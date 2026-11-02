@@ -31,6 +31,33 @@ type DB struct {
 // migrations. Before migrating an existing database it writes a copy next to
 // it (see migrate.go).
 func Open(ctx context.Context, path string) (*DB, error) {
+	return open(ctx, path, migrate)
+}
+
+// ErrNotMigrated means the database waits for xcp-api to apply migrations.
+var ErrNotMigrated = errors.New("store: the database is not at this binary's schema yet")
+
+// OpenMigrated opens a database that xcp-api keeps migrated, for other
+// processes (xcp-logd): it never migrates, and returns ErrNotMigrated while
+// migrations are pending, so two processes never migrate at once.
+func OpenMigrated(ctx context.Context, path string) (*DB, error) {
+	return open(ctx, path, func(ctx context.Context, w *sql.DB, _ string) error {
+		ms, err := loadMigrations()
+		if err != nil {
+			return err
+		}
+		var current int
+		if err := w.QueryRowContext(ctx, `SELECT COALESCE(MAX(version), 0) FROM schema_migrations`).Scan(&current); err != nil {
+			return fmt.Errorf("%w: %w", ErrNotMigrated, err)
+		}
+		if current != ms[len(ms)-1].version {
+			return fmt.Errorf("%w (v%d, want v%d)", ErrNotMigrated, current, ms[len(ms)-1].version)
+		}
+		return nil
+	})
+}
+
+func open(ctx context.Context, path string, prepare func(context.Context, *sql.DB, string) error) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return nil, fmt.Errorf("store: create db dir: %w", err)
 	}
@@ -44,7 +71,7 @@ func Open(ctx context.Context, path string) (*DB, error) {
 		w.Close()
 		return nil, fmt.Errorf("store: open %s: %w", path, err)
 	}
-	if err := migrate(ctx, w, path); err != nil {
+	if err := prepare(ctx, w, path); err != nil {
 		w.Close()
 		return nil, err
 	}

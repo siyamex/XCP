@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: stats
+    description: |
+      Bandwidth per domain and month, counted by xcp-logd from the web,
+      mail and FTP logs (feature stats), and the access and error logs of
+      the account's sites (feature logs). ADR-0012.
   - name: cron
     description: |
       Cron jobs of an account (ADR-0011): run as the account's user in its
@@ -1818,6 +1823,67 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/stats/bandwidth:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [stats]
+      summary: An account's bandwidth in a month, per domain and day
+      operationId: getBandwidth
+      parameters:
+        - { name: month, in: query, schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}$' }, description: 'Empty: this month (UTC)' }
+      responses:
+        "200":
+          description: The month's bytes.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bandwidth" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/logs/{kind}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: kind, in: path, required: true, schema: { type: string, enum: [access, error] } }
+    get:
+      tags: [stats]
+      summary: The last lines of the account's access or error log
+      operationId: tailLog
+      parameters:
+        - { name: lines, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 200 }, description: Only lines holding this text }
+      responses:
+        "200":
+          description: Oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lines]
+                properties:
+                  lines: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/logs/{kind}/download:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: kind, in: path, required: true, schema: { type: string, enum: [access, error] } }
+    get:
+      tags: [stats]
+      summary: Download the account's current access or error log
+      operationId: downloadLog
+      responses:
+        "200":
+          description: The log as it was when the download started.
+          content:
+            text/plain: { schema: { type: string } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/cron:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -2481,6 +2547,37 @@ components:
         alias_of: { type: string }
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
+
+    Bytes:
+      type: object
+      required: [web, mail, ftp, total]
+      properties:
+        web: { type: integer }
+        mail: { type: integer }
+        ftp: { type: integer }
+        total: { type: integer }
+
+    Bandwidth:
+      type: object
+      required: [month, limit_mb, total, domains, days]
+      properties:
+        month: { type: string }
+        limit_mb: { type: [integer, "null"], description: The package's monthly limit; null means unlimited }
+        total: { $ref: "#/components/schemas/Bytes" }
+        domains:
+          type: array
+          description: Biggest first
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/Bytes" }
+              - { type: object, required: [domain], properties: { domain: { type: string } } }
+        days:
+          type: array
+          description: Every day of the month up to today (UTC)
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/Bytes" }
+              - { type: object, required: [day], properties: { day: { type: string } } }
 
     CronOverview:
       type: object

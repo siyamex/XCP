@@ -169,6 +169,10 @@ type WebServer interface {
 - GeoIP: MaxMind GeoLite2 (admin enters a license key) or DB-IP lite.
 
 ## 10. Logs, bandwidth, stats
+- **Amended by ADR-0012:** `vhost_combined` per-account logs in a
+  `root:adm` folder, xcp-logd polls files and the journal once a minute
+  with offsets stored next to the bytes, daily buckets; the log viewers
+  read through the agent.
 - Web servers log per vhost to a pipe/socket read by `xcp-logd`, or to files
   tailed by `xcp-logd` (simpler; P1). `xcp-logd` counts bytes per domain → 5-minute
   buckets in the DB → daily/monthly roll-ups.

@@ -26,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/ssl"
+	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/zones"
 )
@@ -41,6 +42,7 @@ type Deps struct {
 	Files     *files.Service
 	FTP       *ftp.Service
 	Cron      *cronjobs.Service
+	Stats     *stats.Service
 	Zones     *zones.Service
 	SSL       *ssl.Service
 	Jobs      *jobs.Queue
@@ -184,6 +186,9 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/accounts/{id}/stats/bandwidth", access: authed, roles: adminOrUser, h: s.bandwidth},
+		{method: "GET", path: "/api/v1/accounts/{id}/logs/{kind}", access: authed, roles: adminOrUser, h: s.tailLog},
+		{method: "GET", path: "/api/v1/accounts/{id}/logs/{kind}/download", access: authed, roles: adminOrUser, h: s.downloadLog},
 		{method: "GET", path: "/api/v1/accounts/{id}/cron", access: authed, roles: adminOrUser, h: s.cronOverview},
 		{method: "POST", path: "/api/v1/accounts/{id}/cron", access: authed, roles: adminOrUser, h: s.createCronJob},
 		{method: "PUT", path: "/api/v1/cron/{id}", access: authed, roles: adminOrUser, h: s.updateCronJob},

@@ -96,6 +96,13 @@ func (in *installer) ftp(ctx context.Context) error {
 	if _, err := os.Stat(in.path(HostCertFile)); err == nil {
 		cert, key = HostCertFile, HostKeyFile
 	}
+	// The transfer log, readable by xcp-logd for bandwidth (ADR-0012).
+	if _, err := in.writeFile(agent.FTPXferLog, nil, 0o640, rootAdm, true); err != nil {
+		return err
+	}
+	if _, err := in.writeFile(FTPLogrotate, []byte(ftpLogrotate), 0o644, rootRoot, false); err != nil {
+		return err
+	}
 	conf, err := in.writeFile(agent.FTPConfFile, []byte(agent.FTPConfig(cert, key)), 0o644, rootRoot, false)
 	if err != nil {
 		return err

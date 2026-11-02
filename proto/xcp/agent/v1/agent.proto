@@ -152,6 +152,16 @@ service AgentService {
 
   // CronStatus returns the last run of each of an account's jobs.
   rpc CronStatus(CronStatusRequest) returns (CronStatusResponse);
+
+  // Logs (ADR-0012). FAILED_PRECONDITION: not an XCP account.
+
+  // SiteLogTail returns the last lines of an account's access or error
+  // log, oldest first; with contains, only lines holding that text.
+  rpc SiteLogTail(SiteLogTailRequest) returns (SiteLogTailResponse);
+
+  // SiteLogRead returns a part of an account's log and its size, for
+  // downloading it part by part.
+  rpc SiteLogRead(SiteLogReadRequest) returns (SiteLogReadResponse);
 }
 
 message PingRequest {}
@@ -607,4 +617,27 @@ message CronRun {
 
 message CronStatusResponse {
   repeated CronRun runs = 1;
+}
+
+message SiteLogTailRequest {
+  string username = 1;
+  string kind = 2;      // access or error
+  int32 lines = 3;      // 1 to 1000
+  string contains = 4;  // empty: every line
+}
+
+message SiteLogTailResponse {
+  repeated string lines = 1;
+}
+
+message SiteLogReadRequest {
+  string username = 1;
+  string kind = 2;
+  int64 offset = 3;
+  int64 length = 4;  // at most 1 MiB
+}
+
+message SiteLogReadResponse {
+  bytes data = 1;
+  int64 size = 2;  // of the whole log now
 }

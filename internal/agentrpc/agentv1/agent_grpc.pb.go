@@ -62,6 +62,8 @@ const (
 	AgentService_CronAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/CronAccountApply"
 	AgentService_CronAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/CronAccountRemove"
 	AgentService_CronStatus_FullMethodName             = "/xcp.agent.v1.AgentService/CronStatus"
+	AgentService_SiteLogTail_FullMethodName            = "/xcp.agent.v1.AgentService/SiteLogTail"
+	AgentService_SiteLogRead_FullMethodName            = "/xcp.agent.v1.AgentService/SiteLogRead"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -163,6 +165,12 @@ type AgentServiceClient interface {
 	CronAccountRemove(ctx context.Context, in *CronAccountRemoveRequest, opts ...grpc.CallOption) (*CronAccountRemoveResponse, error)
 	// CronStatus returns the last run of each of an account's jobs.
 	CronStatus(ctx context.Context, in *CronStatusRequest, opts ...grpc.CallOption) (*CronStatusResponse, error)
+	// SiteLogTail returns the last lines of an account's access or error
+	// log, oldest first; with contains, only lines holding that text.
+	SiteLogTail(ctx context.Context, in *SiteLogTailRequest, opts ...grpc.CallOption) (*SiteLogTailResponse, error)
+	// SiteLogRead returns a part of an account's log and its size, for
+	// downloading it part by part.
+	SiteLogRead(ctx context.Context, in *SiteLogReadRequest, opts ...grpc.CallOption) (*SiteLogReadResponse, error)
 }
 
 type agentServiceClient struct {
@@ -513,6 +521,26 @@ func (c *agentServiceClient) CronStatus(ctx context.Context, in *CronStatusReque
 	return out, nil
 }
 
+func (c *agentServiceClient) SiteLogTail(ctx context.Context, in *SiteLogTailRequest, opts ...grpc.CallOption) (*SiteLogTailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SiteLogTailResponse)
+	err := c.cc.Invoke(ctx, AgentService_SiteLogTail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) SiteLogRead(ctx context.Context, in *SiteLogReadRequest, opts ...grpc.CallOption) (*SiteLogReadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SiteLogReadResponse)
+	err := c.cc.Invoke(ctx, AgentService_SiteLogRead_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -612,6 +640,12 @@ type AgentServiceServer interface {
 	CronAccountRemove(context.Context, *CronAccountRemoveRequest) (*CronAccountRemoveResponse, error)
 	// CronStatus returns the last run of each of an account's jobs.
 	CronStatus(context.Context, *CronStatusRequest) (*CronStatusResponse, error)
+	// SiteLogTail returns the last lines of an account's access or error
+	// log, oldest first; with contains, only lines holding that text.
+	SiteLogTail(context.Context, *SiteLogTailRequest) (*SiteLogTailResponse, error)
+	// SiteLogRead returns a part of an account's log and its size, for
+	// downloading it part by part.
+	SiteLogRead(context.Context, *SiteLogReadRequest) (*SiteLogReadResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -723,6 +757,12 @@ func (UnimplementedAgentServiceServer) CronAccountRemove(context.Context, *CronA
 }
 func (UnimplementedAgentServiceServer) CronStatus(context.Context, *CronStatusRequest) (*CronStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CronStatus not implemented")
+}
+func (UnimplementedAgentServiceServer) SiteLogTail(context.Context, *SiteLogTailRequest) (*SiteLogTailResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SiteLogTail not implemented")
+}
+func (UnimplementedAgentServiceServer) SiteLogRead(context.Context, *SiteLogReadRequest) (*SiteLogReadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SiteLogRead not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1357,6 +1397,42 @@ func _AgentService_CronStatus_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_SiteLogTail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SiteLogTailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SiteLogTail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SiteLogTail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SiteLogTail(ctx, req.(*SiteLogTailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_SiteLogRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SiteLogReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SiteLogRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SiteLogRead_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SiteLogRead(ctx, req.(*SiteLogReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1499,6 +1575,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CronStatus",
 			Handler:    _AgentService_CronStatus_Handler,
+		},
+		{
+			MethodName: "SiteLogTail",
+			Handler:    _AgentService_SiteLogTail_Handler,
+		},
+		{
+			MethodName: "SiteLogRead",
+			Handler:    _AgentService_SiteLogRead_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -35,6 +35,7 @@ type Fake struct {
 	mail      fakeMail
 	ftp       fakeFTP
 	cron      fakeCron
+	logs      fakeLogs
 	hostName  string
 	hostCert  string
 }

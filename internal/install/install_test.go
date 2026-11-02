@@ -51,6 +51,11 @@ func (f *fakeSys) InstallMailServer(context.Context) (bool, error) {
 	return installed, nil
 }
 
+func (f *fakeSys) InstallBase(context.Context) (bool, error) {
+	f.calls = append(f.calls, "base install")
+	return false, nil
+}
+
 func (f *fakeSys) InstallFTPServer(context.Context) (bool, error) {
 	f.calls = append(f.calls, "ftp install")
 	installed := !f.ftpDone
@@ -111,6 +116,8 @@ func (f *fakeSys) LookupIDs(string) (int, int, error) {
 	}
 	return 990, 990, nil
 }
+
+func (f *fakeSys) LookupGroup(string) (int, error) { return 4, nil }
 
 func (f *fakeSys) Chown(string, int, int) error { return nil }
 
@@ -321,8 +328,8 @@ func TestFirstInstall(t *testing.T) {
 		}
 	}
 	want := []string{
-		"useradd xcp", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service",
-		"systemctl restart xcp-agent.service xcp-api.service", "health", "web install", "a2ensite xcp",
+		"useradd xcp", "base install", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service xcp-logd.service",
+		"systemctl restart xcp-agent.service xcp-api.service xcp-logd.service", "health", "web install", "a2ensite xcp",
 		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service",
 		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
@@ -364,7 +371,7 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 	if !bytes.Equal(e.read(t, SecretsDir+"/master.key"), key) || !bytes.Equal(e.read(t, CertFile), cert) {
 		t.Fatal("master key or certificate was replaced: this would lock out encrypted secrets / break pinning")
 	}
-	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
+	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
 		slices.Contains(e.sys.calls, "systemctl restart pdns.service") || slices.Contains(e.sys.calls, "systemctl restart mariadb.service") ||
 		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") || slices.Contains(e.sys.calls, "systemctl restart postfix.service") {
 		t.Fatalf("services restarted although nothing changed: %q", e.sys.calls)
@@ -383,7 +390,7 @@ func TestUpgradeRestartsServices(t *testing.T) {
 	if !slices.Equal(res.Changed, []string{"file /usr/sbin/xcp-api"}) {
 		t.Fatalf("changed = %v", res.Changed)
 	}
-	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") {
+	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") {
 		t.Fatalf("no restart after binary upgrade: %q", e.sys.calls)
 	}
 	if string(e.read(t, "/usr/sbin/xcp-api")) != "xcp-api v2" {
@@ -403,7 +410,7 @@ func TestWebFailureAfterUpgradeStillRestarts(t *testing.T) {
 		t.Fatal("web failure not reported")
 	}
 	// A re-run finds the binaries unchanged, so this is the only chance to restart.
-	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") {
+	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") {
 		t.Fatalf("old binaries left running after a failed web step: %q", e.sys.calls)
 	}
 }
@@ -434,7 +441,7 @@ func TestMissingKeyRegeneratesCertificatePair(t *testing.T) {
 	if len(e.read(t, KeyFile)) == 0 || bytes.Equal(e.read(t, CertFile), oldCert) {
 		t.Fatal("a lost key must produce a new certificate and key pair")
 	}
-	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service") {
+	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") {
 		t.Fatal("xcp-api must restart to load the new certificate")
 	}
 }

@@ -72,7 +72,7 @@ func TestVhostGolden(t *testing.T) {
     RedirectMatch 302 "^/old/promo(/.*)?$" "https://shop.example/?ref=promo"
     Redirect 301 "/old" "https://demo1.example/new"
     ErrorLog /var/log/apache2/xcp/demo1.error.log
-    CustomLog /var/log/apache2/xcp/demo1.access.log combined
+    CustomLog /var/log/apache2/xcp/demo1.access.log vhost_combined
 </VirtualHost>
 <VirtualHost *:80>
     ServerName shop.example
@@ -94,7 +94,7 @@ func TestVhostGolden(t *testing.T) {
         SetHandler "proxy:unix:/run/php/xcp-demo1-8.3.sock|fcgi://localhost"
     </FilesMatch>
     ErrorLog /var/log/apache2/xcp/demo1.error.log
-    CustomLog /var/log/apache2/xcp/demo1.access.log combined
+    CustomLog /var/log/apache2/xcp/demo1.access.log vhost_combined
 </VirtualHost>
 `
 	if got != want {
@@ -351,7 +351,7 @@ func TestHTTPSVhosts(t *testing.T) {
     RewriteRule "^/\.well-known/acme-challenge/" - [L]
     RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
     ErrorLog /var/log/apache2/xcp/demo1.error.log
-    CustomLog /var/log/apache2/xcp/demo1.access.log combined
+    CustomLog /var/log/apache2/xcp/demo1.access.log vhost_combined
 </VirtualHost>
 <VirtualHost *:443>
     ServerName secure.example

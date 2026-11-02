@@ -32,6 +32,7 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/ssl"
+	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/version"
 	"github.com/siyamex/XCP/internal/zones"
 	"github.com/siyamex/XCP/web"
@@ -110,6 +111,7 @@ func serve(args []string) error {
 	accts.Attach("ftp", ftps)
 	crons := cronjobs.NewService(a.DB, a.Audit, a.Plans, queue, agent)
 	accts.Attach("cron", crons)
+	sts := stats.NewService(a.DB, a.Plans, agent)
 	// Removing a domain removes its mail addresses and FTP logins.
 	doms.SetMailHook(func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
 		if err := mailHook(ctx, tx, by, accountID); err != nil {
@@ -119,6 +121,12 @@ func serve(args []string) error {
 		return err
 	})
 	zs.SetMailHook(mailHook)
+	// A release that renders accounts differently applies them all once.
+	if n, err := accts.ApplyAfterUpgrade(ctx); err != nil {
+		a.Log.Error("queue the accounts' apply after an upgrade", "err", err)
+	} else if n > 0 {
+		a.Log.Info("applying all accounts after an upgrade", "accounts", n)
+	}
 	if n, err := zs.EnsureDomains(ctx); err != nil {
 		a.Log.Error("give domains their DNS", "err", err)
 	} else if n > 0 {
@@ -161,7 +169,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

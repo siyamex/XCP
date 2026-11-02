@@ -1,0 +1,45 @@
+[Unit]
+Description=XCP log reader: bandwidth per domain from the web, mail and FTP logs
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/adr/0012-logs-and-bandwidth.md
+After=xcp-api.service
+
+[Service]
+Type=simple
+User=xcp
+Group=xcp
+# adm: the sites' and FTP logs; systemd-journal: Postfix's journal entries.
+SupplementaryGroups=adm systemd-journal
+ExecStart=/usr/sbin/xcp-logd --config /etc/xcp/xcp.toml
+Restart=always
+RestartSec=5s
+UMask=0027
+
+# It only reads logs and writes the panel database: no network, no privileges.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/xcp
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

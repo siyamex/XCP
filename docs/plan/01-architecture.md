@@ -35,7 +35,7 @@ Helper daemons (small, single-purpose binaries):
 | `xcp-worker` | `xcp` | Executes queued jobs; calls agent for privileged steps |
 | `xcp-agent` | `root` | Privileged typed operations only |
 | `xcp-userd` | the account user (socket-activated template unit `xcp-userd@<user>`, in the account's slice; ADR-0009) | File manager, terminal PTY, git, app installs: runs **as the account user** |
-| `xcp-logd` | `xcp` + `adm` group | Ingests web/mail/FTP logs → bandwidth & stats, brute-force detection |
+| `xcp-logd` | `xcp` + `adm` and `systemd-journal` groups, no network (ADR-0012) | Ingests web/mail/FTP logs → bandwidth & stats, brute-force detection (P2) |
 | `xcp-ftpauth` | `root` without capabilities but reading folders, no network (socket only; ADR-0010) | Pure-FTPd external auth handler backed by the agent's FTP fragments |
 | `xcp-mailpolicy` | `xcp` | Postfix policy server: per-account send limits, outbound-spam brake |
 | `xcp-monitor` | `root` | Service health checks, auto-restart, disk/resource alerts |

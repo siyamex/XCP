@@ -1250,6 +1250,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/stats/bandwidth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's bandwidth in a month, per domain and day */
+        get: operations["getBandwidth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/logs/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                kind: "access" | "error";
+            };
+            cookie?: never;
+        };
+        /** The last lines of the account's access or error log */
+        get: operations["tailLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/logs/{kind}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                kind: "access" | "error";
+            };
+            cookie?: never;
+        };
+        /** Download the account's current access or error log */
+        get: operations["downloadLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/cron": {
         parameters: {
             query?: never;
@@ -1763,6 +1822,26 @@ export interface components {
             /** @description Where unknown addresses go; empty rejects them */
             catch_all: string[];
             dkim: boolean;
+        };
+        Bytes: {
+            web: number;
+            mail: number;
+            ftp: number;
+            total: number;
+        };
+        Bandwidth: {
+            month: string;
+            /** @description The package's monthly limit; null means unlimited */
+            limit_mb: number | null;
+            total: components["schemas"]["Bytes"];
+            /** @description Biggest first */
+            domains: (components["schemas"]["Bytes"] & {
+                domain: string;
+            })[];
+            /** @description Every day of the month up to today (UTC) */
+            days: (components["schemas"]["Bytes"] & {
+                day: string;
+            })[];
         };
         CronOverview: {
             jobs: components["schemas"]["CronJob"][];
@@ -4498,6 +4577,92 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getBandwidth: {
+        parameters: {
+            query?: {
+                /** @description Empty: this month (UTC) */
+                month?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The month's bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bandwidth"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    tailLog: {
+        parameters: {
+            query?: {
+                lines?: number;
+                /** @description Only lines holding this text */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                kind: "access" | "error";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lines: string[];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    downloadLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                kind: "access" | "error";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The log as it was when the download started. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     getCron: {

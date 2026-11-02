@@ -23,7 +23,7 @@ const menus: Record<string, NavItem[]> = {
   ],
   user: [
     { key: "dashboard", to: "/" },
-    { key: "domains", to: "/domains" }, { key: "dns", to: "/dns" }, { key: "email", to: "/email" }, { key: "databases", to: "/databases" }, { key: "files", to: "/files" }, { key: "ftp", to: "/ftp" }, { key: "cron", to: "/cron" },
+    { key: "domains", to: "/domains" }, { key: "dns", to: "/dns" }, { key: "email", to: "/email" }, { key: "databases", to: "/databases" }, { key: "files", to: "/files" }, { key: "ftp", to: "/ftp" }, { key: "cron", to: "/cron" }, { key: "stats", to: "/stats" },
     { key: "ssl", to: "/ssl" }, { key: "backups" },
     { key: "security", to: "/account/security" },
   ],
