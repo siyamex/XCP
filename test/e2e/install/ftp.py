@@ -87,6 +87,10 @@ if not isinstance(f, str):
         listing = str(e)
     check("passwd" not in str(listing), "the system's files are out of reach", str(listing)[:200])
     r = store(f, "big.bin", os.urandom(2 << 20))
+    for _ in range(20):  # Pure-FTPd removes the partial file once it notices; the client may see the reset first
+        if not os.path.exists(f"{HOME}/public_html/shop/big.bin"):
+            break
+        time.sleep(0.25)
     check(r != "ok" and not os.path.exists(f"{HOME}/public_html/shop/big.bin"), "the 1 MB quota stops a 2 MB upload", r)
     f.close()  # Pure-FTPd may still owe a second 552 reply; QUIT would read it as an error
 
