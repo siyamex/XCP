@@ -27,6 +27,9 @@ linters:
           files:
             - "$all"
             - "!**/internal/execx/**"
+            # Runs the account's own cron command as the account's user,
+            # with stdout and stderr interleaved as cron does (ADR-0011).
+            - "!**/cmd/xcp-cronrun/**"
           deny:
             - pkg: os/exec
               desc: "run commands through internal/execx (absolute path, argv, timeout); see 07-security.md §6"

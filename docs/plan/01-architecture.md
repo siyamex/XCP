@@ -65,7 +65,7 @@ ServiceReload(service) / ServiceRestart / ServiceStatus
 WebVhostApply(accountID)    PHPPoolApply(accountID)   MailDomainApply(domainID)
 DNSZoneApply(zoneID)        DBCreate/DBUserGrant      FTPAccountApply
 CertInstall(certID)         FirewallApply(rulesetVersion)
-CronApply(username)         UserHelperStart(username) → socket (ADR-0009)
+CronAccountApply(username, jobs) (ADR-0011)    UserHelperStart(username) → socket (ADR-0009)
 PackageInstall(pkgSet)      (allow-listed package sets only)
 ```
 

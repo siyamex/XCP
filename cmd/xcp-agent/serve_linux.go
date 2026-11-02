@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -72,6 +72,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		grpc.Creds(agentrpc.PeerCredentials(allowedUIDs)),
 		grpc.UnaryInterceptor(agentrpc.ServerInterceptor(log, allowedUIDs)),
 	)
+	crons := &agent.Cron{
+		Run: runner, FragmentDir: agent.CronFragmentDir, StateDir: agent.CronStateDir,
+		HomesRoot: cfg.Paths.HomesRoot, Log: log,
+	}
+	go crons.Loop(ctx)
 	agentv1.RegisterAgentServiceServer(gs, &agentrpc.Server{
 		Services: agent.Services{
 			Registry: agent.NewServiceRegistry(agent.UbuntuServices()),
@@ -99,6 +104,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Run: runner, SieveDir: agent.DovecotSieveDir, WebmailState: agent.WebmailStateFile,
 			WebmailTickets: agent.WebmailTicketDir, WebmailUser: agent.WebmailUser,
 		},
+		Cron: crons,
 		FTP: &agent.FTP{
 			Binary: agent.FTPBinary, FragmentDir: agent.FTPFragmentDir, ConfFile: agent.FTPConfFile,
 			HomesRoot: cfg.Paths.HomesRoot, HostCert: hc, PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey,

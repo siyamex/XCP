@@ -27,6 +27,7 @@ type Server struct {
 	MySQL    *agent.MySQL
 	Mail     *agent.Mail
 	FTP      *agent.FTP
+	Cron     *agent.Cron
 	Version  string
 	Hostname string
 	Log      *slog.Logger

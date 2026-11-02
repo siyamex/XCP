@@ -23,6 +23,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/config"
+	"github.com/siyamex/XCP/internal/cronjobs"
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/files"
@@ -107,6 +108,8 @@ func serve(args []string) error {
 	}
 	ftps := ftp.NewService(a.DB, a.Audit, a.Plans, queue, agent, certs)
 	accts.Attach("ftp", ftps)
+	crons := cronjobs.NewService(a.DB, a.Audit, a.Plans, queue, agent)
+	accts.Attach("cron", crons)
 	// Removing a domain removes its mail addresses and FTP logins.
 	doms.SetMailHook(func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
 		if err := mailHook(ctx, tx, by, accountID); err != nil {
@@ -130,6 +133,7 @@ func serve(args []string) error {
 	dbs.RegisterJobs(worker)
 	mails.RegisterJobs(worker)
 	ftps.RegisterJobs(worker)
+	crons.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -157,7 +161,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

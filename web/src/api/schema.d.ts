@@ -1250,6 +1250,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/cron": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's cron jobs with their next and last runs */
+        get: operations["getCron"];
+        put?: never;
+        /** Add a cron job */
+        post: operations["createCronJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cron/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a cron job */
+        put: operations["updateCronJob"];
+        post?: never;
+        /** Delete a cron job (a run that is going keeps going) */
+        delete: operations["deleteCronJob"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/ftp": {
         parameters: {
             query?: never;
@@ -1723,6 +1763,49 @@ export interface components {
             /** @description Where unknown addresses go; empty rejects them */
             catch_all: string[];
             dkim: boolean;
+        };
+        CronOverview: {
+            jobs: components["schemas"]["CronJob"][];
+            /** @description null means unlimited */
+            max_jobs: number | null;
+            /** @description The server's time zone; schedules use it */
+            time_zone: string;
+            /** @description The account's contact address */
+            default_email: string;
+            /** @description Set when the last runs could not be read */
+            status_error?: string;
+        };
+        CronJobInput: {
+            /** @description 5 fields (minute hour day month weekday) or @hourly, @daily, @weekly, @monthly, @yearly */
+            schedule: string;
+            /** @description One line */
+            command: string;
+            /** @description Mail the output here; empty: keep it only */
+            email?: string;
+            /** @description Default true */
+            enabled?: boolean;
+        };
+        CronJob: {
+            id: string;
+            schedule: string;
+            command: string;
+            email: string;
+            enabled: boolean;
+            next_runs: string[];
+            last_run: components["schemas"]["CronRun"] | null;
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
+        CronRun: {
+            /** Format: date-time */
+            start: string;
+            duration_ms: number;
+            exit_code: number;
+            /** @description The last 16 KiB */
+            output: string;
+            /** @description Set when the run did not start */
+            skipped?: string;
         };
         FTPOverview: {
             domains: {
@@ -4415,6 +4498,113 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getCron: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything the cron page shows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createCronJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CronJobInput"];
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronJob"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateCronJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CronJobInput"];
+            };
+        };
+        responses: {
+            /** @description Changed; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronJob"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteCronJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     getFTP: {

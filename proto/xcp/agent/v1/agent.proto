@@ -140,6 +140,18 @@ service AgentService {
 
   // FTPAccountRemove drops an account's FTP logins.
   rpc FTPAccountRemove(FTPAccountRemoveRequest) returns (FTPAccountRemoveResponse);
+
+  // Cron (ADR-0011).
+
+  // CronAccountApply stores all cron jobs of an account; the agent starts
+  // the due ones every minute as transient units in the account's slice.
+  rpc CronAccountApply(CronAccountApplyRequest) returns (CronAccountApplyResponse);
+
+  // CronAccountRemove drops an account's cron jobs and their last runs.
+  rpc CronAccountRemove(CronAccountRemoveRequest) returns (CronAccountRemoveResponse);
+
+  // CronStatus returns the last run of each of an account's jobs.
+  rpc CronStatus(CronStatusRequest) returns (CronStatusResponse);
 }
 
 message PingRequest {}
@@ -554,4 +566,45 @@ message FTPAccountRemoveRequest {
 
 message FTPAccountRemoveResponse {
   bool removed = 1;
+}
+
+message CronJob {
+  string id = 1;        // lower-case letters and digits
+  string schedule = 2;  // 5 fields
+  string command = 3;   // one line, run with /bin/sh as the account's user
+  string mail_to = 4;   // empty: output is kept only
+}
+
+message CronAccountApplyRequest {
+  string username = 1;
+  repeated CronJob jobs = 2;  // empty for a suspended account
+}
+
+message CronAccountApplyResponse {
+  bool changed = 1;
+}
+
+message CronAccountRemoveRequest {
+  string username = 1;
+}
+
+message CronAccountRemoveResponse {
+  bool removed = 1;
+}
+
+message CronStatusRequest {
+  string username = 1;
+}
+
+message CronRun {
+  string job_id = 1;
+  int64 start_unix = 2;
+  int64 duration_ms = 3;
+  int32 exit_code = 4;
+  string output = 5;   // the last 16 KiB
+  string skipped = 6;  // set when the run did not start, and why
+}
+
+message CronStatusResponse {
+  repeated CronRun runs = 1;
 }

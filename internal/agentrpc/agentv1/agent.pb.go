@@ -4152,6 +4152,430 @@ func (x *FTPAccountRemoveResponse) GetRemoved() bool {
 	return false
 }
 
+type CronJob struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                       // lower-case letters and digits
+	Schedule      string                 `protobuf:"bytes,2,opt,name=schedule,proto3" json:"schedule,omitempty"`           // 5 fields
+	Command       string                 `protobuf:"bytes,3,opt,name=command,proto3" json:"command,omitempty"`             // one line, run with /bin/sh as the account's user
+	MailTo        string                 `protobuf:"bytes,4,opt,name=mail_to,json=mailTo,proto3" json:"mail_to,omitempty"` // empty: output is kept only
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronJob) Reset() {
+	*x = CronJob{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronJob) ProtoMessage() {}
+
+func (x *CronJob) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronJob.ProtoReflect.Descriptor instead.
+func (*CronJob) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *CronJob) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CronJob) GetSchedule() string {
+	if x != nil {
+		return x.Schedule
+	}
+	return ""
+}
+
+func (x *CronJob) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *CronJob) GetMailTo() string {
+	if x != nil {
+		return x.MailTo
+	}
+	return ""
+}
+
+type CronAccountApplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Jobs          []*CronJob             `protobuf:"bytes,2,rep,name=jobs,proto3" json:"jobs,omitempty"` // empty for a suspended account
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronAccountApplyRequest) Reset() {
+	*x = CronAccountApplyRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronAccountApplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronAccountApplyRequest) ProtoMessage() {}
+
+func (x *CronAccountApplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronAccountApplyRequest.ProtoReflect.Descriptor instead.
+func (*CronAccountApplyRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *CronAccountApplyRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CronAccountApplyRequest) GetJobs() []*CronJob {
+	if x != nil {
+		return x.Jobs
+	}
+	return nil
+}
+
+type CronAccountApplyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changed       bool                   `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronAccountApplyResponse) Reset() {
+	*x = CronAccountApplyResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronAccountApplyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronAccountApplyResponse) ProtoMessage() {}
+
+func (x *CronAccountApplyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronAccountApplyResponse.ProtoReflect.Descriptor instead.
+func (*CronAccountApplyResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *CronAccountApplyResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+type CronAccountRemoveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronAccountRemoveRequest) Reset() {
+	*x = CronAccountRemoveRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronAccountRemoveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronAccountRemoveRequest) ProtoMessage() {}
+
+func (x *CronAccountRemoveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronAccountRemoveRequest.ProtoReflect.Descriptor instead.
+func (*CronAccountRemoveRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *CronAccountRemoveRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type CronAccountRemoveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Removed       bool                   `protobuf:"varint,1,opt,name=removed,proto3" json:"removed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronAccountRemoveResponse) Reset() {
+	*x = CronAccountRemoveResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronAccountRemoveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronAccountRemoveResponse) ProtoMessage() {}
+
+func (x *CronAccountRemoveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronAccountRemoveResponse.ProtoReflect.Descriptor instead.
+func (*CronAccountRemoveResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *CronAccountRemoveResponse) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+type CronStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronStatusRequest) Reset() {
+	*x = CronStatusRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronStatusRequest) ProtoMessage() {}
+
+func (x *CronStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronStatusRequest.ProtoReflect.Descriptor instead.
+func (*CronStatusRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *CronStatusRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+type CronRun struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	StartUnix     int64                  `protobuf:"varint,2,opt,name=start_unix,json=startUnix,proto3" json:"start_unix,omitempty"`
+	DurationMs    int64                  `protobuf:"varint,3,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	ExitCode      int32                  `protobuf:"varint,4,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	Output        string                 `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`   // the last 16 KiB
+	Skipped       string                 `protobuf:"bytes,6,opt,name=skipped,proto3" json:"skipped,omitempty"` // set when the run did not start, and why
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronRun) Reset() {
+	*x = CronRun{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronRun) ProtoMessage() {}
+
+func (x *CronRun) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronRun.ProtoReflect.Descriptor instead.
+func (*CronRun) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *CronRun) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *CronRun) GetStartUnix() int64 {
+	if x != nil {
+		return x.StartUnix
+	}
+	return 0
+}
+
+func (x *CronRun) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *CronRun) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *CronRun) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+func (x *CronRun) GetSkipped() string {
+	if x != nil {
+		return x.Skipped
+	}
+	return ""
+}
+
+type CronStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runs          []*CronRun             `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CronStatusResponse) Reset() {
+	*x = CronStatusResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CronStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CronStatusResponse) ProtoMessage() {}
+
+func (x *CronStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CronStatusResponse.ProtoReflect.Descriptor instead.
+func (*CronStatusResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *CronStatusResponse) GetRuns() []*CronRun {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
 var File_xcp_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_xcp_agent_v1_agent_proto_rawDesc = "" +
@@ -4412,7 +4836,34 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x17FTPAccountRemoveRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"4\n" +
 	"\x18FTPAccountRemoveResponse\x12\x18\n" +
-	"\aremoved\x18\x01 \x01(\bR\aremoved*\xb6\x01\n" +
+	"\aremoved\x18\x01 \x01(\bR\aremoved\"h\n" +
+	"\aCronJob\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\bschedule\x18\x02 \x01(\tR\bschedule\x12\x18\n" +
+	"\acommand\x18\x03 \x01(\tR\acommand\x12\x17\n" +
+	"\amail_to\x18\x04 \x01(\tR\x06mailTo\"`\n" +
+	"\x17CronAccountApplyRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12)\n" +
+	"\x04jobs\x18\x02 \x03(\v2\x15.xcp.agent.v1.CronJobR\x04jobs\"4\n" +
+	"\x18CronAccountApplyResponse\x12\x18\n" +
+	"\achanged\x18\x01 \x01(\bR\achanged\"6\n" +
+	"\x18CronAccountRemoveRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"5\n" +
+	"\x19CronAccountRemoveResponse\x12\x18\n" +
+	"\aremoved\x18\x01 \x01(\bR\aremoved\"/\n" +
+	"\x11CronStatusRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"\xaf\x01\n" +
+	"\aCronRun\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1d\n" +
+	"\n" +
+	"start_unix\x18\x02 \x01(\x03R\tstartUnix\x12\x1f\n" +
+	"\vduration_ms\x18\x03 \x01(\x03R\n" +
+	"durationMs\x12\x1b\n" +
+	"\texit_code\x18\x04 \x01(\x05R\bexitCode\x12\x16\n" +
+	"\x06output\x18\x05 \x01(\tR\x06output\x12\x18\n" +
+	"\askipped\x18\x06 \x01(\tR\askipped\"?\n" +
+	"\x12CronStatusResponse\x12)\n" +
+	"\x04runs\x18\x01 \x03(\v2\x15.xcp.agent.v1.CronRunR\x04runs*\xb6\x01\n" +
 	"\x11ServiceActionKind\x12#\n" +
 	"\x1fSERVICE_ACTION_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SERVICE_ACTION_KIND_START\x10\x01\x12\x1c\n" +
@@ -4434,7 +4885,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\tCanonical\x12\x19\n" +
 	"\x15CANONICAL_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rCANONICAL_WWW\x10\x01\x12\x12\n" +
-	"\x0eCANONICAL_BARE\x10\x022\x9f\x17\n" +
+	"\x0eCANONICAL_BARE\x10\x022\xb9\x19\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -4467,7 +4918,11 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x11MailWebmailExpire\x12&.xcp.agent.v1.MailWebmailExpireRequest\x1a'.xcp.agent.v1.MailWebmailExpireResponse\x12^\n" +
 	"\x0fUserHelperStart\x12$.xcp.agent.v1.UserHelperStartRequest\x1a%.xcp.agent.v1.UserHelperStartResponse\x12^\n" +
 	"\x0fFTPAccountApply\x12$.xcp.agent.v1.FTPAccountApplyRequest\x1a%.xcp.agent.v1.FTPAccountApplyResponse\x12a\n" +
-	"\x10FTPAccountRemove\x12%.xcp.agent.v1.FTPAccountRemoveRequest\x1a&.xcp.agent.v1.FTPAccountRemoveResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
+	"\x10FTPAccountRemove\x12%.xcp.agent.v1.FTPAccountRemoveRequest\x1a&.xcp.agent.v1.FTPAccountRemoveResponse\x12a\n" +
+	"\x10CronAccountApply\x12%.xcp.agent.v1.CronAccountApplyRequest\x1a&.xcp.agent.v1.CronAccountApplyResponse\x12d\n" +
+	"\x11CronAccountRemove\x12&.xcp.agent.v1.CronAccountRemoveRequest\x1a'.xcp.agent.v1.CronAccountRemoveResponse\x12O\n" +
+	"\n" +
+	"CronStatus\x12\x1f.xcp.agent.v1.CronStatusRequest\x1a .xcp.agent.v1.CronStatusResponseB:Z8github.com/siyamex/XCP/internal/agentrpc/agentv1;agentv1b\x06proto3"
 
 var (
 	file_xcp_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -4482,7 +4937,7 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 75)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 83)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(ServiceActionKind)(0),                 // 0: xcp.agent.v1.ServiceActionKind
 	(Validator)(0),                         // 1: xcp.agent.v1.Validator
@@ -4562,7 +5017,15 @@ var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(*FTPAccountApplyResponse)(nil),        // 75: xcp.agent.v1.FTPAccountApplyResponse
 	(*FTPAccountRemoveRequest)(nil),        // 76: xcp.agent.v1.FTPAccountRemoveRequest
 	(*FTPAccountRemoveResponse)(nil),       // 77: xcp.agent.v1.FTPAccountRemoveResponse
-	nil,                                    // 78: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	(*CronJob)(nil),                        // 78: xcp.agent.v1.CronJob
+	(*CronAccountApplyRequest)(nil),        // 79: xcp.agent.v1.CronAccountApplyRequest
+	(*CronAccountApplyResponse)(nil),       // 80: xcp.agent.v1.CronAccountApplyResponse
+	(*CronAccountRemoveRequest)(nil),       // 81: xcp.agent.v1.CronAccountRemoveRequest
+	(*CronAccountRemoveResponse)(nil),      // 82: xcp.agent.v1.CronAccountRemoveResponse
+	(*CronStatusRequest)(nil),              // 83: xcp.agent.v1.CronStatusRequest
+	(*CronRun)(nil),                        // 84: xcp.agent.v1.CronRun
+	(*CronStatusResponse)(nil),             // 85: xcp.agent.v1.CronStatusResponse
+	nil,                                    // 86: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,  // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -4579,79 +5042,87 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	23, // 11: xcp.agent.v1.HostCertificateInstallRequest.tls:type_name -> xcp.agent.v1.TLS
 	40, // 12: xcp.agent.v1.MySQLAccountApplyRequest.users:type_name -> xcp.agent.v1.MySQLUser
 	41, // 13: xcp.agent.v1.MySQLUser.grants:type_name -> xcp.agent.v1.MySQLGrant
-	78, // 14: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	86, // 14: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 	58, // 15: xcp.agent.v1.MailAccountApplyRequest.domains:type_name -> xcp.agent.v1.MailDomain
 	59, // 16: xcp.agent.v1.MailDomain.mailboxes:type_name -> xcp.agent.v1.Mailbox
 	61, // 17: xcp.agent.v1.MailDomain.forwarders:type_name -> xcp.agent.v1.MailForwarder
 	60, // 18: xcp.agent.v1.Mailbox.autoresponder:type_name -> xcp.agent.v1.MailAutoresponder
 	73, // 19: xcp.agent.v1.FTPAccountApplyRequest.logins:type_name -> xcp.agent.v1.FTPLogin
-	4,  // 20: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
-	6,  // 21: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
-	8,  // 22: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
-	10, // 23: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
-	12, // 24: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
-	15, // 25: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
-	17, // 26: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
-	19, // 27: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
-	21, // 28: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
-	26, // 29: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
-	28, // 30: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
-	30, // 31: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
-	33, // 32: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
-	35, // 33: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
-	37, // 34: xcp.agent.v1.AgentService.MySQLStatus:input_type -> xcp.agent.v1.MySQLStatusRequest
-	39, // 35: xcp.agent.v1.AgentService.MySQLAccountApply:input_type -> xcp.agent.v1.MySQLAccountApplyRequest
-	43, // 36: xcp.agent.v1.AgentService.MySQLAccountRemove:input_type -> xcp.agent.v1.MySQLAccountRemoveRequest
-	45, // 37: xcp.agent.v1.AgentService.MySQLDatabaseSizes:input_type -> xcp.agent.v1.MySQLDatabaseSizesRequest
-	47, // 38: xcp.agent.v1.AgentService.MySQLDatabaseDrop:input_type -> xcp.agent.v1.MySQLDatabaseDropRequest
-	49, // 39: xcp.agent.v1.AgentService.MySQLDatabaseRename:input_type -> xcp.agent.v1.MySQLDatabaseRenameRequest
-	51, // 40: xcp.agent.v1.AgentService.MySQLSignon:input_type -> xcp.agent.v1.MySQLSignonRequest
-	53, // 41: xcp.agent.v1.AgentService.MySQLSignonExpire:input_type -> xcp.agent.v1.MySQLSignonExpireRequest
-	55, // 42: xcp.agent.v1.AgentService.MySQLRootPassword:input_type -> xcp.agent.v1.MySQLRootPasswordRequest
-	57, // 43: xcp.agent.v1.AgentService.MailAccountApply:input_type -> xcp.agent.v1.MailAccountApplyRequest
-	63, // 44: xcp.agent.v1.AgentService.MailAccountRemove:input_type -> xcp.agent.v1.MailAccountRemoveRequest
-	65, // 45: xcp.agent.v1.AgentService.MailSettingsApply:input_type -> xcp.agent.v1.MailSettingsApplyRequest
-	67, // 46: xcp.agent.v1.AgentService.MailWebmailSignon:input_type -> xcp.agent.v1.MailWebmailSignonRequest
-	69, // 47: xcp.agent.v1.AgentService.MailWebmailExpire:input_type -> xcp.agent.v1.MailWebmailExpireRequest
-	71, // 48: xcp.agent.v1.AgentService.UserHelperStart:input_type -> xcp.agent.v1.UserHelperStartRequest
-	74, // 49: xcp.agent.v1.AgentService.FTPAccountApply:input_type -> xcp.agent.v1.FTPAccountApplyRequest
-	76, // 50: xcp.agent.v1.AgentService.FTPAccountRemove:input_type -> xcp.agent.v1.FTPAccountRemoveRequest
-	5,  // 51: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	7,  // 52: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	9,  // 53: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	11, // 54: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	13, // 55: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	16, // 56: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	18, // 57: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	20, // 58: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	25, // 59: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
-	27, // 60: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
-	29, // 61: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
-	32, // 62: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
-	34, // 63: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
-	36, // 64: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
-	38, // 65: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
-	42, // 66: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
-	44, // 67: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
-	46, // 68: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
-	48, // 69: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
-	50, // 70: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
-	52, // 71: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
-	54, // 72: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
-	56, // 73: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
-	62, // 74: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
-	64, // 75: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
-	66, // 76: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
-	68, // 77: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
-	70, // 78: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
-	72, // 79: xcp.agent.v1.AgentService.UserHelperStart:output_type -> xcp.agent.v1.UserHelperStartResponse
-	75, // 80: xcp.agent.v1.AgentService.FTPAccountApply:output_type -> xcp.agent.v1.FTPAccountApplyResponse
-	77, // 81: xcp.agent.v1.AgentService.FTPAccountRemove:output_type -> xcp.agent.v1.FTPAccountRemoveResponse
-	51, // [51:82] is the sub-list for method output_type
-	20, // [20:51] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	78, // 20: xcp.agent.v1.CronAccountApplyRequest.jobs:type_name -> xcp.agent.v1.CronJob
+	84, // 21: xcp.agent.v1.CronStatusResponse.runs:type_name -> xcp.agent.v1.CronRun
+	4,  // 22: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
+	6,  // 23: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
+	8,  // 24: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
+	10, // 25: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
+	12, // 26: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
+	15, // 27: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
+	17, // 28: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
+	19, // 29: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
+	21, // 30: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
+	26, // 31: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
+	28, // 32: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
+	30, // 33: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
+	33, // 34: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
+	35, // 35: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
+	37, // 36: xcp.agent.v1.AgentService.MySQLStatus:input_type -> xcp.agent.v1.MySQLStatusRequest
+	39, // 37: xcp.agent.v1.AgentService.MySQLAccountApply:input_type -> xcp.agent.v1.MySQLAccountApplyRequest
+	43, // 38: xcp.agent.v1.AgentService.MySQLAccountRemove:input_type -> xcp.agent.v1.MySQLAccountRemoveRequest
+	45, // 39: xcp.agent.v1.AgentService.MySQLDatabaseSizes:input_type -> xcp.agent.v1.MySQLDatabaseSizesRequest
+	47, // 40: xcp.agent.v1.AgentService.MySQLDatabaseDrop:input_type -> xcp.agent.v1.MySQLDatabaseDropRequest
+	49, // 41: xcp.agent.v1.AgentService.MySQLDatabaseRename:input_type -> xcp.agent.v1.MySQLDatabaseRenameRequest
+	51, // 42: xcp.agent.v1.AgentService.MySQLSignon:input_type -> xcp.agent.v1.MySQLSignonRequest
+	53, // 43: xcp.agent.v1.AgentService.MySQLSignonExpire:input_type -> xcp.agent.v1.MySQLSignonExpireRequest
+	55, // 44: xcp.agent.v1.AgentService.MySQLRootPassword:input_type -> xcp.agent.v1.MySQLRootPasswordRequest
+	57, // 45: xcp.agent.v1.AgentService.MailAccountApply:input_type -> xcp.agent.v1.MailAccountApplyRequest
+	63, // 46: xcp.agent.v1.AgentService.MailAccountRemove:input_type -> xcp.agent.v1.MailAccountRemoveRequest
+	65, // 47: xcp.agent.v1.AgentService.MailSettingsApply:input_type -> xcp.agent.v1.MailSettingsApplyRequest
+	67, // 48: xcp.agent.v1.AgentService.MailWebmailSignon:input_type -> xcp.agent.v1.MailWebmailSignonRequest
+	69, // 49: xcp.agent.v1.AgentService.MailWebmailExpire:input_type -> xcp.agent.v1.MailWebmailExpireRequest
+	71, // 50: xcp.agent.v1.AgentService.UserHelperStart:input_type -> xcp.agent.v1.UserHelperStartRequest
+	74, // 51: xcp.agent.v1.AgentService.FTPAccountApply:input_type -> xcp.agent.v1.FTPAccountApplyRequest
+	76, // 52: xcp.agent.v1.AgentService.FTPAccountRemove:input_type -> xcp.agent.v1.FTPAccountRemoveRequest
+	79, // 53: xcp.agent.v1.AgentService.CronAccountApply:input_type -> xcp.agent.v1.CronAccountApplyRequest
+	81, // 54: xcp.agent.v1.AgentService.CronAccountRemove:input_type -> xcp.agent.v1.CronAccountRemoveRequest
+	83, // 55: xcp.agent.v1.AgentService.CronStatus:input_type -> xcp.agent.v1.CronStatusRequest
+	5,  // 56: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	7,  // 57: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	9,  // 58: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	11, // 59: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	13, // 60: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	16, // 61: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	18, // 62: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	20, // 63: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	25, // 64: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	27, // 65: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	29, // 66: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	32, // 67: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
+	34, // 68: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
+	36, // 69: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
+	38, // 70: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
+	42, // 71: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
+	44, // 72: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
+	46, // 73: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
+	48, // 74: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
+	50, // 75: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
+	52, // 76: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
+	54, // 77: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
+	56, // 78: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
+	62, // 79: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
+	64, // 80: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
+	66, // 81: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
+	68, // 82: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
+	70, // 83: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
+	72, // 84: xcp.agent.v1.AgentService.UserHelperStart:output_type -> xcp.agent.v1.UserHelperStartResponse
+	75, // 85: xcp.agent.v1.AgentService.FTPAccountApply:output_type -> xcp.agent.v1.FTPAccountApplyResponse
+	77, // 86: xcp.agent.v1.AgentService.FTPAccountRemove:output_type -> xcp.agent.v1.FTPAccountRemoveResponse
+	80, // 87: xcp.agent.v1.AgentService.CronAccountApply:output_type -> xcp.agent.v1.CronAccountApplyResponse
+	82, // 88: xcp.agent.v1.AgentService.CronAccountRemove:output_type -> xcp.agent.v1.CronAccountRemoveResponse
+	85, // 89: xcp.agent.v1.AgentService.CronStatus:output_type -> xcp.agent.v1.CronStatusResponse
+	56, // [56:90] is the sub-list for method output_type
+	22, // [22:56] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_xcp_agent_v1_agent_proto_init() }
@@ -4666,7 +5137,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   75,
+			NumMessages:   83,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

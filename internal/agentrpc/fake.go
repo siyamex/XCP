@@ -34,6 +34,7 @@ type Fake struct {
 	mysql     fakeMySQL
 	mail      fakeMail
 	ftp       fakeFTP
+	cron      fakeCron
 	hostName  string
 	hostCert  string
 }

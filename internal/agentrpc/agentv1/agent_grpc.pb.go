@@ -59,6 +59,9 @@ const (
 	AgentService_UserHelperStart_FullMethodName        = "/xcp.agent.v1.AgentService/UserHelperStart"
 	AgentService_FTPAccountApply_FullMethodName        = "/xcp.agent.v1.AgentService/FTPAccountApply"
 	AgentService_FTPAccountRemove_FullMethodName       = "/xcp.agent.v1.AgentService/FTPAccountRemove"
+	AgentService_CronAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/CronAccountApply"
+	AgentService_CronAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/CronAccountRemove"
+	AgentService_CronStatus_FullMethodName             = "/xcp.agent.v1.AgentService/CronStatus"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -153,6 +156,13 @@ type AgentServiceClient interface {
 	FTPAccountApply(ctx context.Context, in *FTPAccountApplyRequest, opts ...grpc.CallOption) (*FTPAccountApplyResponse, error)
 	// FTPAccountRemove drops an account's FTP logins.
 	FTPAccountRemove(ctx context.Context, in *FTPAccountRemoveRequest, opts ...grpc.CallOption) (*FTPAccountRemoveResponse, error)
+	// CronAccountApply stores all cron jobs of an account; the agent starts
+	// the due ones every minute as transient units in the account's slice.
+	CronAccountApply(ctx context.Context, in *CronAccountApplyRequest, opts ...grpc.CallOption) (*CronAccountApplyResponse, error)
+	// CronAccountRemove drops an account's cron jobs and their last runs.
+	CronAccountRemove(ctx context.Context, in *CronAccountRemoveRequest, opts ...grpc.CallOption) (*CronAccountRemoveResponse, error)
+	// CronStatus returns the last run of each of an account's jobs.
+	CronStatus(ctx context.Context, in *CronStatusRequest, opts ...grpc.CallOption) (*CronStatusResponse, error)
 }
 
 type agentServiceClient struct {
@@ -473,6 +483,36 @@ func (c *agentServiceClient) FTPAccountRemove(ctx context.Context, in *FTPAccoun
 	return out, nil
 }
 
+func (c *agentServiceClient) CronAccountApply(ctx context.Context, in *CronAccountApplyRequest, opts ...grpc.CallOption) (*CronAccountApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CronAccountApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_CronAccountApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) CronAccountRemove(ctx context.Context, in *CronAccountRemoveRequest, opts ...grpc.CallOption) (*CronAccountRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CronAccountRemoveResponse)
+	err := c.cc.Invoke(ctx, AgentService_CronAccountRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) CronStatus(ctx context.Context, in *CronStatusRequest, opts ...grpc.CallOption) (*CronStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CronStatusResponse)
+	err := c.cc.Invoke(ctx, AgentService_CronStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -565,6 +605,13 @@ type AgentServiceServer interface {
 	FTPAccountApply(context.Context, *FTPAccountApplyRequest) (*FTPAccountApplyResponse, error)
 	// FTPAccountRemove drops an account's FTP logins.
 	FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error)
+	// CronAccountApply stores all cron jobs of an account; the agent starts
+	// the due ones every minute as transient units in the account's slice.
+	CronAccountApply(context.Context, *CronAccountApplyRequest) (*CronAccountApplyResponse, error)
+	// CronAccountRemove drops an account's cron jobs and their last runs.
+	CronAccountRemove(context.Context, *CronAccountRemoveRequest) (*CronAccountRemoveResponse, error)
+	// CronStatus returns the last run of each of an account's jobs.
+	CronStatus(context.Context, *CronStatusRequest) (*CronStatusResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -667,6 +714,15 @@ func (UnimplementedAgentServiceServer) FTPAccountApply(context.Context, *FTPAcco
 }
 func (UnimplementedAgentServiceServer) FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FTPAccountRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) CronAccountApply(context.Context, *CronAccountApplyRequest) (*CronAccountApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CronAccountApply not implemented")
+}
+func (UnimplementedAgentServiceServer) CronAccountRemove(context.Context, *CronAccountRemoveRequest) (*CronAccountRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CronAccountRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) CronStatus(context.Context, *CronStatusRequest) (*CronStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CronStatus not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1247,6 +1303,60 @@ func _AgentService_FTPAccountRemove_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_CronAccountApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CronAccountApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).CronAccountApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_CronAccountApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).CronAccountApply(ctx, req.(*CronAccountApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_CronAccountRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CronAccountRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).CronAccountRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_CronAccountRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).CronAccountRemove(ctx, req.(*CronAccountRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_CronStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CronStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).CronStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_CronStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).CronStatus(ctx, req.(*CronStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1377,6 +1487,18 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FTPAccountRemove",
 			Handler:    _AgentService_FTPAccountRemove_Handler,
+		},
+		{
+			MethodName: "CronAccountApply",
+			Handler:    _AgentService_CronAccountApply_Handler,
+		},
+		{
+			MethodName: "CronAccountRemove",
+			Handler:    _AgentService_CronAccountRemove_Handler,
+		},
+		{
+			MethodName: "CronStatus",
+			Handler:    _AgentService_CronStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

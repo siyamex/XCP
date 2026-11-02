@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: cron
+    description: |
+      Cron jobs of an account (ADR-0011): run as the account's user in its
+      slice by xcp-agent, on 5-field schedules in the server's time. Changes
+      are applied by a job (job_id). Users need the cron feature.
   - name: ftp
     description: |
       FTP logins of an account (ADR-0010), named login@domain after one of
@@ -1813,6 +1818,78 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/cron:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [cron]
+      summary: An account's cron jobs with their next and last runs
+      operationId: getCron
+      responses:
+        "200":
+          description: Everything the cron page shows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CronOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [cron]
+      summary: Add a cron job
+      operationId: createCronJob
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CronJobInput" }
+      responses:
+        "202":
+          description: Created; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CronJob" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /cron/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [cron]
+      summary: Change a cron job
+      operationId: updateCronJob
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CronJobInput" }
+      responses:
+        "202":
+          description: Changed; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CronJob" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [cron]
+      summary: Delete a cron job (a run that is going keeps going)
+      operationId: deleteCronJob
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/ftp:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -2404,6 +2481,53 @@ components:
         alias_of: { type: string }
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
+
+    CronOverview:
+      type: object
+      required: [jobs, max_jobs, time_zone, default_email]
+      properties:
+        jobs: { type: array, items: { $ref: "#/components/schemas/CronJob" } }
+        max_jobs: { type: [integer, "null"], description: null means unlimited }
+        time_zone: { type: string, description: The server's time zone; schedules use it }
+        default_email: { type: string, description: The account's contact address }
+        status_error: { type: string, description: Set when the last runs could not be read }
+
+    CronJobInput:
+      type: object
+      additionalProperties: false
+      required: [schedule, command]
+      properties:
+        schedule: { type: string, description: '5 fields (minute hour day month weekday) or @hourly, @daily, @weekly, @monthly, @yearly' }
+        command: { type: string, description: One line, run with /bin/sh as the account's user from its home }
+        email: { type: string, description: 'Mail the output here; empty: keep it only' }
+        enabled: { type: boolean, description: Default true }
+
+    CronJob:
+      type: object
+      required: [id, schedule, command, email, enabled, next_runs, last_run, created_at]
+      properties:
+        id: { type: string }
+        schedule: { type: string }
+        command: { type: string }
+        email: { type: string }
+        enabled: { type: boolean }
+        next_runs: { type: array, items: { type: string, format: date-time } }
+        last_run:
+          oneOf:
+            - { $ref: "#/components/schemas/CronRun" }
+            - { type: "null" }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
+    CronRun:
+      type: object
+      required: [start, duration_ms, exit_code, output]
+      properties:
+        start: { type: string, format: date-time }
+        duration_ms: { type: integer }
+        exit_code: { type: integer }
+        output: { type: string, description: The last 16 KiB }
+        skipped: { type: string, description: Set when the run did not start, and why }
 
     FTPOverview:
       type: object

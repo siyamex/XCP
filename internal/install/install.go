@@ -35,6 +35,7 @@ var Binaries = map[string]string{
 	"xcpctl":      "/usr/bin/xcpctl",
 	"xcp-userd":   "/usr/sbin/xcp-userd",
 	"xcp-ftpauth": "/usr/sbin/xcp-ftpauth",
+	"xcp-cronrun": "/usr/sbin/xcp-cronrun",
 }
 
 // Well-known paths (without Options.Root).
@@ -261,7 +262,10 @@ func (in *installer) dirs(context.Context) error {
 		{UnitDir, 0o755, rootRoot},
 		{"/usr/sbin", 0o755, rootRoot},
 		{"/usr/bin", 0o755, rootRoot},
-		{agent.UserHelperDir, 0o750, rootSvc}, // file helper sockets (ADR-0009)
+		{agent.UserHelperDir, 0o750, rootSvc},              // file helper sockets (ADR-0009)
+		{path.Dir(agent.CronFragmentDir), 0o700, rootRoot}, // cron jobs (ADR-0011)
+		{agent.CronFragmentDir, 0o700, rootRoot},
+		{agent.CronStateDir, 0o700, rootRoot},
 		{"/etc/tmpfiles.d", 0o755, rootRoot},
 	})
 }

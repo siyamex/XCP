@@ -22,7 +22,8 @@ store its own state. All generated files carry a header:
 - **Resource limits (cgroups v2):** each account gets a systemd slice
   `xcp-u-<user>.slice` with `CPUQuota`, `MemoryMax`, `MemoryHigh`, `IOWeight`
   / `IOReadBandwidthMax`, `TasksMax`. PHP-FPM pools, cron, SSH sessions, and
-  app processes are started in that slice.
+  app processes are started in that slice. (Cron: ADR-0011, the agent
+  schedules and starts each run as a transient unit in the slice.)
 - **Jail (P3):** SSH, cron, and the terminal run through a bubblewrap/systemd
   sandbox: private `/tmp`, read-only system dirs, other homes hidden,
   `/proc` hidepid. PHP-FPM gets `open_basedir`, `disable_functions` defaults,
