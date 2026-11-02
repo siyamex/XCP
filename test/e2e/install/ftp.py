@@ -88,7 +88,7 @@ if not isinstance(f, str):
     check("passwd" not in str(listing), "the system's files are out of reach", str(listing)[:200])
     r = store(f, "big.bin", os.urandom(2 << 20))
     check(r != "ok" and not os.path.exists(f"{HOME}/public_html/shop/big.bin"), "the 1 MB quota stops a 2 MB upload", r)
-    f.quit()
+    f.close()  # Pure-FTPd may still owe a second 552 reply; QUIT would read it as an error
 
 f = ftp("web@ftp1.xcp.test", FPW, tls=True)
 check(not isinstance(f, str) and store(f, "secure.txt", b"over TLS\n") == "ok" and "secure.txt" in f.nlst(), "FTPS (explicit TLS) works", str(f))

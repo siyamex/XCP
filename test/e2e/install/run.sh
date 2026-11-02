@@ -29,6 +29,7 @@ step() {
   { rc=0; "$@" 2>&1 || rc=$?; echo "$rc" >"$LOG.rc"; } | tee "$LOG"
   rc=$(cat "$LOG.rc")
   [ "$rc" = 0 ] && return 0
+  title=$(echo "$title" | sed 's/,/%2C/g; s/:/%3A/g') # property syntax of workflow commands
   { grep -E '^(FAIL|Traceback)|Error|error' "$LOG" || true; tail -n 3 "$LOG"; } | tail -n 8 | while IFS= read -r line; do
     echo "::error title=e2e $title::$line"
   done
