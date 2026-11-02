@@ -156,8 +156,11 @@ f = ftp("web@ftp1.xcp.test", "a brand new ftp password")
 check(not isinstance(f, str) and "hello.txt" in f.nlst(), "after unsuspending the login works again", str(f))
 
 subprocess.run(["systemctl", "restart", "xcp-ftpauth"], check=True)
-time.sleep(1)
-f = ftp("web@ftp1.xcp.test", "a brand new ftp password")
+for _ in range(20):  # the socket is there a moment after systemd starts it
+    f = ftp("web@ftp1.xcp.test", "a brand new ftp password")
+    if not isinstance(f, str):
+        break
+    time.sleep(0.5)
 check(not isinstance(f, str), "logins work after xcp-ftpauth restarts", str(f))
 
 for name, id_ in ids.items():

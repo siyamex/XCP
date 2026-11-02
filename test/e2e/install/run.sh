@@ -16,27 +16,40 @@ docker build -q -t xcp-systemd test/e2e/install >/dev/null
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
   --tmpfs /run --tmpfs /run/lock -h panel.test.example xcp-systemd >/dev/null
-trap 'docker rm -f "$NAME" >/dev/null' EXIT
+LOG=$(mktemp)
+trap 'docker rm -f "$NAME" >/dev/null; rm -f "$LOG" "$LOG.rc"' EXIT
+
+# step TITLE CMD...: runs CMD, showing its output. When it fails, its
+# failure lines become GitHub annotations, which can be read without the
+# job's log; outside GitHub they are just more lines.
+step() {
+  title=$1
+  shift
+  echo "== $title"
+  { rc=0; "$@" 2>&1 || rc=$?; echo "$rc" >"$LOG.rc"; } | tee "$LOG"
+  rc=$(cat "$LOG.rc")
+  [ "$rc" = 0 ] && return 0
+  { grep -E '^(FAIL|Traceback)|Error|error' "$LOG" || true; tail -n 3 "$LOG"; } | tail -n 8 | while IFS= read -r line; do
+    echo "::error title=e2e $title::$line"
+  done
+  docker exec "$NAME" journalctl -p warning -n 5 --no-pager -o cat 2>/dev/null | while IFS= read -r line; do
+    echo "::error title=e2e $title (journal)::$line"
+  done
+  exit "$rc"
+}
+
 docker cp "$OUT/." "$NAME:/opt/xcp/"
 docker exec "$NAME" sh -c 'chmod +x /opt/xcp/* && until systemctl is-system-running --wait >/dev/null 2>&1 || [ "$(systemctl is-system-running)" = degraded ]; do sleep 1; done'
-echo "== install"; docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
-echo "== doctor";  docker exec "$NAME" xcpctl doctor
+step "install" docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
+step "doctor" docker exec "$NAME" xcpctl doctor
 for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py acme.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
 echo "e2e test password 42" | docker exec -i "$NAME" xcpctl admin create --username e2etest
-echo "== websites (accounts, domains, Apache, PHP-FPM, isolation)"
-docker exec "$NAME" python3 /opt/xcp/websites.py
-echo "== DNS (PowerDNS zones, records)"
-docker exec "$NAME" python3 /opt/xcp/dns.py
-echo "== SSL (uploaded certificate, HTTPS, force HTTPS, AutoSSL reasons)"
-docker exec "$NAME" python3 /opt/xcp/certificates.py
-echo "== databases (MariaDB, privileges, phpMyAdmin sign-on)"
-docker exec "$NAME" python3 /opt/xcp/databases.py
-echo "== mail (Postfix, Dovecot, Rspamd: delivery, forwarders, submission, DKIM)"
-docker exec "$NAME" python3 /opt/xcp/mail.py
-echo "== files (file manager as the account user)"
-docker exec "$NAME" python3 /opt/xcp/files.py
-echo "== FTP (Pure-FTPd, xcp-ftpauth: chroot, quota, FTPS, suspension)"
-docker exec "$NAME" python3 /opt/xcp/ftp.py
-echo "== ACME (AutoSSL issuing through Pebble, HTTP-01 via PowerDNS and Apache)"
-docker exec "$NAME" python3 /opt/xcp/acme.py
+step "websites (accounts, domains, Apache, PHP-FPM, isolation)" docker exec "$NAME" python3 /opt/xcp/websites.py
+step "DNS (PowerDNS zones, records)" docker exec "$NAME" python3 /opt/xcp/dns.py
+step "SSL (uploaded certificate, HTTPS, force HTTPS, AutoSSL reasons)" docker exec "$NAME" python3 /opt/xcp/certificates.py
+step "databases (MariaDB, privileges, phpMyAdmin sign-on)" docker exec "$NAME" python3 /opt/xcp/databases.py
+step "mail (Postfix, Dovecot, Rspamd: delivery, forwarders, submission, DKIM)" docker exec "$NAME" python3 /opt/xcp/mail.py
+step "files (file manager as the account user)" docker exec "$NAME" python3 /opt/xcp/files.py
+step "FTP (Pure-FTPd, xcp-ftpauth: chroot, quota, FTPS, suspension)" docker exec "$NAME" python3 /opt/xcp/ftp.py
+step "ACME (AutoSSL issuing through Pebble, HTTP-01 via PowerDNS and Apache)" docker exec "$NAME" python3 /opt/xcp/acme.py
 echo "== re-run";  docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example | grep -E "changed|no admin|installed"
