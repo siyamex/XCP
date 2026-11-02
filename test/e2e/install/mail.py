@@ -104,7 +104,12 @@ check(isinstance(err, smtplib.SMTPRecipientsRefused) and "no longer used" in str
 # Switches: quiet neither logs in nor receives.
 st, r = user.call("PUT", f"/mailboxes/{quiet['id']}", {"quota_mb": 1, "login": False, "receive": False, "send": False})
 user.wait_job(r["job_id"])
-check(isinstance(inbox(f"quiet@{DOMAIN}", PW), Exception), "a mailbox with login off cannot log in")
+for _ in range(20):  # Dovecot notices the changed passwd file a moment after the job
+    refused = isinstance(inbox(f"quiet@{DOMAIN}", PW), Exception)
+    if refused:
+        break
+    time.sleep(0.5)
+check(refused, "a mailbox with login off cannot log in")
 err = send(f"quiet@{DOMAIN}", "not received")
 check(isinstance(err, smtplib.SMTPRecipientsRefused), "a mailbox with receiving off refuses mail", str(err))
 
