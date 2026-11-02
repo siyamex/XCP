@@ -33,6 +33,7 @@ type Fake struct {
 	zones     fakeZones
 	mysql     fakeMySQL
 	mail      fakeMail
+	ftp       fakeFTP
 	hostName  string
 	hostCert  string
 }

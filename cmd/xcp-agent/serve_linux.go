@@ -99,6 +99,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Run: runner, SieveDir: agent.DovecotSieveDir, WebmailState: agent.WebmailStateFile,
 			WebmailTickets: agent.WebmailTicketDir, WebmailUser: agent.WebmailUser,
 		},
+		FTP: &agent.FTP{
+			Binary: agent.FTPBinary, FragmentDir: agent.FTPFragmentDir, ConfFile: agent.FTPConfFile,
+			HomesRoot: cfg.Paths.HomesRoot, HostCert: hc, PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey,
+			Services: agent.Systemctl{Run: runner},
+		},
 		MySQL: &agent.MySQL{
 			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,
 			TicketDir: agent.PMATicketDir, TicketUser: agent.PMAUser, VersionFile: agent.PMAVersionFile,

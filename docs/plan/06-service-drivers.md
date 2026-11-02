@@ -134,6 +134,11 @@ type WebServer interface {
   an ADR: temporary per-session user is safer).
 
 ## 7. FTP (Pure-FTPd)
+- **Amended by ADR-0010:** logins are `name@domain` after one of the
+  account's domains; the agent keeps a fragment per account, and
+  `xcp-ftpauth` is a daemon that speaks the extauth socket protocol itself
+  and reads the fragments (no database access); Pure-FTPd runs under
+  XCP's own unit and configuration file.
 - Virtual users via `xcp-ftpauth` (Pure-FTPd extauth protocol). Each FTP
   account maps to the account's uid/gid with a chroot home inside
   `/home/<user>/`.

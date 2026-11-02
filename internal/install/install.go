@@ -30,10 +30,11 @@ const ServiceUser = "xcp"
 
 // Binaries copied from Options.BinDir, with their install paths.
 var Binaries = map[string]string{
-	"xcp-agent": "/usr/sbin/xcp-agent",
-	"xcp-api":   "/usr/sbin/xcp-api",
-	"xcpctl":    "/usr/bin/xcpctl",
-	"xcp-userd": "/usr/sbin/xcp-userd",
+	"xcp-agent":   "/usr/sbin/xcp-agent",
+	"xcp-api":     "/usr/sbin/xcp-api",
+	"xcpctl":      "/usr/bin/xcpctl",
+	"xcp-userd":   "/usr/sbin/xcp-userd",
+	"xcp-ftpauth": "/usr/sbin/xcp-ftpauth",
 }
 
 // Well-known paths (without Options.Root).
@@ -74,6 +75,9 @@ type System interface {
 	// InstallMailServer installs Postfix, Dovecot, Rspamd and Redis; it
 	// reports whether anything was installed.
 	InstallMailServer(ctx context.Context) (installed bool, err error)
+	// InstallFTPServer installs Pure-FTPd and stops what its package
+	// started; it reports whether anything was installed.
+	InstallFTPServer(ctx context.Context) (installed bool, err error)
 	// UpdateRoundcubeDB brings Roundcube's database schema up to the
 	// installed release, as Roundcube's own user.
 	UpdateRoundcubeDB(ctx context.Context) error
@@ -95,6 +99,7 @@ type Options struct {
 	NoDNS         bool   // skip installing PowerDNS
 	NoDB          bool   // skip installing MariaDB and phpMyAdmin
 	NoMail        bool   // skip installing the mail server
+	NoFTP         bool   // skip installing the FTP server
 	DryRun        bool
 	Out           io.Writer
 	Sys           System
@@ -148,6 +153,7 @@ func Run(ctx context.Context, o Options) (*Result, error) {
 		{"DNS server (PowerDNS)", in.dns},
 		{"database server (MariaDB + phpMyAdmin)", in.database},
 		{"mail server (Postfix + Dovecot + Rspamd)", in.mail},
+		{"FTP server (Pure-FTPd)", in.ftp},
 		{"first admin", in.admin},
 	}
 	for _, s := range steps {

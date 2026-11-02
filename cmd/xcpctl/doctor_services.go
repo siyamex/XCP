@@ -31,6 +31,7 @@ var serviceChecks = []struct {
 	{"mta", "mail: SMTP (Postfix)", probeBanner("127.0.0.1:25", "220 ")},
 	{"imap", "mail: IMAP (Dovecot)", probeIMAP},
 	{"spam", "mail: filter and DKIM (Rspamd)", probeTCP("127.0.0.1:11332")},
+	{"ftp", "FTP server (Pure-FTPd)", probeBanner("127.0.0.1:21", "220")},
 }
 
 // checkServices asks the agent about each hosting service, then tests the

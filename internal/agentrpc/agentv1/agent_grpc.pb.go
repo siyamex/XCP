@@ -57,6 +57,8 @@ const (
 	AgentService_MailWebmailSignon_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailSignon"
 	AgentService_MailWebmailExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailExpire"
 	AgentService_UserHelperStart_FullMethodName        = "/xcp.agent.v1.AgentService/UserHelperStart"
+	AgentService_FTPAccountApply_FullMethodName        = "/xcp.agent.v1.AgentService/FTPAccountApply"
+	AgentService_FTPAccountRemove_FullMethodName       = "/xcp.agent.v1.AgentService/FTPAccountRemove"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -145,6 +147,12 @@ type AgentServiceClient interface {
 	// xcp-userd then runs as the account's user on the first connection.
 	// FAILED_PRECONDITION: not an XCP account.
 	UserHelperStart(ctx context.Context, in *UserHelperStartRequest, opts ...grpc.CallOption) (*UserHelperStartResponse, error)
+	// FTPAccountApply stores all FTP logins of an account for xcp-ftpauth,
+	// after making their folders as the account's user. INVALID_ARGUMENT if
+	// another account has one of the logins.
+	FTPAccountApply(ctx context.Context, in *FTPAccountApplyRequest, opts ...grpc.CallOption) (*FTPAccountApplyResponse, error)
+	// FTPAccountRemove drops an account's FTP logins.
+	FTPAccountRemove(ctx context.Context, in *FTPAccountRemoveRequest, opts ...grpc.CallOption) (*FTPAccountRemoveResponse, error)
 }
 
 type agentServiceClient struct {
@@ -445,6 +453,26 @@ func (c *agentServiceClient) UserHelperStart(ctx context.Context, in *UserHelper
 	return out, nil
 }
 
+func (c *agentServiceClient) FTPAccountApply(ctx context.Context, in *FTPAccountApplyRequest, opts ...grpc.CallOption) (*FTPAccountApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FTPAccountApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_FTPAccountApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) FTPAccountRemove(ctx context.Context, in *FTPAccountRemoveRequest, opts ...grpc.CallOption) (*FTPAccountRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FTPAccountRemoveResponse)
+	err := c.cc.Invoke(ctx, AgentService_FTPAccountRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -531,6 +559,12 @@ type AgentServiceServer interface {
 	// xcp-userd then runs as the account's user on the first connection.
 	// FAILED_PRECONDITION: not an XCP account.
 	UserHelperStart(context.Context, *UserHelperStartRequest) (*UserHelperStartResponse, error)
+	// FTPAccountApply stores all FTP logins of an account for xcp-ftpauth,
+	// after making their folders as the account's user. INVALID_ARGUMENT if
+	// another account has one of the logins.
+	FTPAccountApply(context.Context, *FTPAccountApplyRequest) (*FTPAccountApplyResponse, error)
+	// FTPAccountRemove drops an account's FTP logins.
+	FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -627,6 +661,12 @@ func (UnimplementedAgentServiceServer) MailWebmailExpire(context.Context, *MailW
 }
 func (UnimplementedAgentServiceServer) UserHelperStart(context.Context, *UserHelperStartRequest) (*UserHelperStartResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserHelperStart not implemented")
+}
+func (UnimplementedAgentServiceServer) FTPAccountApply(context.Context, *FTPAccountApplyRequest) (*FTPAccountApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FTPAccountApply not implemented")
+}
+func (UnimplementedAgentServiceServer) FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FTPAccountRemove not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1171,6 +1211,42 @@ func _AgentService_UserHelperStart_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_FTPAccountApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FTPAccountApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).FTPAccountApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_FTPAccountApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).FTPAccountApply(ctx, req.(*FTPAccountApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_FTPAccountRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FTPAccountRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).FTPAccountRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_FTPAccountRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).FTPAccountRemove(ctx, req.(*FTPAccountRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1293,6 +1369,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserHelperStart",
 			Handler:    _AgentService_UserHelperStart_Handler,
+		},
+		{
+			MethodName: "FTPAccountApply",
+			Handler:    _AgentService_FTPAccountApply_Handler,
+		},
+		{
+			MethodName: "FTPAccountRemove",
+			Handler:    _AgentService_FTPAccountRemove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

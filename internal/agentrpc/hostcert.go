@@ -32,6 +32,11 @@ func (s *Server) HostCertificateInstall(ctx context.Context, req *agentv1.HostCe
 				s.Log.Warn("give mail the new host name certificate", "err", err)
 			}
 		}
+		if s.FTP != nil {
+			if _, err := s.FTP.RefreshTLS(ctx); err != nil {
+				s.Log.Warn("give FTP the new host name certificate", "err", err)
+			}
+		}
 	}
 	return &agentv1.HostCertificateInstallResponse{Changed: changed}, nil
 }

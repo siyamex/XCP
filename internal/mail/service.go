@@ -11,15 +11,12 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"database/sql"
-	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/argon2"
 
 	"github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/agentrpc"
@@ -29,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/pwhash"
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
@@ -307,16 +305,8 @@ func forwarderView(f store.Forwarder, domain string) Forwarder {
 	return Forwarder{ID: f.ID, DomainID: f.DomainID, Address: f.LocalPart + "@" + domain, To: to, Fail: f.FailMessage, Pipe: f.Pipe, CreatedAt: f.CreatedAt}
 }
 
-// HashPassword returns the {ARGON2ID} hash Dovecot checks: libsodium's
-// format at its "interactive" cost.
-func HashPassword(password string) string {
-	salt := make([]byte, 16)
-	_, _ = rand.Read(salt) // never fails (crypto/rand)
-	const t, m, p = 2, 64 * 1024, 1
-	key := argon2.IDKey([]byte(password), salt, t, m, p, 32)
-	enc := base64.RawStdEncoding
-	return fmt.Sprintf("{ARGON2ID}$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", m, t, p, enc.EncodeToString(salt), enc.EncodeToString(key))
-}
+// HashPassword returns the {ARGON2ID} hash Dovecot checks.
+func HashPassword(password string) string { return pwhash.Hash(password) }
 
 // quota checks a mailbox quota against the package; 0 means the largest allowed.
 func quota(mb int64, lim plans.Limits) (int64, error) {

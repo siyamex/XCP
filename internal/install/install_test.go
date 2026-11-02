@@ -17,6 +17,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/siyamex/XCP/internal/agent"
 )
 
 type fakeSys struct {
@@ -31,6 +33,7 @@ type fakeSys struct {
 	dnsDone    bool
 	dbDone     bool
 	mailDone   bool
+	ftpDone    bool
 	tarball    []byte // what Download returns
 }
 
@@ -45,6 +48,13 @@ func (f *fakeSys) InstallMailServer(context.Context) (bool, error) {
 	f.calls = append(f.calls, "mail install")
 	installed := !f.mailDone
 	f.mailDone = true
+	return installed, nil
+}
+
+func (f *fakeSys) InstallFTPServer(context.Context) (bool, error) {
+	f.calls = append(f.calls, "ftp install")
+	installed := !f.ftpDone
+	f.ftpDone = true
 	return installed, nil
 }
 
@@ -320,10 +330,18 @@ func TestFirstInstall(t *testing.T) {
 		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart postfix.service",
 		"useradd xcp-rc", "download https://files.example/rc.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
+		"ftp install", "systemctl daemon-reload", "systemctl enable --now xcp-ftpauth.service pure-ftpd.service",
+		"systemctl restart xcp-ftpauth.service", "systemctl restart pure-ftpd.service",
 		"admin admin",
 	}
 	if !slices.Equal(e.sys.calls, want) {
 		t.Fatalf("calls =\n%q\nwant\n%q", e.sys.calls, want)
+	}
+	if c := string(e.read(t, agent.FTPConfFile)); !strings.Contains(c, "ExtAuth "+agent.FTPAuthSocket) || !strings.Contains(c, `CertFileAndKey "`+CertFile+`"`) {
+		t.Errorf("Pure-FTPd configuration:\n%s", c)
+	}
+	if u := string(e.read(t, UnitDir+"/"+FTPUnit)); !strings.Contains(u, "ExecStart=/usr/sbin/pure-ftpd "+agent.FTPConfFile) {
+		t.Errorf("pure-ftpd unit:\n%s", u)
 	}
 }
 

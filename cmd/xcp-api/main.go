@@ -26,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/files"
+	"github.com/siyamex/XCP/internal/ftp"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
@@ -104,7 +105,16 @@ func serve(args []string) error {
 		_, err := mails.EnqueueApply(ctx, tx, by, accountID)
 		return err
 	}
-	doms.SetMailHook(mailHook)
+	ftps := ftp.NewService(a.DB, a.Audit, a.Plans, queue, agent, certs)
+	accts.Attach("ftp", ftps)
+	// Removing a domain removes its mail addresses and FTP logins.
+	doms.SetMailHook(func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
+		if err := mailHook(ctx, tx, by, accountID); err != nil {
+			return err
+		}
+		_, err := ftps.EnqueueApply(ctx, tx, by, accountID)
+		return err
+	})
 	zs.SetMailHook(mailHook)
 	if n, err := zs.EnsureDomains(ctx); err != nil {
 		a.Log.Error("give domains their DNS", "err", err)
@@ -119,6 +129,7 @@ func serve(args []string) error {
 	certs.RegisterJobs(worker)
 	dbs.RegisterJobs(worker)
 	mails.RegisterJobs(worker)
+	ftps.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -146,7 +157,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

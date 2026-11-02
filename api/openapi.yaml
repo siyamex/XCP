@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: ftp
+    description: |
+      FTP logins of an account (ADR-0010), named login@domain after one of
+      the account's domains, each locked into a folder of the home. Changes
+      are applied by a job (job_id). Users need the ftp feature.
   - name: files
     description: |
       The file manager (ADR-0009): an account's home folder, handled by its
@@ -1808,6 +1813,117 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/ftp:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [ftp]
+      summary: An account's FTP logins and the domains they can be named after
+      operationId: getFTP
+      responses:
+        "200":
+          description: Everything the FTP page shows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FTPOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [ftp]
+      summary: Create an FTP login
+      description: Its folder is made, owned by the account's user, if it does not exist.
+      operationId: createFTPAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain_id, name, password]
+              properties:
+                domain_id: { type: string }
+                name: { type: string, description: The part before the @ }
+                password: { type: string, format: password }
+                folder: { type: string, description: 'Relative to the home; empty: the whole home' }
+                quota_mb: { type: integer, minimum: 0, description: 0 means no quota of its own }
+      responses:
+        "202":
+          description: Created; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FTPAccount" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /ftp/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [ftp]
+      summary: Change an FTP login's folder and quota
+      operationId: updateFTPAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [folder, quota_mb]
+              properties:
+                folder: { type: string, description: 'Relative to the home; empty: the whole home' }
+                quota_mb: { type: integer, minimum: 0 }
+      responses:
+        "202":
+          description: Changed; the job in `job_id` applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FTPAccount" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [ftp]
+      summary: Delete an FTP login (its files stay)
+      operationId: deleteFTPAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Removed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /ftp/{id}/password:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [ftp]
+      summary: Change an FTP login's password
+      operationId: setFTPPassword
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordInput" }
+      responses:
+        "202":
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/files:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -2289,6 +2405,36 @@ components:
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
 
+    FTPOverview:
+      type: object
+      required: [domains, logins, max_logins, server, port]
+      properties:
+        domains:
+          type: array
+          items:
+            type: object
+            required: [id, name, display_name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              display_name: { type: string }
+        logins: { type: array, items: { $ref: "#/components/schemas/FTPAccount" } }
+        max_logins: { type: [integer, "null"], description: null means unlimited }
+        server: { type: string, description: The host name FTP clients connect to }
+        port: { type: integer }
+
+    FTPAccount:
+      type: object
+      required: [id, domain_id, login, folder, quota_mb, created_at]
+      properties:
+        id: { type: string }
+        domain_id: { type: string }
+        login: { type: string, description: name@domain }
+        folder: { type: string, description: 'Relative to the home; "." is the home' }
+        quota_mb: { type: integer, description: 0 means no quota of its own }
+        created_at: { type: string, format: date-time }
+        job_id: { type: string }
+
     Mailbox:
       type: object
       required: [id, domain_id, address, quota_mb, login, receive, send, created_at]
@@ -2597,7 +2743,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken]
         detail: { type: string }
         request_id: { type: string }
         errors:

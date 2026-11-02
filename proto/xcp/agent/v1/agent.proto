@@ -130,6 +130,16 @@ service AgentService {
   // xcp-userd then runs as the account's user on the first connection.
   // FAILED_PRECONDITION: not an XCP account.
   rpc UserHelperStart(UserHelperStartRequest) returns (UserHelperStartResponse);
+
+  // FTP (ADR-0010). NOT_FOUND: the FTP server is not installed.
+
+  // FTPAccountApply stores all FTP logins of an account for xcp-ftpauth,
+  // after making their folders as the account's user. INVALID_ARGUMENT if
+  // another account has one of the logins.
+  rpc FTPAccountApply(FTPAccountApplyRequest) returns (FTPAccountApplyResponse);
+
+  // FTPAccountRemove drops an account's FTP logins.
+  rpc FTPAccountRemove(FTPAccountRemoveRequest) returns (FTPAccountRemoveResponse);
 }
 
 message PingRequest {}
@@ -519,4 +529,29 @@ message UserHelperStartRequest {
 
 message UserHelperStartResponse {
   string socket = 1;  // where the helper listens
+}
+
+message FTPLogin {
+  string login = 1;          // name@domain
+  string password_hash = 2;  // {ARGON2ID}...
+  string dir = 3;            // relative to the home; "." is the home
+  int64 quota_mb = 4;        // 0: none of its own
+}
+
+message FTPAccountApplyRequest {
+  string username = 1;
+  repeated FTPLogin logins = 2;  // empty for a suspended account
+}
+
+message FTPAccountApplyResponse {
+  bool changed = 1;
+  repeated string problems = 2;  // logins whose folder could not be made; they cannot log in until it is usable
+}
+
+message FTPAccountRemoveRequest {
+  string username = 1;
+}
+
+message FTPAccountRemoveResponse {
+  bool removed = 1;
 }

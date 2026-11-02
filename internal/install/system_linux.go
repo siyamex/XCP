@@ -323,6 +323,41 @@ func (s *LinuxSystem) InstallMailServer(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+const inetdPath = "/usr/sbin/inetd"
+
+// InstallFTPServer implements System. The package starts Pure-FTPd through
+// its SysV script and pulls in openbsd-inetd; both are stopped, XCP's own
+// unit runs Pure-FTPd (ADR-0010).
+func (s *LinuxSystem) InstallFTPServer(ctx context.Context) (bool, error) {
+	if _, err := os.Stat(agent.FTPBinary); err == nil {
+		return false, nil
+	}
+	_, err := os.Stat(inetdPath)
+	hadInetd := err == nil
+	env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
+	lock := []string{"-o", "DPkg::Lock::Timeout=600"}
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: append(lock, "update", "-q"), Env: env, Timeout: 20 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get update: %w", err)
+	}
+	if _, err := s.run.Run(ctx, execx.Cmd{
+		Path: aptGetPath, Args: append(lock, "install", "-y", "-q", "--no-install-recommends", "pure-ftpd"), Env: env, Timeout: 30 * time.Minute,
+	}); err != nil {
+		return false, fmt.Errorf("apt-get install pure-ftpd: %w", err)
+	}
+	if err := s.Systemctl(ctx, "stop", "pure-ftpd.service"); err != nil {
+		return true, err
+	}
+	// inetd came only for the package's dependency: nothing uses it.
+	if _, err := os.Stat(inetdPath); err == nil && !hadInetd {
+		if err := s.Systemctl(ctx, "disable", "--now", "inetd.service"); err != nil {
+			return true, err
+		}
+	}
+	return true, nil
+}
+
 // UpdateRoundcubeDB implements System with Roundcube's own updater.
 func (s *LinuxSystem) UpdateRoundcubeDB(ctx context.Context) error {
 	_, err := s.run.Run(ctx, execx.Cmd{

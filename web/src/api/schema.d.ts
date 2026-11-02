@@ -1250,6 +1250,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/ftp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's FTP logins and the domains they can be named after */
+        get: operations["getFTP"];
+        put?: never;
+        /**
+         * Create an FTP login
+         * @description Its folder is made, owned by the account's user, if it does not exist.
+         */
+        post: operations["createFTPAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ftp/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an FTP login's folder and quota */
+        put: operations["updateFTPAccount"];
+        post?: never;
+        /** Delete an FTP login (its files stay) */
+        delete: operations["deleteFTPAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ftp/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an FTP login's password */
+        put: operations["setFTPPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/files": {
         parameters: {
             query?: {
@@ -1662,6 +1724,32 @@ export interface components {
             catch_all: string[];
             dkim: boolean;
         };
+        FTPOverview: {
+            domains: {
+                id: string;
+                name: string;
+                display_name: string;
+            }[];
+            logins: components["schemas"]["FTPAccount"][];
+            /** @description null means unlimited */
+            max_logins: number | null;
+            /** @description The host name FTP clients connect to */
+            server: string;
+            port: number;
+        };
+        FTPAccount: {
+            id: string;
+            domain_id: string;
+            /** @description name@domain */
+            login: string;
+            /** @description Relative to the home; "." is the home */
+            folder: string;
+            /** @description 0 means no quota of its own */
+            quota_mb: number;
+            /** Format: date-time */
+            created_at: string;
+            job_id?: string;
+        };
         Mailbox: {
             id: string;
             domain_id: string;
@@ -1987,6 +2075,7 @@ export interface components {
              * @example exists
              * @example too_large
              * @example too_many
+             * @example login_taken
              */
             code: string;
             detail?: string;
@@ -4326,6 +4415,156 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getFTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything the FTP page shows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FTPOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createFTPAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    domain_id: string;
+                    /** @description The part before the @ */
+                    name: string;
+                    /** Format: password */
+                    password: string;
+                    /** @description Relative to the home; empty: the whole home */
+                    folder?: string;
+                    /** @description 0 means no quota of its own */
+                    quota_mb?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Created; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FTPAccount"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateFTPAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Relative to the home; empty: the whole home */
+                    folder: string;
+                    quota_mb: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Changed; the job in `job_id` applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FTPAccount"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteFTPAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setFTPPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordInput"];
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     listFiles: {
