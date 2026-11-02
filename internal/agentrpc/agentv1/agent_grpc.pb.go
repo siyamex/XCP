@@ -64,6 +64,10 @@ const (
 	AgentService_CronStatus_FullMethodName             = "/xcp.agent.v1.AgentService/CronStatus"
 	AgentService_SiteLogTail_FullMethodName            = "/xcp.agent.v1.AgentService/SiteLogTail"
 	AgentService_SiteLogRead_FullMethodName            = "/xcp.agent.v1.AgentService/SiteLogRead"
+	AgentService_BackupCreate_FullMethodName           = "/xcp.agent.v1.AgentService/BackupCreate"
+	AgentService_BackupRead_FullMethodName             = "/xcp.agent.v1.AgentService/BackupRead"
+	AgentService_BackupDelete_FullMethodName           = "/xcp.agent.v1.AgentService/BackupDelete"
+	AgentService_BackupRemoveAccount_FullMethodName    = "/xcp.agent.v1.AgentService/BackupRemoveAccount"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -171,6 +175,15 @@ type AgentServiceClient interface {
 	// SiteLogRead returns a part of an account's log and its size, for
 	// downloading it part by part.
 	SiteLogRead(ctx context.Context, in *SiteLogReadRequest, opts ...grpc.CallOption) (*SiteLogReadResponse, error)
+	// BackupCreate makes a full backup of an account: the home read as the
+	// account's user, its databases dumped, and the panel's account.json.
+	BackupCreate(ctx context.Context, in *BackupCreateRequest, opts ...grpc.CallOption) (*BackupCreateResponse, error)
+	// BackupRead returns a part of a backup and its size, for downloading it.
+	BackupRead(ctx context.Context, in *BackupReadRequest, opts ...grpc.CallOption) (*BackupReadResponse, error)
+	// BackupDelete removes one backup of an account.
+	BackupDelete(ctx context.Context, in *BackupDeleteRequest, opts ...grpc.CallOption) (*BackupDeleteResponse, error)
+	// BackupRemoveAccount removes all backups of an account.
+	BackupRemoveAccount(ctx context.Context, in *BackupRemoveAccountRequest, opts ...grpc.CallOption) (*BackupRemoveAccountResponse, error)
 }
 
 type agentServiceClient struct {
@@ -541,6 +554,46 @@ func (c *agentServiceClient) SiteLogRead(ctx context.Context, in *SiteLogReadReq
 	return out, nil
 }
 
+func (c *agentServiceClient) BackupCreate(ctx context.Context, in *BackupCreateRequest, opts ...grpc.CallOption) (*BackupCreateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupCreateResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRead(ctx context.Context, in *BackupReadRequest, opts ...grpc.CallOption) (*BackupReadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupReadResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRead_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupDelete(ctx context.Context, in *BackupDeleteRequest, opts ...grpc.CallOption) (*BackupDeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupDeleteResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRemoveAccount(ctx context.Context, in *BackupRemoveAccountRequest, opts ...grpc.CallOption) (*BackupRemoveAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoveAccountResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoveAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -646,6 +699,15 @@ type AgentServiceServer interface {
 	// SiteLogRead returns a part of an account's log and its size, for
 	// downloading it part by part.
 	SiteLogRead(context.Context, *SiteLogReadRequest) (*SiteLogReadResponse, error)
+	// BackupCreate makes a full backup of an account: the home read as the
+	// account's user, its databases dumped, and the panel's account.json.
+	BackupCreate(context.Context, *BackupCreateRequest) (*BackupCreateResponse, error)
+	// BackupRead returns a part of a backup and its size, for downloading it.
+	BackupRead(context.Context, *BackupReadRequest) (*BackupReadResponse, error)
+	// BackupDelete removes one backup of an account.
+	BackupDelete(context.Context, *BackupDeleteRequest) (*BackupDeleteResponse, error)
+	// BackupRemoveAccount removes all backups of an account.
+	BackupRemoveAccount(context.Context, *BackupRemoveAccountRequest) (*BackupRemoveAccountResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -763,6 +825,18 @@ func (UnimplementedAgentServiceServer) SiteLogTail(context.Context, *SiteLogTail
 }
 func (UnimplementedAgentServiceServer) SiteLogRead(context.Context, *SiteLogReadRequest) (*SiteLogReadResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SiteLogRead not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupCreate(context.Context, *BackupCreateRequest) (*BackupCreateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupCreate not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRead(context.Context, *BackupReadRequest) (*BackupReadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRead not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupDelete(context.Context, *BackupDeleteRequest) (*BackupDeleteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupDelete not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoveAccount(context.Context, *BackupRemoveAccountRequest) (*BackupRemoveAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoveAccount not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1433,6 +1507,78 @@ func _AgentService_SiteLogRead_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_BackupCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupCreate(ctx, req.(*BackupCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRead_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRead(ctx, req.(*BackupReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupDelete(ctx, req.(*BackupDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRemoveAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoveAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoveAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoveAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoveAccount(ctx, req.(*BackupRemoveAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1583,6 +1729,22 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SiteLogRead",
 			Handler:    _AgentService_SiteLogRead_Handler,
+		},
+		{
+			MethodName: "BackupCreate",
+			Handler:    _AgentService_BackupCreate_Handler,
+		},
+		{
+			MethodName: "BackupRead",
+			Handler:    _AgentService_BackupRead_Handler,
+		},
+		{
+			MethodName: "BackupDelete",
+			Handler:    _AgentService_BackupDelete_Handler,
+		},
+		{
+			MethodName: "BackupRemoveAccount",
+			Handler:    _AgentService_BackupRemoveAccount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

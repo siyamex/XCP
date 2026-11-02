@@ -281,6 +281,8 @@ func (in *installer) dirs(context.Context) error {
 		{path.Dir(agent.CronFragmentDir), 0o700, rootRoot}, // cron jobs (ADR-0011)
 		{agent.CronFragmentDir, 0o700, rootRoot},
 		{agent.CronStateDir, 0o700, rootRoot},
+		{path.Dir(agent.BackupDir), 0o755, rootRoot},
+		{agent.BackupDir, 0o700, rootRoot}, // account backups, root only (ADR-0013)
 		{"/etc/tmpfiles.d", 0o755, rootRoot},
 		{"/etc/logrotate.d", 0o755, rootRoot},
 	})

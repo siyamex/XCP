@@ -13,7 +13,7 @@ const menus: Record<string, NavItem[]> = {
   admin: [
     { key: "dashboard", to: "/" },
     { key: "accounts", to: "/accounts" }, { key: "packages", to: "/packages" }, { key: "featureLists", to: "/feature-lists" }, { key: "resellers" },
-    { key: "dns", to: "/dns" }, { key: "ssl", to: "/ssl" }, { key: "databaseServer", to: "/databases" }, { key: "mailServer", to: "/email" }, { key: "services" }, { key: "settings" },
+    { key: "dns", to: "/dns" }, { key: "ssl", to: "/ssl" }, { key: "databaseServer", to: "/databases" }, { key: "mailServer", to: "/email" }, { key: "backups", to: "/backups" }, { key: "services" }, { key: "settings" },
     { key: "security", to: "/account/security" },
   ],
   reseller: [
@@ -24,7 +24,7 @@ const menus: Record<string, NavItem[]> = {
   user: [
     { key: "dashboard", to: "/" },
     { key: "domains", to: "/domains" }, { key: "dns", to: "/dns" }, { key: "email", to: "/email" }, { key: "databases", to: "/databases" }, { key: "files", to: "/files" }, { key: "ftp", to: "/ftp" }, { key: "cron", to: "/cron" }, { key: "stats", to: "/stats" },
-    { key: "ssl", to: "/ssl" }, { key: "backups" },
+    { key: "ssl", to: "/ssl" }, { key: "backups", to: "/backups" },
     { key: "security", to: "/account/security" },
   ],
 };

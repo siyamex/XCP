@@ -39,6 +39,9 @@ type Cmd struct {
 	Stdin     io.Reader
 	Timeout   time.Duration // 0 means DefaultTimeout
 	MaxOutput int           // bytes kept per stream; 0 means DefaultMaxOutput
+	// Stdout, when set, receives the standard output as it comes (for
+	// streams too big to keep, like an archive); Result.Stdout stays empty.
+	Stdout io.Writer
 }
 
 // Result holds the outcome of a finished command.
@@ -105,6 +108,9 @@ func (r *Runner) Run(ctx context.Context, c Cmd) (Result, error) {
 	stdout := &capWriter{limit: limit}
 	stderr := &capWriter{limit: limit}
 	cmd.Stdout, cmd.Stderr = stdout, stderr
+	if c.Stdout != nil {
+		cmd.Stdout = c.Stdout
+	}
 	cmd.WaitDelay = 5 * time.Second
 	setProcAttrs(cmd)
 

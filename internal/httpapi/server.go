@@ -16,6 +16,7 @@ import (
 	"github.com/siyamex/XCP/internal/agentrpc"
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/backups"
 	"github.com/siyamex/XCP/internal/cronjobs"
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
@@ -43,6 +44,7 @@ type Deps struct {
 	FTP       *ftp.Service
 	Cron      *cronjobs.Service
 	Stats     *stats.Service
+	Backups   *backups.Service
 	Zones     *zones.Service
 	SSL       *ssl.Service
 	Jobs      *jobs.Queue
@@ -186,6 +188,12 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/accounts/{id}/backups", access: authed, roles: adminOrUser, h: s.backupsOverview},
+		{method: "POST", path: "/api/v1/accounts/{id}/backups", access: authed, roles: adminOrUser, h: s.createBackup},
+		{method: "DELETE", path: "/api/v1/backups/{id}", access: authed, roles: adminOrUser, h: s.deleteBackup},
+		{method: "GET", path: "/api/v1/backups/{id}/download", access: authed, roles: adminOrUser, h: s.downloadBackup},
+		{method: "GET", path: "/api/v1/server/backups/schedule", access: authed, roles: adminOnly, h: s.getBackupSchedule},
+		{method: "PUT", path: "/api/v1/server/backups/schedule", access: authed, roles: adminOnly, h: s.putBackupSchedule},
 		{method: "GET", path: "/api/v1/accounts/{id}/stats/bandwidth", access: authed, roles: adminOrUser, h: s.bandwidth},
 		{method: "GET", path: "/api/v1/accounts/{id}/logs/{kind}", access: authed, roles: adminOrUser, h: s.tailLog},
 		{method: "GET", path: "/api/v1/accounts/{id}/logs/{kind}/download", access: authed, roles: adminOrUser, h: s.downloadLog},

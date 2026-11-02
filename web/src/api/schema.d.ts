@@ -1250,6 +1250,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** An account's backups, newest first */
+        get: operations["getBackups"];
+        put?: never;
+        /** Make a full backup now */
+        post: operations["createBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a backup */
+        delete: operations["deleteBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Download a finished backup (tar compressed with zstd) */
+        get: operations["downloadBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backups/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The backup schedule (admins) */
+        get: operations["getBackupSchedule"];
+        /** Change the backup schedule (admins) */
+        put: operations["putBackupSchedule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/stats/bandwidth": {
         parameters: {
             query?: never;
@@ -1823,6 +1899,40 @@ export interface components {
             catch_all: string[];
             dkim: boolean;
         };
+        Backup: {
+            id: string;
+            /** @enum {string} */
+            kind: "manual" | "scheduled";
+            /** @enum {string} */
+            status: "running" | "ok" | "failed";
+            file: string;
+            size: number;
+            /** @description Why it failed */
+            detail: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            finished_at: string | null;
+            job_id?: string;
+        };
+        BackupSchedule: {
+            enabled: boolean;
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly";
+            /** @description Server time */
+            hour: number;
+            /** @description Weekly: 0 is Sunday */
+            weekday: number;
+            /** @description Monthly: the day of the month */
+            day: number;
+            /** @description Scheduled backups kept per account */
+            keep: number;
+        };
+        BackupOverview: {
+            backups: components["schemas"]["Backup"][];
+            max_manual: number;
+            schedule: components["schemas"]["BackupSchedule"];
+        };
         Bytes: {
             web: number;
             mail: number;
@@ -2238,6 +2348,7 @@ export interface components {
              * @example too_large
              * @example too_many
              * @example login_taken
+             * @example busy
              */
             code: string;
             detail?: string;
@@ -4573,6 +4684,148 @@ export interface operations {
                         settings: components["schemas"]["MailSettings"];
                         job_id: string;
                     };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything the backups page shows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started; the job in `job_id` makes it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    downloadBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The archive. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zstd": string;
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getBackupSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The schedule. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSchedule"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putBackupSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupSchedule"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSchedule"];
                 };
             };
             400: components["responses"]["Problem"];

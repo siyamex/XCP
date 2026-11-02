@@ -28,6 +28,7 @@ type Server struct {
 	Mail     *agent.Mail
 	FTP      *agent.FTP
 	Cron     *agent.Cron
+	Backups  *agent.Backups
 	Version  string
 	Hostname string
 	Log      *slog.Logger

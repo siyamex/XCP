@@ -162,6 +162,21 @@ service AgentService {
   // SiteLogRead returns a part of an account's log and its size, for
   // downloading it part by part.
   rpc SiteLogRead(SiteLogReadRequest) returns (SiteLogReadResponse);
+
+  // Backups (ADR-0013). FAILED_PRECONDITION: not an XCP account.
+
+  // BackupCreate makes a full backup of an account: the home read as the
+  // account's user, its databases dumped, and the panel's account.json.
+  rpc BackupCreate(BackupCreateRequest) returns (BackupCreateResponse);
+
+  // BackupRead returns a part of a backup and its size, for downloading it.
+  rpc BackupRead(BackupReadRequest) returns (BackupReadResponse);
+
+  // BackupDelete removes one backup of an account.
+  rpc BackupDelete(BackupDeleteRequest) returns (BackupDeleteResponse);
+
+  // BackupRemoveAccount removes all backups of an account.
+  rpc BackupRemoveAccount(BackupRemoveAccountRequest) returns (BackupRemoveAccountResponse);
 }
 
 message PingRequest {}
@@ -640,4 +655,46 @@ message SiteLogReadRequest {
 message SiteLogReadResponse {
   bytes data = 1;
   int64 size = 2;  // of the whole log now
+}
+
+message BackupCreateRequest {
+  string username = 1;
+  bytes account_json = 2;
+  repeated string databases = 3;  // full names, "<username>_..."
+}
+
+message BackupCreateResponse {
+  string file = 1;
+  int64 size = 2;
+  string sha256 = 3;
+  repeated string skipped = 4;  // files of the home that could not be read
+}
+
+message BackupReadRequest {
+  string username = 1;
+  string file = 2;
+  int64 offset = 3;
+  int64 length = 4;  // at most 1 MiB
+}
+
+message BackupReadResponse {
+  bytes data = 1;
+  int64 size = 2;
+}
+
+message BackupDeleteRequest {
+  string username = 1;
+  string file = 2;
+}
+
+message BackupDeleteResponse {
+  bool deleted = 1;
+}
+
+message BackupRemoveAccountRequest {
+  string username = 1;
+}
+
+message BackupRemoveAccountResponse {
+  bool removed = 1;
 }

@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -104,7 +104,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Run: runner, SieveDir: agent.DovecotSieveDir, WebmailState: agent.WebmailStateFile,
 			WebmailTickets: agent.WebmailTicketDir, WebmailUser: agent.WebmailUser,
 		},
-		Cron: crons,
+		Cron:    crons,
+		Backups: &agent.Backups{Run: runner, Dir: agent.BackupDir, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version},
 		FTP: &agent.FTP{
 			Binary: agent.FTPBinary, FragmentDir: agent.FTPFragmentDir, ConfFile: agent.FTPConfFile,
 			HomesRoot: cfg.Paths.HomesRoot, HostCert: hc, PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey,

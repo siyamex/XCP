@@ -43,7 +43,7 @@ docker cp "$OUT/." "$NAME:/opt/xcp/"
 docker exec "$NAME" sh -c 'chmod +x /opt/xcp/* && until systemctl is-system-running --wait >/dev/null 2>&1 || [ "$(systemctl is-system-running)" = degraded ]; do sleep 1; done'
 step "install" docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
 step "doctor" docker exec "$NAME" xcpctl doctor
-for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py acme.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
+for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py backups.py acme.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
 echo "e2e test password 42" | docker exec -i "$NAME" xcpctl admin create --username e2etest
 step "websites (accounts, domains, Apache, PHP-FPM, isolation)" docker exec "$NAME" python3 /opt/xcp/websites.py
 step "DNS (PowerDNS zones, records)" docker exec "$NAME" python3 /opt/xcp/dns.py
@@ -54,5 +54,6 @@ step "files (file manager as the account user)" docker exec "$NAME" python3 /opt
 step "FTP (Pure-FTPd, xcp-ftpauth: chroot, quota, FTPS, suspension)" docker exec "$NAME" python3 /opt/xcp/ftp.py
 step "cron (jobs as the account user in its slice: last run, mail, no overlap, suspension)" docker exec "$NAME" python3 /opt/xcp/cron.py
 step "usage and logs (xcp-logd: web, FTP and mail bytes once per domain; log viewers)" docker exec "$NAME" python3 /opt/xcp/stats.py
+step "backups (full account archive: files, database, settings; download; root-only)" docker exec "$NAME" python3 /opt/xcp/backups.py
 step "ACME (AutoSSL issuing through Pebble, HTTP-01 via PowerDNS and Apache)" docker exec "$NAME" python3 /opt/xcp/acme.py
 echo "== re-run";  docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example | grep -E "changed|no admin|installed"

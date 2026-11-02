@@ -13,6 +13,7 @@ import { DatabasesPage } from "./pages/DatabasesPage";
 import { EmailPage } from "./pages/EmailPage";
 import { FilesPage } from "./pages/FilesPage";
 import { CronPage } from "./pages/CronPage";
+import { BackupsPage } from "./pages/BackupsPage";
 import { FtpPage } from "./pages/FtpPage";
 import { StatsPage } from "./pages/StatsPage";
 
@@ -42,13 +43,14 @@ const filesRoute = createRoute({ getParentRoute: () => appRoute, path: "/files",
 const ftpRoute = createRoute({ getParentRoute: () => appRoute, path: "/ftp", component: FtpPage });
 const cronRoute = createRoute({ getParentRoute: () => appRoute, path: "/cron", component: CronPage });
 const statsRoute = createRoute({ getParentRoute: () => appRoute, path: "/stats", component: StatsPage });
+const backupsRoute = createRoute({ getParentRoute: () => appRoute, path: "/backups", component: BackupsPage });
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
     accountsRoute, accountNewRoute, accountRoute, domainsRoute,
-    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute, emailRoute, filesRoute, ftpRoute, cronRoute, statsRoute,
+    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute, emailRoute, filesRoute, ftpRoute, cronRoute, statsRoute, backupsRoute,
   ]),
 ]);
 

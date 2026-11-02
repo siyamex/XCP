@@ -80,3 +80,19 @@ func TestRunTruncatesLargeOutput(t *testing.T) {
 		t.Fatalf("len = %d truncated = %v", len(res.Stdout), res.Truncated)
 	}
 }
+
+func TestRunStreamsStdoutToAWriter(t *testing.T) {
+	var out strings.Builder
+	res, err := runner(t).Run(context.Background(), Cmd{
+		Path:      sh,
+		Args:      []string{"-c", "yes | head -c 100000; echo oops >&2"},
+		MaxOutput: 1000,
+		Stdout:    &out,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Len() != 100000 || len(res.Stdout) != 0 || string(res.Stderr) != "oops\n" {
+		t.Fatalf("streamed %d bytes, kept %d, stderr %q", out.Len(), len(res.Stdout), res.Stderr)
+	}
+}

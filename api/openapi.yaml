@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: backups
+    description: |
+      Full account backups (ADR-0013): made by the agent into a root-only
+      folder, downloaded through the panel. Users need the backups feature
+      and keep up to 3 of their own; the admin's schedule keeps its own.
   - name: stats
     description: |
       Bandwidth per domain and month, counted by xcp-logd from the web,
@@ -1823,6 +1828,95 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/backups:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [backups]
+      summary: An account's backups, newest first
+      operationId: getBackups
+      responses:
+        "200":
+          description: Everything the backups page shows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackupOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [backups]
+      summary: Make a full backup now
+      operationId: createBackup
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Started; the job in `job_id` makes it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Backup" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /backups/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [backups]
+      summary: Delete a backup
+      operationId: deleteBackup
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /backups/{id}/download:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [backups]
+      summary: Download a finished backup (tar compressed with zstd)
+      operationId: downloadBackup
+      responses:
+        "200":
+          description: The archive.
+          content:
+            application/zstd: { schema: { type: string, format: binary } }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/backups/schedule:
+    get:
+      tags: [backups]
+      summary: The backup schedule (admins)
+      operationId: getBackupSchedule
+      responses:
+        "200":
+          description: The schedule.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackupSchedule" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [backups]
+      summary: Change the backup schedule (admins)
+      operationId: putBackupSchedule
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupSchedule" }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackupSchedule" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/stats/bandwidth:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -2548,6 +2642,40 @@ components:
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
 
+    Backup:
+      type: object
+      required: [id, kind, status, file, size, detail, created_at, finished_at]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [manual, scheduled] }
+        status: { type: string, enum: [running, ok, failed] }
+        file: { type: string }
+        size: { type: integer }
+        detail: { type: string, description: Why it failed, or what it left out }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        job_id: { type: string }
+
+    BackupSchedule:
+      type: object
+      additionalProperties: false
+      required: [enabled, frequency, hour, weekday, day, keep]
+      properties:
+        enabled: { type: boolean }
+        frequency: { type: string, enum: [daily, weekly, monthly] }
+        hour: { type: integer, minimum: 0, maximum: 23, description: Server time }
+        weekday: { type: integer, minimum: 0, maximum: 6, description: 'Weekly: 0 is Sunday' }
+        day: { type: integer, minimum: 1, maximum: 28, description: 'Monthly: the day of the month' }
+        keep: { type: integer, minimum: 1, maximum: 90, description: Scheduled backups kept per account }
+
+    BackupOverview:
+      type: object
+      required: [backups, max_manual, schedule]
+      properties:
+        backups: { type: array, items: { $ref: "#/components/schemas/Backup" } }
+        max_manual: { type: integer }
+        schedule: { $ref: "#/components/schemas/BackupSchedule" }
+
     Bytes:
       type: object
       required: [web, mail, ftp, total]
@@ -2964,7 +3092,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken, busy]
         detail: { type: string }
         request_id: { type: string }
         errors:
