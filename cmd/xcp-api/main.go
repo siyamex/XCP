@@ -32,6 +32,7 @@ import (
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
+	"github.com/siyamex/XCP/internal/serverinfo"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/version"
@@ -114,6 +115,7 @@ func serve(args []string) error {
 	accts.Attach("cron", crons)
 	sts := stats.NewService(a.DB, a.Plans, agent)
 	bks := backups.NewService(a.DB, a.Audit, a.Plans, queue, agent)
+	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
 	accts.Attach("backups", bks)
 	// Removing a domain removes its mail addresses and FTP logins.
 	doms.SetMailHook(func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
@@ -176,7 +178,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

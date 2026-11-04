@@ -29,6 +29,7 @@ type Server struct {
 	FTP      *agent.FTP
 	Cron     *agent.Cron
 	Backups  *agent.Backups
+	HostInfo *agent.HostInfo
 	Version  string
 	Hostname string
 	Log      *slog.Logger
@@ -60,6 +61,8 @@ var actions = map[agentv1.ServiceActionKind]agent.Action{
 	agentv1.ServiceActionKind_SERVICE_ACTION_KIND_STOP:    agent.ActionStop,
 	agentv1.ServiceActionKind_SERVICE_ACTION_KIND_RESTART: agent.ActionRestart,
 	agentv1.ServiceActionKind_SERVICE_ACTION_KIND_RELOAD:  agent.ActionReload,
+	agentv1.ServiceActionKind_SERVICE_ACTION_KIND_ENABLE:  agent.ActionEnable,
+	agentv1.ServiceActionKind_SERVICE_ACTION_KIND_DISABLE: agent.ActionDisable,
 }
 
 // ServiceAction implements agentv1.AgentServiceServer.

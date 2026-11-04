@@ -26,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/serverinfo"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/store"
@@ -34,22 +35,23 @@ import (
 
 // Deps are the services the HTTP layer needs.
 type Deps struct {
-	Auth      *auth.Service
-	Plans     *plans.Service
-	Accounts  *accounts.Service
-	Domains   *domains.Service
-	Databases *databases.Service
-	Mail      *mail.Service
-	Files     *files.Service
-	FTP       *ftp.Service
-	Cron      *cronjobs.Service
-	Stats     *stats.Service
-	Backups   *backups.Service
-	Zones     *zones.Service
-	SSL       *ssl.Service
-	Jobs      *jobs.Queue
-	Agent     agentrpc.Client
-	Log       *slog.Logger
+	Auth       *auth.Service
+	Plans      *plans.Service
+	Accounts   *accounts.Service
+	Domains    *domains.Service
+	Databases  *databases.Service
+	Mail       *mail.Service
+	Files      *files.Service
+	FTP        *ftp.Service
+	Cron       *cronjobs.Service
+	Stats      *stats.Service
+	Backups    *backups.Service
+	ServerInfo *serverinfo.Service
+	Zones      *zones.Service
+	SSL        *ssl.Service
+	Jobs       *jobs.Queue
+	Agent      agentrpc.Client
+	Log        *slog.Logger
 	// SecureCookies is false only in local development over plain HTTP
 	// (api.insecure_dev_http); it also controls HSTS.
 	SecureCookies bool
@@ -188,6 +190,16 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/server/status", access: authed, roles: adminOnly, h: s.serverStatus},
+		{method: "GET", path: "/api/v1/server/services", access: authed, roles: adminOnly, h: s.listServices},
+		{method: "POST", path: "/api/v1/server/services/{id}/{action}", access: authed, roles: adminOnly, h: s.serviceAction},
+		{method: "GET", path: "/api/v1/server/services/{id}/log", access: authed, roles: adminOnly, h: s.serviceLog},
+		{method: "GET", path: "/api/v1/server/jobs", access: authed, roles: adminOnly, h: s.listJobs},
+		{method: "POST", path: "/api/v1/server/jobs/{id}/cancel", access: authed, roles: adminOnly, h: s.cancelJob},
+		{method: "POST", path: "/api/v1/server/jobs/{id}/retry", access: authed, roles: adminOnly, h: s.retryJob},
+		{method: "GET", path: "/api/v1/server/sessions", access: authed, roles: adminOnly, h: s.allSessions},
+		{method: "DELETE", path: "/api/v1/server/sessions/{id}", access: authed, roles: adminOnly, h: s.revokeAnySession},
+		{method: "GET", path: "/api/v1/server/logins", access: authed, roles: adminOnly, h: s.loginHistory},
 		{method: "GET", path: "/api/v1/accounts/{id}/backups", access: authed, roles: adminOrUser, h: s.backupsOverview},
 		{method: "POST", path: "/api/v1/accounts/{id}/backups", access: authed, roles: adminOrUser, h: s.createBackup},
 		{method: "DELETE", path: "/api/v1/backups/{id}", access: authed, roles: adminOrUser, h: s.deleteBackup},

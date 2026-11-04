@@ -45,6 +45,11 @@ tags:
       Mail of an account's domains (ADR-0007): mailboxes, forwarders, the
       default address, DKIM and the deliverability check. Changes are applied
       by a job (job_id). Users need the email feature.
+  - name: server
+    description: |
+      The admin's view of the server (ADR-0014): dashboard figures and server
+      information, the service manager, the job monitor, all sessions and the
+      sign-in history. Admins only.
   - name: backups
     description: |
       Full account backups (ADR-0013): made by the agent into a root-only
@@ -1828,6 +1833,185 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/status:
+    get:
+      tags: [server]
+      summary: Host load, memory, disks, network, top processes, accounts' disk use and versions
+      operationId: getServerStatus
+      responses:
+        "200":
+          description: The host now. Accounts' disk use is measured in the background and can be minutes old.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerStatus" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/services:
+    get:
+      tags: [server]
+      summary: The services and their state
+      operationId: listServices
+      responses:
+        "200":
+          description: Services in display order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/ServiceState" } }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/services/{id}/{action}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [start, stop, restart, reload, enable, disable] } }
+    post:
+      tags: [server]
+      summary: Start, stop, restart, reload, enable or disable a service
+      description: The panel's API and SSH cannot be stopped, restarted or disabled here (409 protected).
+      operationId: serviceAction
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Done; the service's state now.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceState" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/services/{id}/log:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [server]
+      summary: The last lines of a service's journal
+      operationId: getServiceLog
+      parameters:
+        - { name: lines, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+      responses:
+        "200":
+          description: The log text.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text]
+                properties:
+                  text: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /server/jobs:
+    get:
+      tags: [server]
+      summary: The task queue, newest first
+      operationId: listJobs
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [queued, running, succeeded, failed, canceled] } }
+        - { name: kind, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Jobs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/JobItem" } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/jobs/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [server]
+      summary: Cancel a queued or running job
+      operationId: cancelJob
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Canceled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobItem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/jobs/{id}/retry:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [server]
+      summary: Queue a failed or canceled job again
+      operationId: retryJob
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobItem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/sessions:
+    get:
+      tags: [server]
+      summary: Every session of every login
+      operationId: listAllSessions
+      responses:
+        "200":
+          description: Sessions, most recently used first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/AnySession" } }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/sessions/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [server]
+      summary: End any session
+      operationId: revokeAnySession
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Ended. }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /server/logins:
+    get:
+      tags: [server]
+      summary: The latest sign-in attempts of everyone
+      operationId: listLogins
+      responses:
+        "200":
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/LoginAttempt" } }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/backups:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -2642,6 +2826,125 @@ components:
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
 
+    ServerStatus:
+      type: object
+      required: [hostname, os, kernel, arch, cpu_model, cores, uptime_seconds, load, cpu_percent, mem_total, mem_available, swap_total, swap_free, disks, net, procs, accounts, accounts_at, accounts_computing, versions, xcp_version, jobs]
+      properties:
+        hostname: { type: string }
+        os: { type: string }
+        kernel: { type: string }
+        arch: { type: string }
+        cpu_model: { type: string }
+        cores: { type: integer }
+        uptime_seconds: { type: integer }
+        load: { type: array, items: { type: number }, minItems: 3, maxItems: 3, description: 1, 5 and 15 minutes }
+        cpu_percent: { type: number }
+        mem_total: { type: integer }
+        mem_available: { type: integer }
+        swap_total: { type: integer }
+        swap_free: { type: integer }
+        disks:
+          type: array
+          items:
+            type: object
+            required: [mount, device, fs, total, used, files, files_used]
+            properties:
+              mount: { type: string }
+              device: { type: string }
+              fs: { type: string }
+              total: { type: integer }
+              used: { type: integer }
+              files: { type: integer }
+              files_used: { type: integer }
+        net:
+          type: array
+          items:
+            type: object
+            required: [name, rx_bytes, tx_bytes]
+            properties: { name: { type: string }, rx_bytes: { type: integer }, tx_bytes: { type: integer } }
+        procs:
+          type: array
+          items:
+            type: object
+            required: [pid, name, user, cpu_percent, rss]
+            properties: { pid: { type: integer }, name: { type: string }, user: { type: string }, cpu_percent: { type: number }, rss: { type: integer } }
+        accounts:
+          type: array
+          description: Biggest first
+          items:
+            type: object
+            required: [username, bytes, partial]
+            properties: { username: { type: string }, bytes: { type: integer }, partial: { type: boolean } }
+        accounts_at: { type: [string, "null"], format: date-time, description: When the accounts' disk use was measured }
+        accounts_computing: { type: boolean }
+        versions:
+          type: array
+          items:
+            type: object
+            required: [package, version]
+            properties: { package: { type: string }, version: { type: string } }
+        xcp_version: { type: string }
+        jobs: { type: object, additionalProperties: { type: integer }, description: Jobs by status; the last 24 hours and all queued or running }
+
+    ServiceState:
+      type: object
+      required: [id, unit, installed, state, sub_state, enabled, main_pid, protected, can_restart]
+      properties:
+        id: { type: string }
+        unit: { type: string }
+        installed: { type: boolean }
+        state: { type: string, description: systemd's active state }
+        sub_state: { type: string }
+        enabled: { type: boolean }
+        main_pid: { type: integer }
+        protected: { type: boolean }
+        can_restart: { type: boolean }
+
+    JobItem:
+      type: object
+      required: [id, kind, status, progress, attempts, max_attempts, account_id, created_by, error, created_at, started_at, finished_at]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, canceled] }
+        progress: { type: integer }
+        attempts: { type: integer }
+        max_attempts: { type: integer }
+        account_id: { type: string }
+        created_by: { type: string }
+        error: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+
+    AnySession:
+      type: object
+      required: [id, username, role, ip, user_agent, created_at, last_seen_at, expires_at, mfa_passed, impersonated, current]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        role: { type: string }
+        ip: { type: string }
+        user_agent: { type: string }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        mfa_passed: { type: boolean }
+        impersonated: { type: boolean }
+        current: { type: boolean }
+
+    LoginAttempt:
+      type: object
+      required: [at, username, result, step, ip, user_agent, reason]
+      properties:
+        at: { type: string, format: date-time }
+        username: { type: string }
+        result: { type: string, enum: [ok, denied, error] }
+        step: { type: string, enum: [login, password], description: password is the first step of a login with 2FA }
+        ip: { type: string }
+        user_agent: { type: string }
+        reason: { type: string }
+
     Backup:
       type: object
       required: [id, kind, status, file, size, detail, created_at, finished_at]
@@ -3092,7 +3395,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken, busy]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken, busy, protected, bad_state]
         detail: { type: string }
         request_id: { type: string }
         errors:

@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -81,8 +81,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Services: agent.Services{
 			Registry: agent.NewServiceRegistry(agent.UbuntuServices()),
 			Manager:  agent.Systemctl{Run: runner},
+			Run:      runner,
 		},
-		Files: files,
+		HostInfo: &agent.HostInfo{Proc: agent.ProcDir, OSRelease: agent.OSReleaseFile, DpkgStatus: agent.DpkgStatusFile, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version},
+		Files:    files,
 		Accounts: &agent.Accounts{
 			Run: runner, HomesRoot: cfg.Paths.HomesRoot, UnitDir: "/etc/systemd/system",
 			WebGroup: "www-data", Services: agent.Systemctl{Run: runner},

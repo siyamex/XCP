@@ -1250,6 +1250,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Host load, memory, disks, network, top processes, accounts' disk use and versions */
+        get: operations["getServerStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The services and their state */
+        get: operations["listServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/services/{id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                action: "start" | "stop" | "restart" | "reload" | "enable" | "disable";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start, stop, restart, reload, enable or disable a service
+         * @description The panel's API and SSH cannot be stopped, restarted or disabled here (409 protected).
+         */
+        post: operations["serviceAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/services/{id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** The last lines of a service's journal */
+        get: operations["getServiceLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The task queue, newest first */
+        get: operations["listJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/jobs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a queued or running job */
+        post: operations["cancelJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/jobs/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue a failed or canceled job again */
+        post: operations["retryJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every session of every login */
+        get: operations["listAllSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** End any session */
+        delete: operations["revokeAnySession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest sign-in attempts of everyone */
+        get: operations["listLogins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/backups": {
         parameters: {
             query?: never;
@@ -1899,6 +2083,125 @@ export interface components {
             catch_all: string[];
             dkim: boolean;
         };
+        ServerStatus: {
+            hostname: string;
+            os: string;
+            kernel: string;
+            arch: string;
+            cpu_model: string;
+            cores: number;
+            uptime_seconds: number;
+            /** @description 1 */
+            load: number[];
+            cpu_percent: number;
+            mem_total: number;
+            mem_available: number;
+            swap_total: number;
+            swap_free: number;
+            disks: {
+                mount: string;
+                device: string;
+                fs: string;
+                total: number;
+                used: number;
+                files: number;
+                files_used: number;
+            }[];
+            net: {
+                name: string;
+                rx_bytes: number;
+                tx_bytes: number;
+            }[];
+            procs: {
+                pid: number;
+                name: string;
+                user: string;
+                cpu_percent: number;
+                rss: number;
+            }[];
+            /** @description Biggest first */
+            accounts: {
+                username: string;
+                bytes: number;
+                partial: boolean;
+            }[];
+            /**
+             * Format: date-time
+             * @description When the accounts' disk use was measured
+             */
+            accounts_at: string | null;
+            accounts_computing: boolean;
+            versions: {
+                package: string;
+                version: string;
+            }[];
+            xcp_version: string;
+            /** @description Jobs by status; the last 24 hours and all queued or running */
+            jobs: {
+                [key: string]: number;
+            };
+        };
+        ServiceState: {
+            id: string;
+            unit: string;
+            installed: boolean;
+            /** @description systemd's active state */
+            state: string;
+            sub_state: string;
+            enabled: boolean;
+            main_pid: number;
+            protected: boolean;
+            can_restart: boolean;
+        };
+        JobItem: {
+            id: string;
+            kind: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "canceled";
+            progress: number;
+            attempts: number;
+            max_attempts: number;
+            account_id: string;
+            created_by: string;
+            error: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+        };
+        AnySession: {
+            id: string;
+            username: string;
+            role: string;
+            ip: string;
+            user_agent: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_seen_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            mfa_passed: boolean;
+            impersonated: boolean;
+            current: boolean;
+        };
+        LoginAttempt: {
+            /** Format: date-time */
+            at: string;
+            username: string;
+            /** @enum {string} */
+            result: "ok" | "denied" | "error";
+            /**
+             * @description password is the first step of a login with 2FA
+             * @enum {string}
+             */
+            step: "login" | "password";
+            ip: string;
+            user_agent: string;
+            reason: string;
+        };
         Backup: {
             id: string;
             /** @enum {string} */
@@ -2349,6 +2652,8 @@ export interface components {
              * @example too_many
              * @example login_taken
              * @example busy
+             * @example protected
+             * @example bad_state
              */
             code: string;
             detail?: string;
@@ -4687,6 +4992,252 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getServerStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The host now. Accounts' disk use is measured in the background and can be minutes old. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerStatus"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    listServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Services in display order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ServiceState"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    serviceAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                action: "start" | "stop" | "restart" | "reload" | "enable" | "disable";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done; the service's state now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceState"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getServiceLog: {
+        parameters: {
+            query?: {
+                lines?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The log text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        text: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    listJobs: {
+        parameters: {
+            query?: {
+                status?: "queued" | "running" | "succeeded" | "failed" | "canceled";
+                kind?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["JobItem"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    cancelJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canceled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobItem"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    retryJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobItem"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listAllSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessions, most recently used first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["AnySession"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    revokeAnySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ended. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    listLogins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["LoginAttempt"][];
+                    };
+                };
+            };
             403: components["responses"]["Problem"];
         };
     };

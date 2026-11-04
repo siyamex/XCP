@@ -177,6 +177,16 @@ service AgentService {
 
   // BackupRemoveAccount removes all backups of an account.
   rpc BackupRemoveAccount(BackupRemoveAccountRequest) returns (BackupRemoveAccountResponse);
+
+  // Server information (ADR-0014).
+
+  // ServerStatus reports the host: load, memory, disks, network, top
+  // processes, the accounts' disk use (measured in the background, so it
+  // can be a few minutes old) and the versions of the installed services.
+  rpc ServerStatus(ServerStatusRequest) returns (ServerStatusResponse);
+
+  // ServiceLog returns the last lines of a service's journal.
+  rpc ServiceLog(ServiceLogRequest) returns (ServiceLogResponse);
 }
 
 message PingRequest {}
@@ -209,6 +219,8 @@ enum ServiceActionKind {
   SERVICE_ACTION_KIND_STOP = 2;
   SERVICE_ACTION_KIND_RESTART = 3;
   SERVICE_ACTION_KIND_RELOAD = 4;
+  SERVICE_ACTION_KIND_ENABLE = 5;
+  SERVICE_ACTION_KIND_DISABLE = 6;
 }
 
 message ServiceActionRequest {
@@ -697,4 +709,72 @@ message BackupRemoveAccountRequest {
 
 message BackupRemoveAccountResponse {
   bool removed = 1;
+}
+
+message ServerStatusRequest {}
+
+message HostDisk {
+  string mount = 1;
+  string device = 2;
+  string fs = 3;
+  uint64 total = 4;
+  uint64 used = 5;
+  uint64 files = 6;
+  uint64 files_used = 7;
+}
+
+message HostNet {
+  string name = 1;
+  uint64 rx_bytes = 2;
+  uint64 tx_bytes = 3;
+}
+
+message HostProc {
+  int32 pid = 1;
+  string name = 2;
+  string user = 3;
+  double cpu_percent = 4;
+  uint64 rss = 5;
+}
+
+message HostAccount {
+  string username = 1;
+  int64 bytes = 2;
+  bool partial = 3;  // the walk stopped at its limit
+}
+
+message ServerStatusResponse {
+  string hostname = 1;
+  string os = 2;
+  string kernel = 3;
+  string arch = 4;
+  string cpu_model = 5;
+  int32 cores = 6;
+  int64 uptime_seconds = 7;
+  double load1 = 8;
+  double load5 = 9;
+  double load15 = 10;
+  double cpu_percent = 11;
+  uint64 mem_total = 12;
+  uint64 mem_available = 13;
+  uint64 swap_total = 14;
+  uint64 swap_free = 15;
+  repeated HostDisk disks = 16;
+  repeated HostNet net = 17;
+  repeated HostProc procs = 18;
+  repeated HostAccount accounts = 19;
+  int64 accounts_at_unix = 20;
+  bool accounts_computing = 21;
+  map<string, string> versions = 22;
+  string xcp_version = 23;
+}
+
+message ServiceLogRequest {
+  string service = 1;
+  int32 lines = 2;  // 1 to 500
+}
+
+message ServiceLogResponse {
+  string unit = 1;
+  string text = 2;
 }

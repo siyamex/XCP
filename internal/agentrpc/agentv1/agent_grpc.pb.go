@@ -68,6 +68,8 @@ const (
 	AgentService_BackupRead_FullMethodName             = "/xcp.agent.v1.AgentService/BackupRead"
 	AgentService_BackupDelete_FullMethodName           = "/xcp.agent.v1.AgentService/BackupDelete"
 	AgentService_BackupRemoveAccount_FullMethodName    = "/xcp.agent.v1.AgentService/BackupRemoveAccount"
+	AgentService_ServerStatus_FullMethodName           = "/xcp.agent.v1.AgentService/ServerStatus"
+	AgentService_ServiceLog_FullMethodName             = "/xcp.agent.v1.AgentService/ServiceLog"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -184,6 +186,12 @@ type AgentServiceClient interface {
 	BackupDelete(ctx context.Context, in *BackupDeleteRequest, opts ...grpc.CallOption) (*BackupDeleteResponse, error)
 	// BackupRemoveAccount removes all backups of an account.
 	BackupRemoveAccount(ctx context.Context, in *BackupRemoveAccountRequest, opts ...grpc.CallOption) (*BackupRemoveAccountResponse, error)
+	// ServerStatus reports the host: load, memory, disks, network, top
+	// processes, the accounts' disk use (measured in the background, so it
+	// can be a few minutes old) and the versions of the installed services.
+	ServerStatus(ctx context.Context, in *ServerStatusRequest, opts ...grpc.CallOption) (*ServerStatusResponse, error)
+	// ServiceLog returns the last lines of a service's journal.
+	ServiceLog(ctx context.Context, in *ServiceLogRequest, opts ...grpc.CallOption) (*ServiceLogResponse, error)
 }
 
 type agentServiceClient struct {
@@ -594,6 +602,26 @@ func (c *agentServiceClient) BackupRemoveAccount(ctx context.Context, in *Backup
 	return out, nil
 }
 
+func (c *agentServiceClient) ServerStatus(ctx context.Context, in *ServerStatusRequest, opts ...grpc.CallOption) (*ServerStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServerStatusResponse)
+	err := c.cc.Invoke(ctx, AgentService_ServerStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) ServiceLog(ctx context.Context, in *ServiceLogRequest, opts ...grpc.CallOption) (*ServiceLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServiceLogResponse)
+	err := c.cc.Invoke(ctx, AgentService_ServiceLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -708,6 +736,12 @@ type AgentServiceServer interface {
 	BackupDelete(context.Context, *BackupDeleteRequest) (*BackupDeleteResponse, error)
 	// BackupRemoveAccount removes all backups of an account.
 	BackupRemoveAccount(context.Context, *BackupRemoveAccountRequest) (*BackupRemoveAccountResponse, error)
+	// ServerStatus reports the host: load, memory, disks, network, top
+	// processes, the accounts' disk use (measured in the background, so it
+	// can be a few minutes old) and the versions of the installed services.
+	ServerStatus(context.Context, *ServerStatusRequest) (*ServerStatusResponse, error)
+	// ServiceLog returns the last lines of a service's journal.
+	ServiceLog(context.Context, *ServiceLogRequest) (*ServiceLogResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -837,6 +871,12 @@ func (UnimplementedAgentServiceServer) BackupDelete(context.Context, *BackupDele
 }
 func (UnimplementedAgentServiceServer) BackupRemoveAccount(context.Context, *BackupRemoveAccountRequest) (*BackupRemoveAccountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BackupRemoveAccount not implemented")
+}
+func (UnimplementedAgentServiceServer) ServerStatus(context.Context, *ServerStatusRequest) (*ServerStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ServerStatus not implemented")
+}
+func (UnimplementedAgentServiceServer) ServiceLog(context.Context, *ServiceLogRequest) (*ServiceLogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ServiceLog not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1579,6 +1619,42 @@ func _AgentService_BackupRemoveAccount_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_ServerStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServerStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).ServerStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_ServerStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).ServerStatus(ctx, req.(*ServerStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_ServiceLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServiceLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).ServiceLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_ServiceLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).ServiceLog(ctx, req.(*ServiceLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1745,6 +1821,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BackupRemoveAccount",
 			Handler:    _AgentService_BackupRemoveAccount_Handler,
+		},
+		{
+			MethodName: "ServerStatus",
+			Handler:    _AgentService_ServerStatus_Handler,
+		},
+		{
+			MethodName: "ServiceLog",
+			Handler:    _AgentService_ServiceLog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
