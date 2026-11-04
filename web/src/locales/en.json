@@ -109,7 +109,8 @@
       "device": "Device",
       "lastSeen": "Last active",
       "revoke": "Sign out"
-    }
+    },
+    "mfaRequired": "This server requires two-factor sign-in for your login. Set it up below to continue."
   },
   "errors": {
     "invalid_credentials": "Wrong username or password.",

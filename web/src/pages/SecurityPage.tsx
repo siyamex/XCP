@@ -196,11 +196,12 @@ export function SecurityPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("security.title")}</h1>
+      {me.mfa_enrollment_required && !me.must_change_password && <Alert kind="info">{t("security.mfaRequired")}</Alert>}
       <ChangePassword forced={me.must_change_password} />
       {!me.must_change_password && (
         <>
           <TwoFactor enabled={me.totp_enabled} />
-          <Sessions />
+          {!me.mfa_enrollment_required && <Sessions />}
         </>
       )}
     </div>

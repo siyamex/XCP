@@ -67,6 +67,7 @@ type Principal struct {
 // Service implements login, sessions and 2FA.
 type Service struct {
 	limMu       sync.RWMutex
+	mfaPolicy   string        // who must use 2FA (policy.go)
 	idleLimit   time.Duration // 0: Options.SessionIdle
 	maxLifetime time.Duration // 0: Options.SessionMax
 	db          *store.DB

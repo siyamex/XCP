@@ -38,7 +38,7 @@ export function AppLayout() {
 
   if (me.isPending) return <Spinner />;
   if (!me.data) return <Navigate to="/login" />;
-  if (me.data.must_change_password && path !== "/account/security") {
+  if ((me.data.must_change_password || me.data.mfa_enrollment_required) && path !== "/account/security") {
     return <Navigate to="/account/security" />;
   }
 

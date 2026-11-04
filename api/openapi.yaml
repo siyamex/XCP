@@ -2831,7 +2831,7 @@ components:
 
     Me:
       type: object
-      required: [id, username, role, email, locale, totp_enabled, must_change_password, csrf_token]
+      required: [id, username, role, email, locale, totp_enabled, must_change_password, mfa_enrollment_required, csrf_token]
       properties:
         id: { type: string, description: ULID }
         username: { type: string }
@@ -2839,6 +2839,7 @@ components:
         email: { type: string }
         locale: { type: string }
         totp_enabled: { type: boolean }
+        mfa_enrollment_required: { type: boolean, description: "The server requires two-factor sign-in for this login and it is not set up: only the pages to set it up work" }
         must_change_password: { type: boolean }
         impersonator_id: { type: string, description: Set while an admin or reseller is logged in as this user }
         account_id: { type: string, description: The hosting account of a user login }

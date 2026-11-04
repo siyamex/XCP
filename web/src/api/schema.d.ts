@@ -2078,6 +2078,8 @@ export interface components {
             email: string;
             locale: string;
             totp_enabled: boolean;
+            /** @description The server requires two-factor sign-in for this login and it is not set up: only the pages to set it up work */
+            mfa_enrollment_required: boolean;
             must_change_password: boolean;
             /** @description Set while an admin or reseller is logged in as this user */
             impersonator_id?: string;

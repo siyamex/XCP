@@ -39,6 +39,7 @@ type Service struct {
 
 	applyAll  func(ctx context.Context, by string) (int, error)
 	setLimits func(idle, lifetime time.Duration)
+	setMFA    func(policy string)
 
 	mu      sync.Mutex
 	updInfo UpdateInfo
@@ -52,8 +53,8 @@ func NewService(db *store.DB, rec *audit.Recorder, ag agentrpc.Client, zs *zones
 
 // SetHooks connects what a changed setting must reach: applying every
 // account again (PHP settings) and the panel's session limits.
-func (s *Service) SetHooks(applyAll func(ctx context.Context, by string) (int, error), setLimits func(idle, lifetime time.Duration)) {
-	s.applyAll, s.setLimits = applyAll, setLimits
+func (s *Service) SetHooks(applyAll func(ctx context.Context, by string) (int, error), setLimits func(idle, lifetime time.Duration), setMFA func(policy string)) {
+	s.applyAll, s.setLimits, s.setMFA = applyAll, setLimits, setMFA
 }
 
 func admin(p *auth.Principal) error {
@@ -91,6 +92,7 @@ var defs = []def{
 	{Key: "php.upload_max_mb", Group: "php", Type: "int", Default: 64, Min: 1, Max: 2048},
 	{Key: "auth.session_idle_minutes", Group: "panel", Type: "int", Default: 30, Min: 5, Max: 1440},
 	{Key: "auth.session_max_hours", Group: "panel", Type: "int", Default: 12, Min: 1, Max: 720},
+	{Key: "auth.require_2fa", Group: "panel", Type: "enum", Default: "none", Options: []string{"none", "admins", "resellers", "all"}},
 	{Key: "updates.channel", Group: "updates", Type: "enum", Default: "stable", Options: []string{"stable", "beta"}},
 	{Key: "updates.window_hour", Group: "updates", Type: "int", Default: 3, Min: 0, Max: 23},
 	{Key: "updates.os_auto", Group: "updates", Type: "bool", Default: true},
@@ -264,6 +266,11 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 }
 
 func (s *Service) applySessionLimits(ctx context.Context) {
+	if s.setMFA != nil {
+		d, _ := find("auth.require_2fa")
+		policy, _ := s.value(ctx, d).(string)
+		s.setMFA(policy)
+	}
 	if s.setLimits != nil {
 		s.setLimits(time.Duration(s.Int(ctx, "auth.session_idle_minutes"))*time.Minute, time.Duration(s.Int(ctx, "auth.session_max_hours"))*time.Hour)
 	}

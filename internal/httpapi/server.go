@@ -117,8 +117,8 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/me/reauth", access: authed, h: s.reauth},
 		{method: "GET", path: "/api/v1/me/sessions", access: authed, h: s.listSessions},
 		{method: "DELETE", path: "/api/v1/me/sessions/{id}", access: authed, h: s.revokeSession},
-		{method: "POST", path: "/api/v1/me/2fa/setup", access: authed, h: s.setup2FA},
-		{method: "POST", path: "/api/v1/me/2fa/confirm", access: authed, h: s.confirm2FA},
+		{method: "POST", path: "/api/v1/me/2fa/setup", access: authed, allowMustChange: true, h: s.setup2FA},
+		{method: "POST", path: "/api/v1/me/2fa/confirm", access: authed, allowMustChange: true, h: s.confirm2FA},
 		{method: "POST", path: "/api/v1/me/2fa/disable", access: authed, h: s.disable2FA},
 
 		{method: "GET", path: "/api/v1/features", access: authed, roles: adminOnly, h: s.listFeatures},
@@ -373,6 +373,9 @@ func (s *Server) guard(r *http.Request, rt route) (*http.Request, error) {
 		}
 		if p.Login.MustChangePassword && !rt.allowMustChange {
 			return r, errMustChangePwd
+		}
+		if !rt.allowMustChange && s.Auth.MFAEnrollmentRequired(p.Login) {
+			return r, errMFARequired
 		}
 		ctx = context.WithValue(ctx, keyPrincipal, p)
 	}

@@ -121,7 +121,7 @@ func serve(args []string) error {
 	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
 	fws := firewall.NewService(a.DB, a.Audit, queue, agent, listenPort(a.Cfg.API.Listen))
 	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
-	setts.SetHooks(accts.ApplyAll, a.Auth.SetSessionLimits)
+	setts.SetHooks(accts.ApplyAll, a.Auth.SetSessionLimits, a.Auth.SetMFAPolicy)
 	setts.Start(ctx)
 	doms.SetDefaults(setts.PHPDefaults)
 	bks.SetRestoreDeps(accts, zs)
