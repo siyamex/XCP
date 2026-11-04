@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAPITokensOverHTTP(t *testing.T) {
@@ -54,4 +55,57 @@ func TestAPITokensOverHTTP(t *testing.T) {
 		t.Fatalf("revoke: %d", resp.StatusCode)
 	}
 	wantProblem(t, script.do("GET", "/me", nil, bearer), 401, "unauthenticated")
+}
+
+func TestImpersonationOverHTTP(t *testing.T) {
+	h := newHarness(t)
+	b := h.browser()
+	b.login("root", rootPW)
+	// An account to enter.
+	var pk struct{ Items []struct{ ID string } }
+	json.Unmarshal([]byte(readAll(b.do("GET", "/packages", nil))), &pk)
+	resp := b.do("POST", "/accounts", map[string]any{"username": "imp1", "domain": "imp1.example", "package_id": pk.Items[0].ID, "password": "customer password 1"})
+	if resp.StatusCode != 202 && resp.StatusCode != 201 {
+		t.Fatalf("create: %d %s", resp.StatusCode, readAll(resp))
+	}
+	var acct struct{ ID string }
+	json.Unmarshal([]byte(readAll(resp)), &acct)
+	waitActive := func() {
+		for i := 0; i < 200; i++ {
+			var a struct{ Status string }
+			json.Unmarshal([]byte(readAll(b.do("GET", "/accounts/"+acct.ID, nil))), &a)
+			if a.Status == "active" {
+				return
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		t.Fatal("account never became active")
+	}
+	waitActive()
+
+	// Signing in counts as a confirmation of the password.
+	resp = b.do("POST", "/accounts/"+acct.ID+"/impersonate", nil)
+	if resp.StatusCode != 200 {
+		t.Fatalf("impersonate: %d %s", resp.StatusCode, readAll(resp))
+	}
+	var lr struct {
+		CSRFToken string `json:"csrf_token"`
+	}
+	json.Unmarshal([]byte(readAll(resp)), &lr)
+	b.csrf = lr.CSRFToken
+
+	resp = b.do("GET", "/me", nil)
+	var me struct {
+		Username, Role string
+		ImpersonatorID string `json:"impersonator_id"`
+	}
+	json.Unmarshal([]byte(readAll(resp)), &me)
+	if me.Username != "imp1" || me.Role != "user" || me.ImpersonatorID == "" {
+		t.Fatalf("me: %+v", me)
+	}
+	// The customer's sign-in settings are out of reach.
+	wantProblem(t, b.do("POST", "/me/password", map[string]string{"current_password": "customer password 1", "new_password": "a new long password"}), 403, "impersonating")
+	wantProblem(t, b.do("POST", "/me/tokens", map[string]any{"name": "x", "scope": "read", "password": "customer password 1"}), 403, "impersonating")
+	// And it is not an admin any more.
+	wantProblem(t, b.do("GET", "/resellers", nil), 403, "forbidden")
 }

@@ -151,6 +151,7 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/suspend", access: authed, roles: adminOrReseller, h: s.suspendAccount},
 		{method: "POST", path: "/api/v1/accounts/{id}/unsuspend", access: authed, roles: adminOrReseller, h: s.unsuspendAccount},
 		{method: "POST", path: "/api/v1/accounts/{id}/password", access: authed, roles: adminOrReseller, h: s.setAccountPassword},
+		{method: "POST", path: "/api/v1/accounts/{id}/impersonate", access: authed, roles: adminOrReseller, h: s.impersonateAccount},
 		{method: "POST", path: "/api/v1/accounts/{id}/terminate", access: authed, roles: adminOrReseller, h: s.terminateAccount},
 		{method: "GET", path: "/api/v1/accounts/{id}/domains", access: authed, roles: adminOrUser, h: s.listDomains},
 		{method: "POST", path: "/api/v1/accounts/{id}/domains", access: authed, roles: adminOrUser, h: s.addDomain},
@@ -400,6 +401,10 @@ func (s *Server) guard(r *http.Request, rt route) (*http.Request, error) {
 		}
 		if !rt.allowMustChange && s.Auth.MFAEnrollmentRequired(p.Login) {
 			return r, errMFARequired
+		}
+		// Someone helping a customer cannot change the customer's sign-in.
+		if p.Session.ImpersonatorID != "" && unsafe && strings.HasPrefix(rt.path, "/api/v1/me/") {
+			return r, errImpersonating
 		}
 		ctx = context.WithValue(ctx, keyPrincipal, p)
 	}

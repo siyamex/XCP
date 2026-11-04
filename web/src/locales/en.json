@@ -70,7 +70,9 @@
       "dark": "Dark",
       "system": "System"
     },
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "impersonating": "You are signed in as {{name}} on behalf of someone else. Everything you do is recorded with both names.",
+    "endImpersonation": "End and sign out"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -298,7 +300,11 @@
       "error": "Error"
     },
     "phpVersion": "PHP version",
-    "phpDefault": "Server default ({{version}})"
+    "phpDefault": "Server default ({{version}})",
+    "impersonate": "Sign in as this customer",
+    "impersonateHelp": "Opens the panel as {{name}} for up to an hour, to help or to check. Everything you do is recorded with both names. You cannot change their password or sign-in settings that way. Your own session ends; sign in again afterwards.",
+    "yourPassword": "Your password",
+    "impersonateGo": "Sign in as customer"
   },
   "job": {
     "running": "Working on it…",

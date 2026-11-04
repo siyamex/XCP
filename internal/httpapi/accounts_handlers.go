@@ -7,6 +7,7 @@ import (
 
 	"github.com/siyamex/XCP/internal/accounts"
 	"github.com/siyamex/XCP/internal/apperr"
+	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/store"
 )
 
@@ -91,6 +92,19 @@ func (s *Server) setAccountPassword(w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+func (s *Server) impersonateAccount(w http.ResponseWriter, r *http.Request) error {
+	token, err := s.Accounts.Impersonate(r.Context(), client(r), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	// The browser now has the customer's session; the person's own ends with it.
+	_ = s.Auth.Logout(r.Context(), client(r), sessionToken(r))
+	s.setSessionCookie(w, token)
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]string{"csrf_token": auth.CSRFToken(token)})
 	return nil
 }
 

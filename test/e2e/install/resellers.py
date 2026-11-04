@@ -115,6 +115,8 @@ st, _ = a2.call("GET", f"/accounts/{c1['id']}")
 check(st == 404, "nor reads one", f"{st}")
 st, _ = a2.call("POST", f"/accounts/{c1['id']}/suspend", {"reason": "x"})
 check(st == 404, "nor suspends one", f"{st}")
+st, _ = a2.call("POST", f"/accounts/{c1['id']}/impersonate")
+check(st == 404, "nor signs in as its customer", f"{st}")
 st, la = admin_session.call("GET", "/accounts")
 check({"rsc1", "rsc2"} <= {a["username"] for a in la["items"]}, "the admin sees all accounts", "")
 
@@ -129,6 +131,21 @@ st, me = cust.call("GET", "/me")
 check(st == 200 and me["role"] == "user", "the customer signs in", f"{st}")
 st, _ = cust.call("GET", "/resellers")
 check(st == 403, "the customer cannot use reseller pages", f"{st}")
+
+# Signing in as the customer (RSL-ACC-05).
+imp = Session()
+imp.login("rsl1", PW)
+st, _ = imp.call("POST", "/me/reauth", {"password": PW})
+st, r = imp.call("POST", f"/accounts/{c1['id']}/impersonate")
+check(st == 200, "a reseller signs in as its customer", f"{st} {r}")
+if st == 200:
+    imp.csrf = r["csrf_token"]
+    st, me = imp.call("GET", "/me")
+    check(me["username"] == "rsc1" and me.get("impersonator_id") == r1["id"], "as the customer, marked as impersonated", str(me))
+    st, _ = imp.call("POST", "/me/password", {"current_password": PW, "new_password": "something else entirely 12"})
+    check(st == 403, "and cannot change the customer's password", f"{st}")
+    st, _ = imp.call("GET", "/reseller/overview")
+    check(st == 403, "and is not a reseller any more", f"{st}")
 
 # Suspended reseller cannot sign in.
 st, _ = api("POST", f"/resellers/{r2['id']}/suspend")

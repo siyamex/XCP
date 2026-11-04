@@ -54,6 +54,7 @@ var (
 	errCrossOrigin    = newAPIError(http.StatusForbidden, "cross_origin", "cross-origin request refused")
 	errTokenReadOnly  = newAPIError(http.StatusForbidden, "token_read_only", "this API token can only read")
 	errTokenForbidden = newAPIError(http.StatusForbidden, "token_not_allowed", "this page needs a signed-in session, not an API token")
+	errImpersonating  = newAPIError(http.StatusForbidden, "impersonating", "this cannot be changed while you are signed in as someone else")
 	errMFARequired    = newAPIError(http.StatusForbidden, "mfa_required", "set up two-factor sign-in to continue")
 	errMustChangePwd  = newAPIError(http.StatusForbidden, "password_change_required", "change your password to continue")
 	errMediaType      = newAPIError(http.StatusUnsupportedMediaType, "unsupported_media_type", "send Content-Type: application/json")

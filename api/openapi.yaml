@@ -679,6 +679,24 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/impersonate:
+    post:
+      tags: [accounts]
+      summary: Sign in as the account's user
+      description: For admins, and resellers for their own customers. Needs a password confirmation (`/me/reauth`) in the last five minutes. The session lasts an hour at most, cannot change the user's sign-in settings, and every audit event made through it names both people. The caller's own session ends.
+      operationId: impersonateAccount
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The browser now has the user's session.
+          content:
+            application/json:
+              schema: { type: object, required: [csrf_token], properties: { csrf_token: { type: string } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /accounts/{id}/terminate:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }

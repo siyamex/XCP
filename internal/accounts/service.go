@@ -183,6 +183,24 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, search, status st
 	return out, nil
 }
 
+// Impersonate signs the caller in as the account's user (admins, and
+// resellers for their own customers) and returns the session token. The
+// caller must have confirmed its password just now.
+func (s *Service) Impersonate(ctx context.Context, c auth.Client, p *auth.Principal, id string) (string, error) {
+	a, err := s.account(ctx, p, id)
+	if err != nil {
+		return "", err
+	}
+	if a.Status != store.AccountActive {
+		return "", apperr.NewConflict("not_active", "the account is "+a.Status+": only active accounts can be entered")
+	}
+	l, err := s.db.AccountLogin(ctx, a.ID)
+	if err != nil {
+		return "", err
+	}
+	return s.auth.Impersonate(ctx, c, p, l)
+}
+
 // Get returns one account.
 func (s *Service) Get(ctx context.Context, p *auth.Principal, id string) (Account, error) {
 	a, err := s.account(ctx, p, id)

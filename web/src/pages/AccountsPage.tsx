@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { api, unwrap } from "../api/client";
+import { api, setCsrfToken, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
@@ -302,6 +302,8 @@ export function AccountDetailPage() {
         </form>
       </Card>
 
+      {a.status === "active" && <Impersonate id={a.id} username={a.username} />}
+
       <Card className="border-red-200 dark:border-red-900">
         <CardTitle>{t("accounts.terminate")}</CardTitle>
         <p className="mb-3 text-sm">{t("accounts.terminateHelp")}</p>
@@ -315,5 +317,36 @@ export function AccountDetailPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+/** Sign in as the account's user, after confirming the password (RSL-ACC-05). */
+function Impersonate({ id, username }: { id: string; username: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [password, setPassword] = useState("");
+  const enter = useMutation({
+    mutationFn: async () => {
+      await unwrap(api.POST("/me/reauth", { body: { password } }));
+      return unwrap(api.POST("/accounts/{id}/impersonate", { params: { path: { id } } }));
+    },
+    onSuccess: (r) => {
+      setCsrfToken(r.csrf_token);
+      qc.clear();
+      window.location.assign("/");
+    },
+  });
+  return (
+    <Card>
+      <CardTitle>{t("accounts.impersonate")}</CardTitle>
+      <p className="mb-3 text-sm">{t("accounts.impersonateHelp", { name: username })}</p>
+      <form onSubmit={(e) => { e.preventDefault(); enter.mutate(); }} className="flex max-w-xl flex-wrap items-end gap-2">
+        <Field id="imp-pw" label={t("accounts.yourPassword")}>
+          <Input id="imp-pw" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+        <Button type="submit" variant="secondary" disabled={enter.isPending}>{t("accounts.impersonateGo")}</Button>
+      </form>
+      {enter.isError && <ErrorAlert error={enter.error} />}
+    </Card>
   );
 }

@@ -75,6 +75,12 @@ export function AppLayout() {
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
+        {me.data.impersonator_id && (
+          <div className="flex items-center justify-between gap-3 bg-amber-100 px-4 py-2 text-sm text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+            <span>{t("topbar.impersonating", { name: me.data.username })}</span>
+            <Button variant="secondary" onClick={() => logout.mutate()} disabled={logout.isPending}>{t("topbar.endImpersonation")}</Button>
+          </div>
+        )}
         <header className="flex items-center justify-end gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-6 dark:border-slate-800 dark:bg-slate-900">
           <span className="mr-auto font-bold text-brand md:hidden">{t("app.name")}</span>
           <span className="hidden text-sm sm:inline">

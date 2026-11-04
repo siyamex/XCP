@@ -455,6 +455,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/impersonate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in as the account's user
+         * @description For admins, and resellers for their own customers. Needs a password confirmation (`/me/reauth`) in the last five minutes. The session lasts an hour at most, cannot change the user's sign-in settings, and every audit event made through it names both people. The caller's own session ends.
+         */
+        post: operations["impersonateAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/terminate": {
         parameters: {
             query?: never;
@@ -4106,6 +4126,33 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    impersonateAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The browser now has the user's session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        csrf_token: string;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };
