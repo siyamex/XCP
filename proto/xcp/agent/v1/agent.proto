@@ -117,6 +117,10 @@ service AgentService {
 
   // MailSettingsApply renders the mail servers' configuration.
   rpc MailSettingsApply(MailSettingsApplyRequest) returns (MailSettingsApplyResponse);
+  // MailQueueList returns Postfix's queue (newest first, at most 500).
+  rpc MailQueueList(MailQueueListRequest) returns (MailQueueListResponse);
+  // MailQueueAction flushes or deletes queued mail.
+  rpc MailQueueAction(MailQueueActionRequest) returns (MailQueueActionResponse);
 
   // MailWebmailSignon makes a temporary IMAP password (8 hours) for a
   // mailbox of the account that may log in, and a one-time ticket for
@@ -599,6 +603,33 @@ message MailAccountRemoveRequest {
 message MailAccountRemoveResponse {
   bool removed = 1;
 }
+
+message MailQueueListRequest {}
+
+message QueuedMail {
+  string id = 1;
+  string queue = 2;  // active, deferred, hold or incoming
+  int64 arrived_unix = 3;
+  int64 size = 4;
+  string sender = 5;
+  repeated QueuedRecipient recipients = 6;
+}
+
+message QueuedRecipient {
+  string address = 1;
+  string reason = 2;
+}
+
+message MailQueueListResponse {
+  repeated QueuedMail messages = 1;
+}
+
+message MailQueueActionRequest {
+  string action = 1;  // flush_all, flush, delete or delete_all
+  repeated string ids = 2;
+}
+
+message MailQueueActionResponse {}
 
 message MailSettingsApplyRequest {
   string hostname = 1;

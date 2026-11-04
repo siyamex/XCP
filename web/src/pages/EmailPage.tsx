@@ -6,6 +6,7 @@ import type { components } from "../api/schema";
 import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
+import { MailQueueCard } from "./MailQueueCard";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { cn } from "../lib/cn";
 import { generatePassword } from "../lib/password";
@@ -31,7 +32,7 @@ export function EmailPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("email.title")}</h1>
-      {me.data?.role === "admin" ? <SettingsCard />
+      {me.data?.role === "admin" ? <><SettingsCard /><MailQueueCard /></>
         : me.data?.account_id ? <AccountMail accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );

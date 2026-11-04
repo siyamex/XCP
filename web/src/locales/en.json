@@ -928,7 +928,28 @@
     "everyDays": "Reply to a sender once in (days)",
     "replyText": "Reply message",
     "saveReply": "Save autoresponder",
-    "removeReply": "Remove autoresponder"
+    "removeReply": "Remove autoresponder",
+    "queue": {
+      "title": "Mail queue",
+      "hint": "Mail Postfix has not delivered yet, and why. Deferred mail is tried again by itself; flush tries it now. Deleting loses the message.",
+      "refresh": "Refresh",
+      "flushAll": "Try all now",
+      "flush": "Try selected now",
+      "delete": "Delete selected",
+      "deleteAll": "Delete all deferred",
+      "confirmDelete": "Delete {{count}} message(s) for good?",
+      "confirmDeleteAll": "Delete every deferred message for good?",
+      "empty": "The queue is empty.",
+      "limit": "Showing the newest {{n}} messages.",
+      "col": {
+        "id": "ID",
+        "queue": "Queue",
+        "arrived": "Arrived",
+        "size": "Size",
+        "from": "From",
+        "to": "To"
+      }
+    }
   },
   "files": {
     "title": "Files",

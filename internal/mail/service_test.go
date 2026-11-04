@@ -472,3 +472,37 @@ func TestMXChangeReappliesMail(t *testing.T) {
 	}
 	waitFor(t, func() bool { got, ok := e.fake.MailAccount("alice"); return ok && len(got.Domains) == 0 })
 }
+
+func TestMailQueueAdminOnly(t *testing.T) {
+	e := newEnv(t)
+	e.fake.QueueMail("4B1F2C3D4E", "deferred", "a@example.test", "b@remote.test", "connection timed out")
+	e.fake.QueueMail("5C2A3B4D5F", "deferred", "c@example.test", "d@remote.test", "host not found")
+	_, user := e.account(t, "alice")
+	if _, err := e.svc.Queue(ctx, user); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a user reads the queue: %v", err)
+	}
+	if err := e.svc.QueueAction(ctx, client, user, "delete_all", nil); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a user empties the queue: %v", err)
+	}
+	list, err := e.svc.Queue(ctx, e.admin)
+	if err != nil || len(list) != 2 || list[0].Recipients[0].Reason == "" {
+		t.Fatalf("queue = %+v, %v", list, err)
+	}
+	for _, bad := range []struct {
+		action string
+		ids    []string
+	}{{"delete", nil}, {"delete", []string{"-d"}}, {"flush", []string{"4B1F2C3D4E;x"}}, {"explode", nil}} {
+		if err := e.svc.QueueAction(ctx, client, e.admin, bad.action, bad.ids); err == nil {
+			t.Errorf("%v accepted", bad)
+		}
+	}
+	if err := e.svc.QueueAction(ctx, client, e.admin, "delete", []string{"4B1F2C3D4E"}); err != nil {
+		t.Fatal(err)
+	}
+	if ids := e.fake.QueuedIDs(); len(ids) != 1 || ids[0] != "5C2A3B4D5F" {
+		t.Errorf("left: %v", ids)
+	}
+	if err := e.svc.QueueAction(ctx, client, e.admin, "delete_all", nil); err != nil || len(e.fake.QueuedIDs()) != 0 {
+		t.Errorf("delete_all: %v %v", err, e.fake.QueuedIDs())
+	}
+}

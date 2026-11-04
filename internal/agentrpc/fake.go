@@ -39,6 +39,7 @@ type Fake struct {
 	backups   fakeBackups
 	host      fakeHost
 	fw        fakeFirewall
+	mq        fakeQueue
 	hostName  string
 	hostCert  string
 }

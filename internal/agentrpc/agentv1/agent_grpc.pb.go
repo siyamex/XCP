@@ -54,6 +54,8 @@ const (
 	AgentService_MailAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/MailAccountApply"
 	AgentService_MailAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/MailAccountRemove"
 	AgentService_MailSettingsApply_FullMethodName      = "/xcp.agent.v1.AgentService/MailSettingsApply"
+	AgentService_MailQueueList_FullMethodName          = "/xcp.agent.v1.AgentService/MailQueueList"
+	AgentService_MailQueueAction_FullMethodName        = "/xcp.agent.v1.AgentService/MailQueueAction"
 	AgentService_MailWebmailSignon_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailSignon"
 	AgentService_MailWebmailExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailExpire"
 	AgentService_UserHelperStart_FullMethodName        = "/xcp.agent.v1.AgentService/UserHelperStart"
@@ -157,6 +159,10 @@ type AgentServiceClient interface {
 	MailAccountRemove(ctx context.Context, in *MailAccountRemoveRequest, opts ...grpc.CallOption) (*MailAccountRemoveResponse, error)
 	// MailSettingsApply renders the mail servers' configuration.
 	MailSettingsApply(ctx context.Context, in *MailSettingsApplyRequest, opts ...grpc.CallOption) (*MailSettingsApplyResponse, error)
+	// MailQueueList returns Postfix's queue (newest first, at most 500).
+	MailQueueList(ctx context.Context, in *MailQueueListRequest, opts ...grpc.CallOption) (*MailQueueListResponse, error)
+	// MailQueueAction flushes or deletes queued mail.
+	MailQueueAction(ctx context.Context, in *MailQueueActionRequest, opts ...grpc.CallOption) (*MailQueueActionResponse, error)
 	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
 	// mailbox of the account that may log in, and a one-time ticket for
 	// Roundcube (ADR-0008). NOT_FOUND: webmail is not installed.
@@ -494,6 +500,26 @@ func (c *agentServiceClient) MailSettingsApply(ctx context.Context, in *MailSett
 	return out, nil
 }
 
+func (c *agentServiceClient) MailQueueList(ctx context.Context, in *MailQueueListRequest, opts ...grpc.CallOption) (*MailQueueListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailQueueListResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailQueueList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailQueueAction(ctx context.Context, in *MailQueueActionRequest, opts ...grpc.CallOption) (*MailQueueActionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailQueueActionResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailQueueAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentServiceClient) MailWebmailSignon(ctx context.Context, in *MailWebmailSignonRequest, opts ...grpc.CallOption) (*MailWebmailSignonResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MailWebmailSignonResponse)
@@ -820,6 +846,10 @@ type AgentServiceServer interface {
 	MailAccountRemove(context.Context, *MailAccountRemoveRequest) (*MailAccountRemoveResponse, error)
 	// MailSettingsApply renders the mail servers' configuration.
 	MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error)
+	// MailQueueList returns Postfix's queue (newest first, at most 500).
+	MailQueueList(context.Context, *MailQueueListRequest) (*MailQueueListResponse, error)
+	// MailQueueAction flushes or deletes queued mail.
+	MailQueueAction(context.Context, *MailQueueActionRequest) (*MailQueueActionResponse, error)
 	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
 	// mailbox of the account that may log in, and a one-time ticket for
 	// Roundcube (ADR-0008). NOT_FOUND: webmail is not installed.
@@ -974,6 +1004,12 @@ func (UnimplementedAgentServiceServer) MailAccountRemove(context.Context, *MailA
 }
 func (UnimplementedAgentServiceServer) MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailSettingsApply not implemented")
+}
+func (UnimplementedAgentServiceServer) MailQueueList(context.Context, *MailQueueListRequest) (*MailQueueListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailQueueList not implemented")
+}
+func (UnimplementedAgentServiceServer) MailQueueAction(context.Context, *MailQueueActionRequest) (*MailQueueActionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailQueueAction not implemented")
 }
 func (UnimplementedAgentServiceServer) MailWebmailSignon(context.Context, *MailWebmailSignonRequest) (*MailWebmailSignonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailWebmailSignon not implemented")
@@ -1539,6 +1575,42 @@ func _AgentService_MailSettingsApply_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_MailQueueList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailQueueListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailQueueList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailQueueList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailQueueList(ctx, req.(*MailQueueListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailQueueAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailQueueActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailQueueAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailQueueAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailQueueAction(ctx, req.(*MailQueueActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentService_MailWebmailSignon_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MailWebmailSignonRequest)
 	if err := dec(in); err != nil {
@@ -2099,6 +2171,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MailSettingsApply",
 			Handler:    _AgentService_MailSettingsApply_Handler,
+		},
+		{
+			MethodName: "MailQueueList",
+			Handler:    _AgentService_MailQueueList_Handler,
+		},
+		{
+			MethodName: "MailQueueAction",
+			Handler:    _AgentService_MailQueueAction_Handler,
 		},
 		{
 			MethodName: "MailWebmailSignon",

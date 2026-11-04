@@ -1364,6 +1364,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/mail/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mail waiting in Postfix's queue (newest first, at most 500) */
+        get: operations["getMailQueue"];
+        put?: never;
+        /** Flush or delete queued mail */
+        post: operations["mailQueueAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/settings": {
         parameters: {
             query?: never;
@@ -2452,6 +2470,19 @@ export interface components {
         NewApiToken: components["schemas"]["ApiToken"] & {
             /** @description The whole token; shown only now */
             secret: string;
+        };
+        QueuedMessage: {
+            id: string;
+            /** @enum {string} */
+            queue: "active" | "deferred" | "hold" | "incoming";
+            /** Format: date-time */
+            arrived: string;
+            size: number;
+            sender: string;
+            recipients: {
+                address: string;
+                reason: string;
+            }[];
         };
         SettingItem: {
             key: string;
@@ -5653,6 +5684,59 @@ export interface operations {
             };
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+        };
+    };
+    getMailQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["QueuedMessage"][];
+                        limit: number;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    mailQueueAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "flush_all" | "flush" | "delete" | "delete_all";
+                    /** @description Message ids */
+                    ids?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getSettings: {

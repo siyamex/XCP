@@ -203,6 +203,8 @@ func New(d Deps) *Server {
 		{method: "PUT", path: "/api/v1/server/firewall", access: authed, roles: adminOnly, h: s.putFirewall},
 		{method: "POST", path: "/api/v1/server/firewall/bans", access: authed, roles: adminOnly, h: s.banIP},
 		{method: "DELETE", path: "/api/v1/server/firewall/bans/{id}", access: authed, roles: adminOnly, h: s.unbanIP},
+		{method: "GET", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueue},
+		{method: "POST", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueueAction},
 		{method: "GET", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.getSettings},
 		{method: "PUT", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.putSettings},
 		{method: "GET", path: "/api/v1/server/setup", access: authed, roles: adminOnly, h: s.getSetup},

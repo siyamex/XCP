@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath, agent.MariaDBClientPath, agent.HostnamectlPath, agent.TimedatectlPath, agent.NftPath, agent.SSHDPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath, agent.MariaDBClientPath, agent.HostnamectlPath, agent.TimedatectlPath, agent.NftPath, agent.SSHDPath, agent.PostqueuePath, agent.PostsuperPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -84,6 +84,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Run:      runner,
 		},
 		HostInfo:   &agent.HostInfo{Proc: agent.ProcDir, OSRelease: agent.OSReleaseFile, DpkgStatus: agent.DpkgStatusFile, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version, Localtime: agent.LocaltimeFile},
+		MailQueue:  &agent.MailQueue{Run: runner},
 		Firewall:   &agent.Firewall{Run: runner, Bin: agent.NftPath, File: agent.FirewallFile},
 		HostConfig: &agent.HostConfig{Run: runner, HostsFile: agent.HostsFile, AptConfDir: agent.AptConfDir, ZoneInfo: agent.ZoneInfoDir},
 		Files:      files,

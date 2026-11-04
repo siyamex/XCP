@@ -1972,6 +1972,32 @@ paths:
         "204": { description: Lifted. }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
+  /server/mail/queue:
+    get:
+      tags: [mail]
+      summary: Mail waiting in Postfix's queue (newest first, at most 500)
+      operationId: getMailQueue
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items, limit], properties: { items: { type: array, items: { $ref: "#/components/schemas/QueuedMessage" } }, limit: { type: integer } } }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [mail]
+      summary: Flush or delete queued mail
+      operationId: mailQueueAction
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [action], properties: { action: { type: string, enum: [flush_all, flush, delete, delete_all] }, ids: { type: array, items: { type: string }, description: Message ids, for flush and delete } } }
+      responses:
+        "204": { description: Done. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
   /server/settings:
     get:
       tags: [server]
@@ -3247,6 +3273,18 @@ components:
       allOf:
         - { $ref: "#/components/schemas/ApiToken" }
         - { type: object, required: [secret], properties: { secret: { type: string, description: The whole token; shown only now } } }
+    QueuedMessage:
+      type: object
+      required: [id, queue, arrived, size, sender, recipients]
+      properties:
+        id: { type: string }
+        queue: { type: string, enum: [active, deferred, hold, incoming] }
+        arrived: { type: string, format: date-time }
+        size: { type: integer }
+        sender: { type: string }
+        recipients:
+          type: array
+          items: { type: object, required: [address, reason], properties: { address: { type: string }, reason: { type: string } } }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]
