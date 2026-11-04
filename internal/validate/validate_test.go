@@ -141,3 +141,23 @@ func FuzzCronCommand(f *testing.F) {
 		}
 	})
 }
+
+func TestPasswordPolicy(t *testing.T) {
+	t.Cleanup(func() { SetPasswordPolicy(MinPasswordLen, 0) })
+	SetPasswordPolicy(12, 3)
+	for pw, ok := range map[string]bool{
+		"abcdefghijkl":   false, // 1 class, long enough
+		"Abcdefghijk1":   true,
+		"Abcdefgh1":      false, // too short
+		"abcdefghijk1!":  true,
+		"ABCDEFGHIJKL12": false, // 2 classes
+	} {
+		if err := Password(pw); (err == nil) != ok {
+			t.Errorf("Password(%q) = %v, want ok=%v", pw, err, ok)
+		}
+	}
+	SetPasswordPolicy(3, 9) // never below the built-in minimum, never above 4 classes
+	if err := Password("short1"); err == nil {
+		t.Error("the built-in minimum length was lowered")
+	}
+}

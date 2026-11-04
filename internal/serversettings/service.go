@@ -93,6 +93,8 @@ var defs = []def{
 	{Key: "auth.session_idle_minutes", Group: "panel", Type: "int", Default: 30, Min: 5, Max: 1440},
 	{Key: "auth.session_max_hours", Group: "panel", Type: "int", Default: 12, Min: 1, Max: 720},
 	{Key: "auth.require_2fa", Group: "panel", Type: "enum", Default: "none", Options: []string{"none", "admins", "resellers", "all"}},
+	{Key: "security.password_min_length", Group: "security", Type: "int", Default: 10, Min: 10, Max: 128},
+	{Key: "security.password_classes", Group: "security", Type: "int", Default: 1, Min: 0, Max: 4},
 	{Key: "ssh.password_auth", Group: "ssh", Type: "bool", Default: true},
 	{Key: "ssh.root_login", Group: "ssh", Type: "enum", Default: "prohibit-password", Options: []string{"yes", "prohibit-password", "no"}},
 	{Key: "updates.channel", Group: "updates", Type: "enum", Default: "stable", Options: []string{"stable", "beta"}},
@@ -252,7 +254,7 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 	php, authChanged := false, false
 	for k := range changed {
 		php = php || strings.HasPrefix(k, "php.")
-		authChanged = authChanged || strings.HasPrefix(k, "auth.")
+		authChanged = authChanged || strings.HasPrefix(k, "auth.") || strings.HasPrefix(k, "security.")
 	}
 	if php && s.applyAll != nil {
 		if _, err := s.applyAll(ctx, p.Login.ID); err != nil {
@@ -271,6 +273,7 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 }
 
 func (s *Service) applySessionLimits(ctx context.Context) {
+	validate.SetPasswordPolicy(s.Int(ctx, "security.password_min_length"), s.Int(ctx, "security.password_classes"))
 	if s.setMFA != nil {
 		d, _ := find("auth.require_2fa")
 		policy, _ := s.value(ctx, d).(string)

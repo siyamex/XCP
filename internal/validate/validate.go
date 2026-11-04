@@ -12,6 +12,8 @@ import (
 	"net/netip"
 	"regexp"
 	"strings"
+	"sync/atomic"
+	"unicode"
 
 	"github.com/siyamex/XCP/internal/fsx"
 )
@@ -101,12 +103,50 @@ const (
 	MaxPasswordLen = 1024
 )
 
-// Password checks length and forbidden characters. Strength rules
-// (ADM-SEC-07) are applied separately by the auth package.
+var pwPolicy atomic.Pointer[[2]int] // minimum length, character classes
+
+// SetPasswordPolicy sets the server's password rules (ADM-SEC-07): the
+// minimum length (never below MinPasswordLen) and how many of the four
+// classes (lower case, upper case, digits, other) a password must have.
+func SetPasswordPolicy(minLen, classes int) {
+	pwPolicy.Store(&[2]int{max(minLen, MinPasswordLen), min(max(classes, 0), 4)})
+}
+
+func passwordClasses(s string) int {
+	var lower, upper, digit, other bool
+	for _, r := range s {
+		switch {
+		case unicode.IsLower(r):
+			lower = true
+		case unicode.IsUpper(r):
+			upper = true
+		case unicode.IsDigit(r):
+			digit = true
+		default:
+			other = true
+		}
+	}
+	n := 0
+	for _, b := range []bool{lower, upper, digit, other} {
+		if b {
+			n++
+		}
+	}
+	return n
+}
+
+// Password checks length, forbidden characters and the server's password
+// rules (SetPasswordPolicy).
 func Password(s string) error {
+	minLen, classes := MinPasswordLen, 0
+	if p := pwPolicy.Load(); p != nil {
+		minLen, classes = p[0], p[1]
+	}
 	switch {
-	case len(s) < MinPasswordLen:
-		return fail(CodeTooShort, "password must be at least %d characters", MinPasswordLen)
+	case len(s) < minLen:
+		return fail(CodeTooShort, "password must be at least %d characters", minLen)
+	case passwordClasses(s) < classes:
+		return fail(CodeFormat, "password must mix at least %d of: lower case, upper case, digits, other characters", classes)
 	case len(s) > MaxPasswordLen:
 		return fail(CodeTooLong, "password must be at most %d bytes", MaxPasswordLen)
 	case strings.ContainsAny(s, "\x00\r\n"):

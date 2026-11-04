@@ -593,7 +593,9 @@
       "updates_os_auto": "Install OS security updates automatically",
       "auth_require_2fa": "Require two-factor sign-in",
       "ssh_password_auth": "SSH password login",
-      "ssh_root_login": "SSH login as root"
+      "ssh_root_login": "SSH login as root",
+      "security_password_min_length": "Minimum password length",
+      "security_password_classes": "Character types a password must mix"
     },
     "hints": {
       "php_default_version": "Used by accounts that did not choose a PHP version. Empty: the newest installed.",
@@ -605,13 +607,16 @@
       "updates_os_auto": "Ubuntu's unattended security updates.",
       "auth_require_2fa": "none; admins; resellers (admins and resellers); all. Logins that must and have not set it up can only reach the page to do so.",
       "ssh_password_auth": "Off allows keys only. Refused while no login has an authorized SSH key, because that would lock everyone out.",
-      "ssh_root_login": "yes; prohibit-password (keys only); no. Checked with sshd -t before it is applied."
+      "ssh_root_login": "yes; prohibit-password (keys only); no. Checked with sshd -t before it is applied.",
+      "security_password_min_length": "For every password made or changed in the panel (logins, mailboxes, FTP, databases). Not below 10.",
+      "security_password_classes": "0 to 4 of: lower case, upper case, digits, other characters. Existing passwords stay until changed."
     },
     "groups": {
       "php": "PHP",
       "panel": "Panel",
       "updates": "Updates",
-      "ssh": "SSH"
+      "ssh": "SSH",
+      "security": "Security"
     },
     "updates": "Updates",
     "updatesHint": "Looks for a newer XCP release on GitHub, in the channel set above. Installing updates from the panel is not available yet.",

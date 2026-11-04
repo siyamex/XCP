@@ -145,10 +145,11 @@ st, orph = api("GET", "/server/backups")
 check(st == 200 and any(o["username"] == "bak1" for o in orph.get("orphans", orph.get("items", []))), "they are listed as the backups of a removed account", f"{st} {str(orph)[:200]}")
 st, r = user.call("GET", "/server/backups")
 check(st in (401, 403), "a user cannot list them", f"{st}")
-# Clean up what this test left.
+# An admin can delete them for good.
+for o in orph.get("orphans", orph.get("items", [])):
+    if o["username"] == "bak1":
+        st, _ = api("DELETE", f"/backups/{o['id']}")
+        check(st == 204, "an admin deletes the backup of a removed account", f"{st}")
+check(not os.path.isdir(DIR) or len(os.listdir(DIR)) == 0, "its file is gone")
 subprocess.run(["rm", "-rf", DIR], check=True)
-import sqlite3
-_db = sqlite3.connect("/var/lib/xcp/xcp.db")
-_db.execute("DELETE FROM backups WHERE account_id IS NULL AND username LIKE 'bak%'")
-_db.commit()
 finish()
