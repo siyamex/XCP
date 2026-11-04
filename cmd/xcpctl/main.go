@@ -45,6 +45,7 @@ Remote (REST API):
   me                     show the logged-in identity
   sessions list          list your sessions
   sessions revoke ID     end one session
+  rebuild --yes          apply every account, DNS zone and the mail settings again (admins)
   logout
 
   version                print the version
@@ -84,6 +85,8 @@ func run(args []string, stdin io.Reader, out io.Writer) error {
 		return me(out)
 	case "sessions":
 		return sessions(rest, out)
+	case "rebuild":
+		return rebuild(rest, out)
 	case "help", "-h", "--help":
 		fmt.Fprint(out, usage)
 		return nil

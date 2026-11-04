@@ -27,6 +27,7 @@ import (
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/serverinfo"
+	"github.com/siyamex/XCP/internal/serversettings"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/store"
@@ -47,6 +48,7 @@ type Deps struct {
 	Stats      *stats.Service
 	Backups    *backups.Service
 	ServerInfo *serverinfo.Service
+	Settings   *serversettings.Service
 	Zones      *zones.Service
 	SSL        *ssl.Service
 	Jobs       *jobs.Queue
@@ -190,6 +192,16 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.getSettings},
+		{method: "PUT", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.putSettings},
+		{method: "GET", path: "/api/v1/server/setup", access: authed, roles: adminOnly, h: s.getSetup},
+		{method: "PUT", path: "/api/v1/server/setup", access: authed, roles: adminOnly, h: s.putSetup},
+		{method: "PUT", path: "/api/v1/server/hostname", access: authed, roles: adminOnly, h: s.putHostname},
+		{method: "GET", path: "/api/v1/server/updates", access: authed, roles: adminOnly, h: s.getUpdates},
+		{method: "POST", path: "/api/v1/server/reboot", access: authed, roles: adminOnly, h: s.postReboot},
+		{method: "POST", path: "/api/v1/server/rebuild", access: authed, roles: adminOnly, h: s.postRebuild},
+		{method: "GET", path: "/api/v1/server/backups", access: authed, roles: adminOnly, h: s.orphanBackups},
+		{method: "POST", path: "/api/v1/server/backups/{id}/restore", access: authed, roles: adminOnly, h: s.restoreBackup},
 		{method: "GET", path: "/api/v1/server/status", access: authed, roles: adminOnly, h: s.serverStatus},
 		{method: "GET", path: "/api/v1/server/services", access: authed, roles: adminOnly, h: s.listServices},
 		{method: "POST", path: "/api/v1/server/services/{id}/{action}", access: authed, roles: adminOnly, h: s.serviceAction},

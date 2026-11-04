@@ -22,7 +22,7 @@ var canonicals = map[agentv1.Canonical]string{
 func siteFrom(req *agentv1.SiteApplyRequest) agent.Site {
 	s := agent.Site{
 		Username: req.GetUsername(), UID: req.GetUid(),
-		PHPVersion: req.GetPhpVersion(), Suspended: req.GetSuspended(), MaxChildren: req.GetMaxChildren(),
+		PHPVersion: req.GetPhpVersion(), Suspended: req.GetSuspended(), MaxChildren: req.GetMaxChildren(), UploadMB: req.GetUploadMaxMb(),
 	}
 	for _, v := range req.GetVhosts() {
 		c, ok := canonicals[v.GetCanonical()]

@@ -61,6 +61,7 @@ type Site struct {
 	PHPVersion  string  // "" = newest installed
 	Suspended   bool
 	MaxChildren uint32 // PHP worker processes; 0 = default
+	UploadMB    uint32 // PHP upload limit in MB; 0 = 64
 }
 
 // Vhost is the website of one domain.
@@ -124,6 +125,9 @@ func CheckSite(s Site) error {
 	}
 	if s.MaxChildren > 200 {
 		return invalid("max_children above 200")
+	}
+	if s.UploadMB > 2048 {
+		return invalid("upload_max_mb above 2048")
 	}
 	return nil
 }
@@ -310,12 +314,15 @@ php_admin_value[upload_tmp_dir] = {{.Home}}/tmp
 php_admin_value[session.save_path] = {{.Home}}/tmp
 php_admin_value[sys_temp_dir] = {{.Home}}/tmp
 php_admin_flag[allow_url_include] = off
+php_admin_value[upload_max_filesize] = {{.UploadMB}}M
+php_admin_value[post_max_size] = {{.PostMB}}M
 `))
 )
 
 type siteData struct {
 	Site
 	Home, Socket, SuspendedDir, LogDir, WebUser string
+	PostMB                                      uint32 // the upload limit plus room for the other fields
 	Vhosts                                      []vhostData
 }
 
@@ -343,6 +350,10 @@ func (w *Web) data(s Site, wildcards bool) siteData {
 	if d.MaxChildren == 0 {
 		d.MaxChildren = 10
 	}
+	if d.UploadMB == 0 {
+		d.UploadMB = 64
+	}
+	d.PostMB = d.UploadMB + 8
 	for _, v := range s.Vhosts {
 		if strings.HasPrefix(v.Name, "*.") == wildcards {
 			d.Vhosts = append(d.Vhosts, w.vhostOf(d, v))

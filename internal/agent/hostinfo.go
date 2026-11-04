@@ -30,6 +30,7 @@ type HostInfo struct {
 	HomesRoot  string        // /home
 	Version    string        // XCP's
 	Sample     time.Duration // how long CPU use is measured; 0: 300 ms
+	Localtime  string        // /etc/localtime, which points to the time zone
 
 	mu      sync.Mutex
 	usage   []HostAccount
@@ -94,6 +95,7 @@ type HostStatus struct {
 	AccountsComputing                    bool
 	Versions                             map[string]string
 	XCPVersion                           string
+	Timezone                             string
 }
 
 func (h *HostInfo) read(name string) []byte {
@@ -131,6 +133,7 @@ func (h *HostInfo) Status(ctx context.Context) (HostStatus, error) {
 	}
 	st.Kernel = strings.TrimSpace(string(h.read("sys/kernel/osrelease")))
 	st.CPUModel = cpuModel(h.read("cpuinfo"))
+	st.Timezone = timezoneName(h.Localtime)
 	if b, err := os.ReadFile(h.OSRelease); err == nil {
 		st.OS = osName(b)
 	}

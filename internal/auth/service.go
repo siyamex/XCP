@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/siyamex/XCP/internal/audit"
@@ -65,15 +66,18 @@ type Principal struct {
 
 // Service implements login, sessions and 2FA.
 type Service struct {
-	db        *store.DB
-	audit     *audit.Recorder
-	box       *secretbox.Box
-	hasher    *Hasher
-	ipLimit   *Limiter
-	userLimit *Limiter
-	opt       Options
-	now       func() time.Time
-	dummyHash string
+	limMu       sync.RWMutex
+	idleLimit   time.Duration // 0: Options.SessionIdle
+	maxLifetime time.Duration // 0: Options.SessionMax
+	db          *store.DB
+	audit       *audit.Recorder
+	box         *secretbox.Box
+	hasher      *Hasher
+	ipLimit     *Limiter
+	userLimit   *Limiter
+	opt         Options
+	now         func() time.Time
+	dummyHash   string
 }
 
 // NewService returns an auth service.
@@ -163,7 +167,7 @@ func (s *Service) Login(ctx context.Context, c Client, username, password string
 	token, idHash := newToken()
 	sess := &store.Session{
 		IDHash: idHash, LoginID: l.ID, MFAPassed: !mfa, IP: c.IP, UserAgent: truncate(c.UserAgent, 512),
-		CreatedAt: now, LastSeenAt: now, ExpiresAt: now.Add(s.opt.SessionMax),
+		CreatedAt: now, LastSeenAt: now, ExpiresAt: now.Add(s.sessionMax()),
 	}
 	if mfa {
 		sess.ExpiresAt = now.Add(s.opt.MFAPendingTTL)
@@ -217,7 +221,7 @@ func (s *Service) VerifyMFA(ctx context.Context, c Client, token, code string) e
 	}
 	s.userLimit.Reset(key)
 	now := s.now()
-	if err := s.db.PassSessionMFA(ctx, sess.IDHash, now, now.Add(s.opt.SessionMax)); err != nil {
+	if err := s.db.PassSessionMFA(ctx, sess.IDHash, now, now.Add(s.sessionMax())); err != nil {
 		return err
 	}
 	_ = s.db.TouchLastLogin(ctx, l.ID, now)
@@ -281,7 +285,7 @@ func (s *Service) sessionFor(ctx context.Context, token string) (*store.Session,
 		return nil, err
 	}
 	now := s.now()
-	if now.After(sess.ExpiresAt) || now.Sub(sess.LastSeenAt) > s.opt.SessionIdle {
+	if now.After(sess.ExpiresAt) || now.Sub(sess.LastSeenAt) > s.sessionIdle() {
 		_ = s.db.DeleteSession(ctx, sess.IDHash)
 		return nil, ErrUnauthenticated
 	}

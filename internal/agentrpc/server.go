@@ -18,21 +18,22 @@ import (
 type Server struct {
 	agentv1.UnimplementedAgentServiceServer
 
-	Services agent.Services
-	Files    *agent.Files
-	Accounts *agent.Accounts
-	Web      *agent.Web
-	DNS      *agent.DNS
-	HostCert *agent.HostCert
-	MySQL    *agent.MySQL
-	Mail     *agent.Mail
-	FTP      *agent.FTP
-	Cron     *agent.Cron
-	Backups  *agent.Backups
-	HostInfo *agent.HostInfo
-	Version  string
-	Hostname string
-	Log      *slog.Logger
+	Services   agent.Services
+	Files      *agent.Files
+	Accounts   *agent.Accounts
+	Web        *agent.Web
+	DNS        *agent.DNS
+	HostCert   *agent.HostCert
+	MySQL      *agent.MySQL
+	Mail       *agent.Mail
+	FTP        *agent.FTP
+	Cron       *agent.Cron
+	Backups    *agent.Backups
+	HostInfo   *agent.HostInfo
+	HostConfig *agent.HostConfig
+	Version    string
+	Hostname   string
+	Log        *slog.Logger
 }
 
 // Ping implements agentv1.AgentServiceServer.

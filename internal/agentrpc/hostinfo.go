@@ -34,7 +34,7 @@ func statusToProto(st agent.HostStatus) *agentv1.ServerStatusResponse {
 		Hostname: st.Hostname, Os: st.OS, Kernel: st.Kernel, Arch: st.Arch, CpuModel: st.CPUModel, Cores: int32(st.Cores), //nolint:gosec // G115: a core count
 		UptimeSeconds: int64(st.Uptime.Seconds()), Load1: st.Load[0], Load5: st.Load[1], Load15: st.Load[2], CpuPercent: st.CPUPercent,
 		MemTotal: st.MemTotal, MemAvailable: st.MemAvailable, SwapTotal: st.SwapTotal, SwapFree: st.SwapFree,
-		AccountsComputing: st.AccountsComputing, Versions: st.Versions, XcpVersion: st.XCPVersion,
+		AccountsComputing: st.AccountsComputing, Versions: st.Versions, XcpVersion: st.XCPVersion, Timezone: st.Timezone,
 	}
 	if !st.AccountsAt.IsZero() {
 		r.AccountsAtUnix = st.AccountsAt.Unix()
@@ -65,7 +65,7 @@ func (f *Fake) ServerStatus(context.Context, *agentv1.ServerStatusRequest, ...gr
 		Net:      []agent.HostNet{{Name: "eth0", RxBytes: 1 << 30, TxBytes: 2 << 30}},
 		Procs:    []agent.HostProc{{PID: 1, Name: "systemd", User: "root", CPUPercent: 0.1, RSS: 20 << 20}},
 		Accounts: []agent.HostAccount{{Username: "alice", Bytes: 5 << 30}}, AccountsAt: time.Now(),
-		Versions: map[string]string{"apache2": "2.4.58-fake"}, XCPVersion: "dev",
+		Versions: map[string]string{"apache2": "2.4.58-fake"}, XCPVersion: "dev", Timezone: "UTC",
 	}), nil
 }
 

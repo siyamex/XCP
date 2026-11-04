@@ -31,6 +31,9 @@ type Service struct {
 	jobs  *jobs.Queue
 	agent agentrpc.Client
 	Now   func() time.Time
+
+	reauth  func(ctx context.Context, c auth.Client, p *auth.Principal, password string) error
+	rebuild func(ctx context.Context, by string) (map[string]int, error)
 }
 
 // NewService returns a serverinfo service.

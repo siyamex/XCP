@@ -86,3 +86,7 @@ func (s *Service) SetSchedule(ctx context.Context, c auth.Client, p *auth.Princi
 		"enabled": in.Enabled, "frequency": in.Frequency, "hour": in.Hour, "weekday": in.Weekday, "day": in.Day, "keep": in.Keep,
 	}))
 }
+
+func badField(field, code, msg string) error {
+	return &validate.Error{Field: field, Code: code, Message: msg}
+}

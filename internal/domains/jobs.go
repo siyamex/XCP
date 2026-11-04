@@ -77,9 +77,17 @@ func (s *Service) SiteRequest(ctx context.Context, a *store.Account, lim plans.L
 		return nil, err
 	}
 	byID := index(ds)
+	phpVersion, uploadMB := a.PHPVersion, 0
+	if s.defaults != nil {
+		dv, up := s.defaults(ctx)
+		if phpVersion == "" {
+			phpVersion = dv
+		}
+		uploadMB = up
+	}
 	req := &agentv1.SiteApplyRequest{
-		Username: a.Username, Uid: uint32(a.UID), PhpVersion: a.PHPVersion, //nolint:gosec // G115: UID is 10000..59999 by schema
-		Suspended: a.Status == store.AccountSuspended, MaxChildren: lim.PHPWorkers(),
+		Username: a.Username, Uid: uint32(a.UID), PhpVersion: phpVersion, //nolint:gosec // G115: UID is 10000..59999 by schema
+		Suspended: a.Status == store.AccountSuspended, MaxChildren: lim.PHPWorkers(), UploadMaxMb: uint32(max(uploadMB, 0)), //nolint:gosec // G115: 1..2048
 	}
 	for _, d := range ds {
 		root := d.DocRoot

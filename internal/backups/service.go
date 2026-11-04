@@ -20,7 +20,6 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
-	"github.com/siyamex/XCP/internal/validate"
 )
 
 // FeatureBackups switches backups on in a feature list.
@@ -57,6 +56,9 @@ type Service struct {
 	jobs  *jobs.Queue
 	agent agentrpc.Client
 	Now   func() time.Time
+
+	applier Applier
+	zones   ZoneQueuer
 }
 
 // NewService returns a backups service.
@@ -137,7 +139,7 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 
 // start records a backup and queues its job, inside tx.
 func (s *Service) start(ctx context.Context, tx *sql.Tx, createdBy string, a *store.Account, kind string) (*store.Backup, error) {
-	b := &store.Backup{ID: ids.New(), AccountID: a.ID, Kind: kind, Status: store.BackupRunning}
+	b := &store.Backup{ID: ids.New(), AccountID: a.ID, Username: a.Username, Kind: kind, Status: store.BackupRunning}
 	jobID, err := s.jobs.EnqueueTx(ctx, tx, JobCreate, createPayload{BackupID: b.ID}, jobs.EnqueueOptions{
 		AccountID: a.ID, LockKey: "account:" + a.ID, MaxAttempts: 1, CreatedBy: createdBy,
 	})
@@ -186,19 +188,27 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 	return view(*b), nil
 }
 
-func (s *Service) own(ctx context.Context, p *auth.Principal, id string) (*store.Backup, *store.Account, error) {
+// own loads a backup the caller may manage: an account's own, or, for a
+// removed account's, any admin.
+func (s *Service) own(ctx context.Context, p *auth.Principal, id string) (*store.Backup, error) {
 	b, err := s.db.BackupByID(ctx, id)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	a, err := s.access(ctx, p, b.AccountID)
-	return b, a, err
+	if b.AccountID == "" {
+		if err := adminOnly(p); err != nil {
+			return nil, store.ErrNotFound
+		}
+		return b, nil
+	}
+	_, err = s.access(ctx, p, b.AccountID)
+	return b, err
 }
 
 // remove deletes a backup's file and record.
-func (s *Service) remove(ctx context.Context, a *store.Account, b *store.Backup) error {
+func (s *Service) remove(ctx context.Context, b *store.Backup) error {
 	if b.File != "" {
-		if _, err := s.agent.BackupDelete(ctx, &agentv1.BackupDeleteRequest{Username: a.Username, File: b.File}); err != nil {
+		if _, err := s.agent.BackupDelete(ctx, &agentv1.BackupDeleteRequest{Username: b.Username, File: b.File}); err != nil {
 			return err
 		}
 	}
@@ -207,34 +217,34 @@ func (s *Service) remove(ctx context.Context, a *store.Account, b *store.Backup)
 
 // Delete removes a backup.
 func (s *Service) Delete(ctx context.Context, c auth.Client, p *auth.Principal, id string) error {
-	b, a, err := s.own(ctx, p, id)
+	b, err := s.own(ctx, p, id)
 	if err != nil {
 		return err
 	}
 	if b.Status == store.BackupRunning {
 		return apperr.NewConflict("busy", "the backup is still being made")
 	}
-	if err := s.remove(ctx, a, b); err != nil {
+	if err := s.remove(ctx, b); err != nil {
 		return err
 	}
-	return s.audit.Record(ctx, event(c, p, "backup.delete", a.ID, b.ID, map[string]any{"file": b.File}))
+	return s.audit.Record(ctx, event(c, p, "backup.delete", b.AccountID, b.ID, map[string]any{"file": b.File}))
 }
 
 // Download writes a finished backup to w. start is called before the first
 // byte, with the file's name and size, so the caller can send headers.
 func (s *Service) Download(ctx context.Context, c auth.Client, p *auth.Principal, id string, start func(name string, size int64), w io.Writer) error {
-	b, a, err := s.own(ctx, p, id)
+	b, err := s.own(ctx, p, id)
 	if err != nil {
 		return err
 	}
 	if b.Status != store.BackupOK {
 		return apperr.NewConflict("not_ready", "the backup is not finished")
 	}
-	if err := s.audit.Record(ctx, event(c, p, "backup.download", a.ID, b.ID, map[string]any{"file": b.File})); err != nil {
+	if err := s.audit.Record(ctx, event(c, p, "backup.download", b.AccountID, b.ID, map[string]any{"file": b.File})); err != nil {
 		return err
 	}
 	for off := int64(0); off < b.Size; {
-		res, err := s.agent.BackupRead(ctx, &agentv1.BackupReadRequest{Username: a.Username, File: b.File, Offset: off, Length: agent.BackupMaxRead})
+		res, err := s.agent.BackupRead(ctx, &agentv1.BackupReadRequest{Username: b.Username, File: b.File, Offset: off, Length: agent.BackupMaxRead})
 		if err != nil {
 			if off == 0 {
 				return err
@@ -261,18 +271,9 @@ func (s *Service) Apply(context.Context, *store.Account) (string, error) {
 	return "nothing to apply", nil
 }
 
-// RemoveAccount implements accounts.Extra: an account's backups go with it.
-func (s *Service) RemoveAccount(ctx context.Context, username string) (string, error) {
-	res, err := s.agent.BackupRemoveAccount(ctx, &agentv1.BackupRemoveAccountRequest{Username: username})
-	if err != nil {
-		return "", err
-	}
-	if res.GetRemoved() {
-		return "removed the backups", nil
-	}
-	return "no backups", nil
-}
-
-func badField(field, code, msg string) error {
-	return &validate.Error{Field: field, Code: code, Message: msg}
+// RemoveAccount implements accounts.Extra: an account's backups stay (they
+// are the only way to get it back); their records lose the account and
+// show up for admins.
+func (s *Service) RemoveAccount(context.Context, string) (string, error) {
+	return "backups kept for restore", nil
 }

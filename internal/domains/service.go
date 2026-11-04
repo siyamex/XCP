@@ -126,11 +126,16 @@ type Service struct {
 	resolver TXTResolver
 	key      []byte // signs verification tokens
 	onMail   zones.ChangeHook
+	defaults func(ctx context.Context) (phpVersion string, uploadMB int)
 }
 
 // SetMailHook connects the mail service: it hears when a domain is added
 // or removed.
 func (s *Service) SetMailHook(h zones.ChangeHook) { s.onMail = h }
+
+// SetDefaults connects the admin's PHP settings: the version an account
+// without a choice gets, and the upload limit.
+func (s *Service) SetDefaults(f func(ctx context.Context) (string, int)) { s.defaults = f }
 
 func (s *Service) mailChanged(ctx context.Context, tx *sql.Tx, p *auth.Principal, accountID string) error {
 	if s.onMail == nil {

@@ -187,6 +187,35 @@ service AgentService {
 
   // ServiceLog returns the last lines of a service's journal.
   rpc ServiceLog(ServiceLogRequest) returns (ServiceLogResponse);
+
+  // Restore (ADR-0015). FAILED_PRECONDITION: not an XCP account.
+
+  // BackupInspect reads a whole backup and checks it against its manifest;
+  // it returns the account.json and the database names. Nothing is written.
+  // INVALID_ARGUMENT: the backup is damaged or not of this account.
+  rpc BackupInspect(BackupInspectRequest) returns (BackupInspectResponse);
+
+  // BackupRestoreHome unpacks the backup's home folder into the account's
+  // home, as the account's user.
+  rpc BackupRestoreHome(BackupRestoreRequest) returns (BackupRestoreHomeResponse);
+
+  // BackupRestoreDatabases loads the backup's database dumps into the
+  // account's databases, through a temporary user of each database.
+  rpc BackupRestoreDatabases(BackupRestoreRequest) returns (BackupRestoreDatabasesResponse);
+
+  // Host settings (ADR-0016).
+
+  // HostnameSet sets the host name and /etc/hosts.
+  rpc HostnameSet(HostnameSetRequest) returns (HostnameSetResponse);
+
+  // TimezoneSet sets the system time zone.
+  rpc TimezoneSet(TimezoneSetRequest) returns (TimezoneSetResponse);
+
+  // OSUpdatesSet turns automatic OS security updates on or off.
+  rpc OSUpdatesSet(OSUpdatesSetRequest) returns (OSUpdatesSetResponse);
+
+  // ServerReboot restarts the server in a few seconds.
+  rpc ServerReboot(ServerRebootRequest) returns (ServerRebootResponse);
 }
 
 message PingRequest {}
@@ -316,6 +345,7 @@ message SiteApplyRequest {
   string php_version = 4;   // "" = newest installed
   bool suspended = 5;       // serve the suspended notice and run no PHP
   uint32 max_children = 6;  // PHP worker processes; 0 = default
+  uint32 upload_max_mb = 8; // PHP upload limit in MB; 0 = 64
   // One virtual host per domain, the primary domain first. Each also answers
   // to www.<name>, except a wildcard ("*.example.com").
   repeated VirtualHost vhosts = 7;
@@ -767,6 +797,7 @@ message ServerStatusResponse {
   bool accounts_computing = 21;
   map<string, string> versions = 22;
   string xcp_version = 23;
+  string timezone = 24;
 }
 
 message ServiceLogRequest {
@@ -778,3 +809,55 @@ message ServiceLogResponse {
   string unit = 1;
   string text = 2;
 }
+
+message BackupInspectRequest {
+  string username = 1;
+  string file = 2;
+}
+
+message BackupInspectResponse {
+  bytes account_json = 1;
+  repeated string databases = 2;
+  int64 files = 3;
+  int64 bytes = 4;
+  string panel_version = 5;
+}
+
+message BackupRestoreRequest {
+  string username = 1;
+  string file = 2;
+}
+
+message BackupRestoreHomeResponse {
+  int64 entries = 1;
+}
+
+message BackupRestoreDatabasesResponse {
+  repeated string databases = 1;
+}
+
+message HostnameSetRequest {
+  string hostname = 1;
+}
+
+message HostnameSetResponse {}
+
+message TimezoneSetRequest {
+  string timezone = 1;
+}
+
+message TimezoneSetResponse {}
+
+message OSUpdatesSetRequest {
+  bool enabled = 1;
+}
+
+message OSUpdatesSetResponse {
+  bool changed = 1;
+}
+
+message ServerRebootRequest {
+  bool force = 1;  // no orderly service shutdown
+}
+
+message ServerRebootResponse {}

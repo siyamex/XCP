@@ -38,6 +38,7 @@ type AccountFile struct {
 func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobCreate, 1, s.createJob)
 	w.Register(JobSchedule, 1, s.scheduleJob)
+	w.Register(JobRestore, 1, s.restoreJob)
 }
 
 // Schedule adds the hourly check of the backup schedule.
@@ -135,7 +136,7 @@ func (s *Service) prune(ctx context.Context, a *store.Account) error {
 			kept++
 			continue
 		}
-		errs = append(errs, s.remove(ctx, a, b)) // older than the kept ones, or failed
+		errs = append(errs, s.remove(ctx, b)) // older than the kept ones, or failed
 	}
 	return errors.Join(errs...)
 }

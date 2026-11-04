@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath, agent.MariaDBClientPath, agent.HostnamectlPath, agent.TimedatectlPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -83,8 +83,9 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Manager:  agent.Systemctl{Run: runner},
 			Run:      runner,
 		},
-		HostInfo: &agent.HostInfo{Proc: agent.ProcDir, OSRelease: agent.OSReleaseFile, DpkgStatus: agent.DpkgStatusFile, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version},
-		Files:    files,
+		HostInfo:   &agent.HostInfo{Proc: agent.ProcDir, OSRelease: agent.OSReleaseFile, DpkgStatus: agent.DpkgStatusFile, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version, Localtime: agent.LocaltimeFile},
+		HostConfig: &agent.HostConfig{Run: runner, HostsFile: agent.HostsFile, AptConfDir: agent.AptConfDir, ZoneInfo: agent.ZoneInfoDir},
+		Files:      files,
 		Accounts: &agent.Accounts{
 			Run: runner, HomesRoot: cfg.Paths.HomesRoot, UnitDir: "/etc/systemd/system",
 			WebGroup: "www-data", Services: agent.Systemctl{Run: runner},

@@ -3,8 +3,11 @@ package accounts
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 
+	"github.com/siyamex/XCP/internal/auth"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/store"
 )
 
@@ -42,6 +45,45 @@ func (s *Service) ApplyAfterUpgrade(ctx context.Context) (int, error) {
 			n++
 		}
 		return store.PutSetting(ctx, tx, renderVersionKey, RenderVersion)
+	})
+	return n, err
+}
+
+type nopReporter struct{}
+
+func (nopReporter) Progress(int)        {}
+func (nopReporter) Logf(string, ...any) {}
+
+// ApplyNow makes the server match an account's rows, and waits for it: what
+// the account's apply job does, for callers that are jobs themselves.
+func (s *Service) ApplyNow(ctx context.Context, accountID string) error {
+	b, err := json.Marshal(jobPayload{AccountID: accountID})
+	if err != nil {
+		return err
+	}
+	_, err = s.applyJob(ctx, &jobs.Job{Payload: b}, nopReporter{})
+	return err
+}
+
+// ApplyAll queues an apply of every active or suspended account (for
+// "rebuild"), and reports how many.
+func (s *Service) ApplyAll(ctx context.Context, by string) (int, error) {
+	as, err := s.db.ListAccounts(ctx, store.AccountFilter{OwnerID: "*"})
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
+		for _, a := range as {
+			if a.Status != store.AccountActive && a.Status != store.AccountSuspended {
+				continue
+			}
+			if _, err := s.enqueue(ctx, tx, &auth.Principal{Login: &store.Login{ID: by}, Session: &store.Session{}}, JobApply, a.ID); err != nil {
+				return err
+			}
+			n++
+		}
+		return nil
 	})
 	return n, err
 }

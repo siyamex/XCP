@@ -182,6 +182,7 @@ type WebServer interface {
   served behind panel auth).
 
 ## 11. Backups
+- **Amended by ADR-0015:** backups survive their account's removal; an admin restores a removed account (settings, account, files as the user, databases as a one-database user).
 - **Amended by ADR-0013:** P1 archives are made by the agent (home read as the user, databases dumped, `account.json` from the panel database), kept root-only in `/var/backups/xcp/<user>/`.
 - **Account archive format** (portable, versioned, documented):
   ```

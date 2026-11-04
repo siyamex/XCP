@@ -42,6 +42,7 @@ function useStatus() {
 export function ServerDashboard() {
   const { t } = useTranslation();
   const q = useStatus();
+  const setup = useQuery({ queryKey: ["server-setup"], queryFn: () => unwrap(api.GET("/server/setup")), retry: false });
   if (q.isPending) return <Spinner />;
   if (!q.data) return <ErrorAlert error={q.error} />;
   const s = q.data;
@@ -50,6 +51,9 @@ export function ServerDashboard() {
   const [l1 = 0, l5 = 0, l15 = 0] = s.load;
   return (
     <div className="space-y-6">
+      {setup.data && !setup.data.completed && (
+        <Alert kind="info">{t("server.setupHint")} <Link to="/settings" className="font-medium underline">{t("server.setupLink")}</Link></Alert>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardTitle>{t("server.cpu")}</CardTitle>

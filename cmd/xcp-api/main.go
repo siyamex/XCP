@@ -33,6 +33,7 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/serverinfo"
+	"github.com/siyamex/XCP/internal/serversettings"
 	"github.com/siyamex/XCP/internal/ssl"
 	"github.com/siyamex/XCP/internal/stats"
 	"github.com/siyamex/XCP/internal/version"
@@ -116,6 +117,31 @@ func serve(args []string) error {
 	sts := stats.NewService(a.DB, a.Plans, agent)
 	bks := backups.NewService(a.DB, a.Audit, a.Plans, queue, agent)
 	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
+	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
+	setts.SetHooks(accts.ApplyAll, a.Auth.SetSessionLimits)
+	setts.Start(ctx)
+	doms.SetDefaults(setts.PHPDefaults)
+	bks.SetRestoreDeps(accts, zs)
+	svi.SetHooks(a.Auth.Reauth, func(ctx context.Context, by string) (map[string]int, error) {
+		res := map[string]int{}
+		var err error
+		if res["accounts"], err = accts.ApplyAll(ctx, by); err != nil {
+			return nil, err
+		}
+		all, err := a.DB.AllZones(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := a.DB.Tx(ctx, func(tx *sql.Tx) error { return zs.Enqueue(ctx, tx, by, nil, all) }); err != nil {
+			return nil, err
+		}
+		res["zones"] = len(all)
+		if _, err := mails.EnqueueSettings(ctx, by); err != nil {
+			return nil, err
+		}
+		res["mail"] = 1
+		return res, nil
+	})
 	accts.Attach("backups", bks)
 	// Removing a domain removes its mail addresses and FTP logins.
 	doms.SetMailHook(func(ctx context.Context, tx *sql.Tx, by, accountID string) error {
@@ -178,7 +204,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

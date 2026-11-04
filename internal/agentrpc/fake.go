@@ -37,6 +37,7 @@ type Fake struct {
 	cron      fakeCron
 	logs      fakeLogs
 	backups   fakeBackups
+	host      fakeHost
 	hostName  string
 	hostCert  string
 }

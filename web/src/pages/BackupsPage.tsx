@@ -5,6 +5,7 @@ import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
+import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { formatBytes } from "./StatsPage";
 
@@ -21,7 +22,7 @@ export function BackupsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("backups.title")}</h1>
-      {me.data?.role === "admin" ? <ScheduleCard />
+      {me.data?.role === "admin" ? <><ScheduleCard /><RemovedAccounts /></>
         : me.data?.account_id ? <AccountBackups accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -143,5 +144,62 @@ function ScheduleForm({ initial }: { initial: Schedule }) {
         <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>
       </form>
     </Card>
+  );
+}
+
+type Orphan = components["schemas"]["OrphanBackup"];
+
+/** Backups of removed accounts: restore one into a new account, or delete it. */
+function RemovedAccounts() {
+  const { t } = useTranslation();
+  const q = useQuery({ queryKey: ["orphan-backups"], queryFn: () => unwrap(api.GET("/server/backups")), retry: false });
+  if (q.isPending) return <Spinner />;
+  if (!q.data) return <ErrorAlert error={q.error} />;
+  return (
+    <Card className="overflow-x-auto p-0">
+      <div className="px-4 pt-4"><CardTitle>{t("backups.removed")}</CardTitle></div>
+      <p className="px-4 pb-2 text-sm text-slate-500">{t("backups.removedHint")}</p>
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-slate-200 text-slate-500 dark:border-slate-800">
+          <tr>{["backups.account", "backups.when", "backups.size", ""].map((k) => <th key={k} className="px-4 py-3 font-medium">{k && t(k)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {q.data.items.map((o) => <RemovedRow key={o.id} o={o} />)}
+          {q.data.items.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-500">{t("backups.noneRemoved")}</td></tr>}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+function RemovedRow({ o }: { o: Orphan }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [jobId, setJobId] = useState<string>();
+  const done = () => void qc.invalidateQueries({ queryKey: ["orphan-backups"] });
+  const restore = useMutation({
+    mutationFn: () => unwrap(api.POST("/server/backups/{id}/restore", { params: { path: { id: o.id } }, body: {} })),
+    onSuccess: (r) => setJobId(r.job_id),
+  });
+  const remove = useMutation({ mutationFn: () => unwrap(api.DELETE("/backups/{id}", { params: { path: { id: o.id } } })), onSuccess: done });
+  return (
+    <>
+      <tr className="border-t border-slate-100 align-top dark:border-slate-800">
+        <td className="px-4 py-3 font-medium">{o.username}</td>
+        <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleString()}</td>
+        <td className="px-4 py-3">{formatBytes(o.size)}</td>
+        <td className="whitespace-nowrap px-4 py-3 text-right">
+          <a className="mr-3 text-blue-700 hover:underline dark:text-blue-400" href={`/api/v1/backups/${o.id}/download`}>{t("backups.download")}</a>
+          <Button variant="ghost" disabled={restore.isPending || !!jobId} onClick={() => window.confirm(t("backups.confirmRestore", { name: o.username })) && restore.mutate()}>{t("backups.restore")}</Button>
+          <Button variant="ghost" disabled={remove.isPending} onClick={() => window.confirm(t("backups.confirmDelete")) && remove.mutate()}>{t("common.delete")}</Button>
+        </td>
+      </tr>
+      {(restore.error || remove.error || jobId) && (
+        <tr><td colSpan={4} className="space-y-2 px-4 pb-3">
+          <ErrorAlert error={restore.error ?? remove.error} />
+          {jobId && <JobNotice jobId={jobId} onDone={done} />}
+        </td></tr>
+      )}
+    </>
   );
 }

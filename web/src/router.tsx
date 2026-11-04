@@ -15,6 +15,7 @@ import { FilesPage } from "./pages/FilesPage";
 import { CronPage } from "./pages/CronPage";
 import { BackupsPage } from "./pages/BackupsPage";
 import { FtpPage } from "./pages/FtpPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { JobsPage, ServicesPage, SessionsPage } from "./pages/ServerPages";
 import { StatsPage } from "./pages/StatsPage";
 
@@ -47,6 +48,7 @@ const statsRoute = createRoute({ getParentRoute: () => appRoute, path: "/stats",
 const backupsRoute = createRoute({ getParentRoute: () => appRoute, path: "/backups", component: BackupsPage });
 const servicesRoute = createRoute({ getParentRoute: () => appRoute, path: "/services", component: ServicesPage });
 const jobsRoute = createRoute({ getParentRoute: () => appRoute, path: "/jobs", component: JobsPage });
+const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsPage });
 const sessionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/sessions", component: SessionsPage });
 
 const routeTree = rootRoute.addChildren([
@@ -54,7 +56,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     dashboardRoute, securityRoute, packagesRoute, packageEditRoute, featureListsRoute,
     accountsRoute, accountNewRoute, accountRoute, domainsRoute,
-    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute, emailRoute, filesRoute, ftpRoute, cronRoute, statsRoute, backupsRoute, servicesRoute, jobsRoute, sessionsRoute,
+    zonesRoute, dnsSettingsRoute, zoneRoute, sslRoute, databasesRoute, emailRoute, filesRoute, ftpRoute, cronRoute, statsRoute, backupsRoute, servicesRoute, jobsRoute, sessionsRoute, settingsRoute,
   ]),
 ]);
 

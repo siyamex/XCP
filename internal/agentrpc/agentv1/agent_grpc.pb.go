@@ -70,6 +70,13 @@ const (
 	AgentService_BackupRemoveAccount_FullMethodName    = "/xcp.agent.v1.AgentService/BackupRemoveAccount"
 	AgentService_ServerStatus_FullMethodName           = "/xcp.agent.v1.AgentService/ServerStatus"
 	AgentService_ServiceLog_FullMethodName             = "/xcp.agent.v1.AgentService/ServiceLog"
+	AgentService_BackupInspect_FullMethodName          = "/xcp.agent.v1.AgentService/BackupInspect"
+	AgentService_BackupRestoreHome_FullMethodName      = "/xcp.agent.v1.AgentService/BackupRestoreHome"
+	AgentService_BackupRestoreDatabases_FullMethodName = "/xcp.agent.v1.AgentService/BackupRestoreDatabases"
+	AgentService_HostnameSet_FullMethodName            = "/xcp.agent.v1.AgentService/HostnameSet"
+	AgentService_TimezoneSet_FullMethodName            = "/xcp.agent.v1.AgentService/TimezoneSet"
+	AgentService_OSUpdatesSet_FullMethodName           = "/xcp.agent.v1.AgentService/OSUpdatesSet"
+	AgentService_ServerReboot_FullMethodName           = "/xcp.agent.v1.AgentService/ServerReboot"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -192,6 +199,24 @@ type AgentServiceClient interface {
 	ServerStatus(ctx context.Context, in *ServerStatusRequest, opts ...grpc.CallOption) (*ServerStatusResponse, error)
 	// ServiceLog returns the last lines of a service's journal.
 	ServiceLog(ctx context.Context, in *ServiceLogRequest, opts ...grpc.CallOption) (*ServiceLogResponse, error)
+	// BackupInspect reads a whole backup and checks it against its manifest;
+	// it returns the account.json and the database names. Nothing is written.
+	// INVALID_ARGUMENT: the backup is damaged or not of this account.
+	BackupInspect(ctx context.Context, in *BackupInspectRequest, opts ...grpc.CallOption) (*BackupInspectResponse, error)
+	// BackupRestoreHome unpacks the backup's home folder into the account's
+	// home, as the account's user.
+	BackupRestoreHome(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreHomeResponse, error)
+	// BackupRestoreDatabases loads the backup's database dumps into the
+	// account's databases, through a temporary user of each database.
+	BackupRestoreDatabases(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreDatabasesResponse, error)
+	// HostnameSet sets the host name and /etc/hosts.
+	HostnameSet(ctx context.Context, in *HostnameSetRequest, opts ...grpc.CallOption) (*HostnameSetResponse, error)
+	// TimezoneSet sets the system time zone.
+	TimezoneSet(ctx context.Context, in *TimezoneSetRequest, opts ...grpc.CallOption) (*TimezoneSetResponse, error)
+	// OSUpdatesSet turns automatic OS security updates on or off.
+	OSUpdatesSet(ctx context.Context, in *OSUpdatesSetRequest, opts ...grpc.CallOption) (*OSUpdatesSetResponse, error)
+	// ServerReboot restarts the server in a few seconds.
+	ServerReboot(ctx context.Context, in *ServerRebootRequest, opts ...grpc.CallOption) (*ServerRebootResponse, error)
 }
 
 type agentServiceClient struct {
@@ -622,6 +647,76 @@ func (c *agentServiceClient) ServiceLog(ctx context.Context, in *ServiceLogReque
 	return out, nil
 }
 
+func (c *agentServiceClient) BackupInspect(ctx context.Context, in *BackupInspectRequest, opts ...grpc.CallOption) (*BackupInspectResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupInspectResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupInspect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRestoreHome(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreHomeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRestoreHomeResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRestoreHome_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRestoreDatabases(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreDatabasesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRestoreDatabasesResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRestoreDatabases_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) HostnameSet(ctx context.Context, in *HostnameSetRequest, opts ...grpc.CallOption) (*HostnameSetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HostnameSetResponse)
+	err := c.cc.Invoke(ctx, AgentService_HostnameSet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) TimezoneSet(ctx context.Context, in *TimezoneSetRequest, opts ...grpc.CallOption) (*TimezoneSetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TimezoneSetResponse)
+	err := c.cc.Invoke(ctx, AgentService_TimezoneSet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) OSUpdatesSet(ctx context.Context, in *OSUpdatesSetRequest, opts ...grpc.CallOption) (*OSUpdatesSetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OSUpdatesSetResponse)
+	err := c.cc.Invoke(ctx, AgentService_OSUpdatesSet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) ServerReboot(ctx context.Context, in *ServerRebootRequest, opts ...grpc.CallOption) (*ServerRebootResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ServerRebootResponse)
+	err := c.cc.Invoke(ctx, AgentService_ServerReboot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -742,6 +837,24 @@ type AgentServiceServer interface {
 	ServerStatus(context.Context, *ServerStatusRequest) (*ServerStatusResponse, error)
 	// ServiceLog returns the last lines of a service's journal.
 	ServiceLog(context.Context, *ServiceLogRequest) (*ServiceLogResponse, error)
+	// BackupInspect reads a whole backup and checks it against its manifest;
+	// it returns the account.json and the database names. Nothing is written.
+	// INVALID_ARGUMENT: the backup is damaged or not of this account.
+	BackupInspect(context.Context, *BackupInspectRequest) (*BackupInspectResponse, error)
+	// BackupRestoreHome unpacks the backup's home folder into the account's
+	// home, as the account's user.
+	BackupRestoreHome(context.Context, *BackupRestoreRequest) (*BackupRestoreHomeResponse, error)
+	// BackupRestoreDatabases loads the backup's database dumps into the
+	// account's databases, through a temporary user of each database.
+	BackupRestoreDatabases(context.Context, *BackupRestoreRequest) (*BackupRestoreDatabasesResponse, error)
+	// HostnameSet sets the host name and /etc/hosts.
+	HostnameSet(context.Context, *HostnameSetRequest) (*HostnameSetResponse, error)
+	// TimezoneSet sets the system time zone.
+	TimezoneSet(context.Context, *TimezoneSetRequest) (*TimezoneSetResponse, error)
+	// OSUpdatesSet turns automatic OS security updates on or off.
+	OSUpdatesSet(context.Context, *OSUpdatesSetRequest) (*OSUpdatesSetResponse, error)
+	// ServerReboot restarts the server in a few seconds.
+	ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -877,6 +990,27 @@ func (UnimplementedAgentServiceServer) ServerStatus(context.Context, *ServerStat
 }
 func (UnimplementedAgentServiceServer) ServiceLog(context.Context, *ServiceLogRequest) (*ServiceLogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ServiceLog not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupInspect(context.Context, *BackupInspectRequest) (*BackupInspectResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupInspect not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRestoreHome(context.Context, *BackupRestoreRequest) (*BackupRestoreHomeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRestoreHome not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRestoreDatabases(context.Context, *BackupRestoreRequest) (*BackupRestoreDatabasesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRestoreDatabases not implemented")
+}
+func (UnimplementedAgentServiceServer) HostnameSet(context.Context, *HostnameSetRequest) (*HostnameSetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HostnameSet not implemented")
+}
+func (UnimplementedAgentServiceServer) TimezoneSet(context.Context, *TimezoneSetRequest) (*TimezoneSetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TimezoneSet not implemented")
+}
+func (UnimplementedAgentServiceServer) OSUpdatesSet(context.Context, *OSUpdatesSetRequest) (*OSUpdatesSetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OSUpdatesSet not implemented")
+}
+func (UnimplementedAgentServiceServer) ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ServerReboot not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1655,6 +1789,132 @@ func _AgentService_ServiceLog_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_BackupInspect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupInspectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupInspect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupInspect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupInspect(ctx, req.(*BackupInspectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRestoreHome_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRestoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRestoreHome(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRestoreHome_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRestoreHome(ctx, req.(*BackupRestoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRestoreDatabases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRestoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRestoreDatabases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRestoreDatabases_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRestoreDatabases(ctx, req.(*BackupRestoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_HostnameSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HostnameSetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).HostnameSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_HostnameSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).HostnameSet(ctx, req.(*HostnameSetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_TimezoneSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TimezoneSetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).TimezoneSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_TimezoneSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).TimezoneSet(ctx, req.(*TimezoneSetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_OSUpdatesSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OSUpdatesSetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).OSUpdatesSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_OSUpdatesSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).OSUpdatesSet(ctx, req.(*OSUpdatesSetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_ServerReboot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServerRebootRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).ServerReboot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_ServerReboot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).ServerReboot(ctx, req.(*ServerRebootRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1829,6 +2089,34 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ServiceLog",
 			Handler:    _AgentService_ServiceLog_Handler,
+		},
+		{
+			MethodName: "BackupInspect",
+			Handler:    _AgentService_BackupInspect_Handler,
+		},
+		{
+			MethodName: "BackupRestoreHome",
+			Handler:    _AgentService_BackupRestoreHome_Handler,
+		},
+		{
+			MethodName: "BackupRestoreDatabases",
+			Handler:    _AgentService_BackupRestoreDatabases_Handler,
+		},
+		{
+			MethodName: "HostnameSet",
+			Handler:    _AgentService_HostnameSet_Handler,
+		},
+		{
+			MethodName: "TimezoneSet",
+			Handler:    _AgentService_TimezoneSet_Handler,
+		},
+		{
+			MethodName: "OSUpdatesSet",
+			Handler:    _AgentService_OSUpdatesSet_Handler,
+		},
+		{
+			MethodName: "ServerReboot",
+			Handler:    _AgentService_ServerReboot_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1833,6 +1833,179 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/settings:
+    get:
+      tags: [server]
+      summary: Every global setting with its value
+      operationId: getSettings
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/SettingItem" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [server]
+      summary: Change global settings
+      operationId: putSettings
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [values], properties: { values: { type: object, additionalProperties: true, description: Setting key to new value; keys not named stay } } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/SettingItem" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/setup:
+    get:
+      tags: [server]
+      summary: The first-run setup
+      operationId: getSetup
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerSetup" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [server]
+      summary: "Apply the setup (host name, time zone, admin email, DNS)"
+      operationId: putSetup
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetupInput" }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServerSetup" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/hostname:
+    put:
+      tags: [server]
+      summary: Change the server's host name
+      description: Sets the system name and /etc/hosts, the name AutoSSL gets a certificate for and the mail server's name. Run AutoSSL afterwards for the new name's certificate.
+      operationId: putHostname
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [hostname], properties: { hostname: { type: string } } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostnameResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/updates:
+    get:
+      tags: [server]
+      summary: Whether a newer release exists
+      description: Asks GitHub, at most once an hour. The panel does not install updates yet.
+      operationId: getUpdates
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpdateInfo" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/reboot:
+    post:
+      tags: [server]
+      summary: Reboot the server in a few seconds
+      description: Needs the admin's password again.
+      operationId: postReboot
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [mode, password], properties: { mode: { type: string, enum: [graceful, forced] }, password: { type: string, format: password } } }
+      responses:
+        "202":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [rebooting], properties: { rebooting: { type: boolean } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/rebuild:
+    post:
+      tags: [server]
+      summary: Apply every account, DNS zone and the mail settings again
+      operationId: postRebuild
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [queued], properties: { queued: { type: object, additionalProperties: { type: integer } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/backups:
+    get:
+      tags: [backups]
+      summary: Backups of removed accounts
+      operationId: listOrphanBackups
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/OrphanBackup" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /server/backups/{id}/restore:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [backups]
+      summary: Rebuild a removed account from its backup
+      description: Checks the whole archive first, then restores the account's settings, creates it, and puts back its files and databases. 409 when an account, domain or login of that name exists.
+      operationId: restoreBackup
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, properties: { package_id: { type: string, description: "Default: the package of the same name as in the backup" } } }
+      responses:
+        "202":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /server/status:
     get:
       tags: [server]
@@ -2826,6 +2999,74 @@ components:
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
 
+    SettingItem:
+      type: object
+      required: [key, group, type, value, default, min, max, options]
+      properties:
+        key: { type: string }
+        group: { type: string }
+        type: { type: string, enum: [int, bool, string, enum] }
+        value: {}
+        default: {}
+        min: { type: integer }
+        max: { type: integer }
+        options: { type: array, items: { type: string } }
+
+    ServerSetup:
+      type: object
+      required: [completed, hostname, admin_email, timezone, nameservers, ipv4, ipv6]
+      properties:
+        completed: { type: boolean }
+        hostname: { type: string }
+        admin_email: { type: string }
+        timezone: { type: string }
+        nameservers: { type: array, items: { type: string } }
+        ipv4: { type: string }
+        ipv6: { type: string }
+
+    SetupInput:
+      type: object
+      additionalProperties: false
+      properties:
+        hostname: { type: string }
+        admin_email: { type: string }
+        timezone: { type: string, description: A tz database name like Europe/Berlin }
+        nameservers: { type: array, items: { type: string } }
+        ipv4: { type: string }
+        ipv6: { type: string }
+
+    HostnameResult:
+      type: object
+      required: [hostname, changed]
+      properties:
+        hostname: { type: string }
+        changed: { type: boolean }
+        job_id: { type: string }
+
+    UpdateInfo:
+      type: object
+      required: [current, latest, channel, url, available, development, checked_at]
+      properties:
+        current: { type: string }
+        latest: { type: string }
+        channel: { type: string }
+        url: { type: string }
+        available: { type: boolean }
+        development: { type: boolean, description: "A build from source: nothing to compare" }
+        checked_at: { type: string, format: date-time }
+        error: { type: string }
+
+    OrphanBackup:
+      type: object
+      required: [id, username, kind, file, size, created_at]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        kind: { type: string }
+        file: { type: string }
+        size: { type: integer }
+        created_at: { type: string, format: date-time }
+
     ServerStatus:
       type: object
       required: [hostname, os, kernel, arch, cpu_model, cores, uptime_seconds, load, cpu_percent, mem_total, mem_available, swap_total, swap_free, disks, net, procs, accounts, accounts_at, accounts_computing, versions, xcp_version, jobs]
@@ -3395,7 +3636,7 @@ components:
         code:
           type: string
           description: Stable machine-readable error code.
-          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken, busy, protected, bad_state]
+          examples: [invalid_credentials, unauthenticated, mfa_required, invalid_code, csrf_failed, rate_limited, validation_failed, password_change_required, forbidden, name_taken, in_use, username_taken, domain_taken, bad_status, limit_reached, rename_refused, not_installed, address_taken, no_zone, login_off, not_ready, exists, too_large, too_many, login_taken, busy, protected, bad_state, account_exists, not_ready]
         detail: { type: string }
         request_id: { type: string }
         errors:

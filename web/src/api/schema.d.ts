@@ -1250,6 +1250,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every global setting with its value */
+        get: operations["getSettings"];
+        /** Change global settings */
+        put: operations["putSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first-run setup */
+        get: operations["getSetup"];
+        /** Apply the setup (host name, time zone, admin email, DNS) */
+        put: operations["putSetup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/hostname": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the server's host name
+         * @description Sets the system name and /etc/hosts, the name AutoSSL gets a certificate for and the mail server's name. Run AutoSSL afterwards for the new name's certificate.
+         */
+        put: operations["putHostname"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether a newer release exists
+         * @description Asks GitHub, at most once an hour. The panel does not install updates yet.
+         */
+        get: operations["getUpdates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/reboot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reboot the server in a few seconds
+         * @description Needs the admin's password again.
+         */
+        post: operations["postReboot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply every account, DNS zone and the mail settings again */
+        post: operations["postRebuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Backups of removed accounts */
+        get: operations["listOrphanBackups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backups/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rebuild a removed account from its backup
+         * @description Checks the whole archive first, then restores the account's settings, creates it, and puts back its files and databases. 409 when an account, domain or login of that name exists.
+         */
+        post: operations["restoreBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/status": {
         parameters: {
             query?: never;
@@ -2083,6 +2235,61 @@ export interface components {
             catch_all: string[];
             dkim: boolean;
         };
+        SettingItem: {
+            key: string;
+            group: string;
+            /** @enum {string} */
+            type: "int" | "bool" | "string" | "enum";
+            value: unknown;
+            default: unknown;
+            min: number;
+            max: number;
+            options: string[];
+        };
+        ServerSetup: {
+            completed: boolean;
+            hostname: string;
+            admin_email: string;
+            timezone: string;
+            nameservers: string[];
+            ipv4: string;
+            ipv6: string;
+        };
+        SetupInput: {
+            hostname?: string;
+            admin_email?: string;
+            /** @description A tz database name like Europe/Berlin */
+            timezone?: string;
+            nameservers?: string[];
+            ipv4?: string;
+            ipv6?: string;
+        };
+        HostnameResult: {
+            hostname: string;
+            changed: boolean;
+            job_id?: string;
+        };
+        UpdateInfo: {
+            current: string;
+            latest: string;
+            channel: string;
+            url: string;
+            available: boolean;
+            /** @description A build from source: nothing to compare */
+            development: boolean;
+            /** Format: date-time */
+            checked_at: string;
+            error?: string;
+        };
+        OrphanBackup: {
+            id: string;
+            username: string;
+            kind: string;
+            file: string;
+            size: number;
+            /** Format: date-time */
+            created_at: string;
+        };
         ServerStatus: {
             hostname: string;
             os: string;
@@ -2654,6 +2861,8 @@ export interface components {
              * @example busy
              * @example protected
              * @example bad_state
+             * @example account_exists
+             * @example not_ready
              */
             code: string;
             detail?: string;
@@ -4993,6 +5202,275 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["SettingItem"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Setting key to new value; keys not named stay */
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["SettingItem"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerSetup"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupInput"];
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerSetup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    putHostname: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    hostname: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostnameResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateInfo"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    postReboot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mode: "graceful" | "forced";
+                    /** Format: password */
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        rebooting: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    postRebuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        queued: {
+                            [key: string]: number;
+                        };
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    listOrphanBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["OrphanBackup"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    restoreBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Default: the package of the same name as in the backup */
+                    package_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     getServerStatus: {
