@@ -167,6 +167,34 @@ for _ in range(20):  # the socket is there a moment after systemd starts it
     time.sleep(0.5)
 check(not isinstance(f, str), "logins work after xcp-ftpauth restarts", str(f))
 
+# Who is connected (ADR-0026).
+live = ftp("web@ftp1.xcp.test", "a brand new ftp password")
+sess = []
+for _ in range(10):
+    st, r = user.call("GET", f"/accounts/{acct}/ftp/sessions")
+    sess = [x for x in r["items"] if x["login"] == "web@ftp1.xcp.test"] if st == 200 else []
+    if sess:
+        break
+    time.sleep(0.5)
+check(len(sess) >= 1, "a connected login shows up in the sessions", f"{st} {r}")
+st, r2 = other.call("GET", f"/accounts/{acct}/ftp/sessions")
+check(st in (403, 404), "another account cannot list them", f"{st}")
+if sess:
+    st, _ = other.call("DELETE", f"/accounts/{acct}/ftp/sessions/{sess[0]['pid']}")
+    check(st in (403, 404), "or end one", f"{st}")
+    st, _ = user.call("DELETE", f"/accounts/{acct}/ftp/sessions/2")
+    check(st in (400, 404), "a process that is not a session is refused", f"{st}")
+    st, _ = user.call("DELETE", f"/accounts/{acct}/ftp/sessions/{sess[0]['pid']}")
+    check(st == 204, "the owner ends the session", f"{st}")
+    time.sleep(1)
+    try:
+        live.voidcmd("NOOP")
+        check(False, "the client is disconnected")
+    except Exception:
+        check(True, "the client is disconnected")
+    st, r = user.call("GET", f"/accounts/{acct}/ftp/sessions")
+    check(not [x for x in r["items"] if x["pid"] == sess[0]["pid"]], "and it is gone from the list")
+
 for name, id_ in ids.items():
     st, t = api("POST", f"/accounts/{id_}/terminate", {"confirm": name})
     wait_job(t["job_id"])

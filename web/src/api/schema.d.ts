@@ -2048,6 +2048,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/ftp/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connections of the account's FTP logins right now */
+        get: operations["ftpSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/ftp/sessions/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect one FTP session */
+        delete: operations["endFtpSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ftp/{id}": {
         parameters: {
             query?: never;
@@ -2657,6 +2691,20 @@ export interface components {
             created_at: string;
             limits: components["schemas"]["ResellerLimits"];
             usage: components["schemas"]["ResellerUsage"];
+        };
+        FtpSession: {
+            pid: number;
+            login: string;
+            /** @description Connected for */
+            seconds: number;
+            /** @description IDLE, DL, UP, ... */
+            state: string;
+            file: string;
+            peer: string;
+            current: number;
+            total: number;
+            percent: number;
+            bytes_per_sec: number;
         };
         SettingItem: {
             key: string;
@@ -7040,6 +7088,55 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    ftpSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["FtpSession"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    endFtpSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                pid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     updateFTPAccount: {

@@ -256,6 +256,8 @@ func New(d Deps) *Server {
 		{method: "DELETE", path: "/api/v1/cron/{id}", access: authed, roles: adminOrUser, h: s.deleteCronJob},
 		{method: "GET", path: "/api/v1/accounts/{id}/ftp", access: authed, roles: adminOrUser, h: s.ftpOverview},
 		{method: "POST", path: "/api/v1/accounts/{id}/ftp", access: authed, roles: adminOrUser, h: s.createFTPAccount},
+		{method: "GET", path: "/api/v1/accounts/{id}/ftp/sessions", access: authed, roles: adminOrUser, h: s.ftpSessions},
+		{method: "DELETE", path: "/api/v1/accounts/{id}/ftp/sessions/{pid}", access: authed, roles: adminOrUser, h: s.endFTPSession},
 		{method: "PUT", path: "/api/v1/ftp/{id}", access: authed, roles: adminOrUser, h: s.updateFTPAccount},
 		{method: "PUT", path: "/api/v1/ftp/{id}/password", access: authed, roles: adminOrUser, h: s.setFTPPassword},
 		{method: "DELETE", path: "/api/v1/ftp/{id}", access: authed, roles: adminOrUser, h: s.deleteFTPAccount},

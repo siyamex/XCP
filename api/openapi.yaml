@@ -2768,6 +2768,34 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/ftp/sessions:
+    get:
+      tags: [ftp]
+      summary: Connections of the account's FTP logins right now
+      operationId: ftpSessions
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/FtpSession" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /accounts/{id}/ftp/sessions/{pid}:
+    delete:
+      tags: [ftp]
+      summary: Disconnect one FTP session
+      operationId: endFtpSession
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: pid, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Disconnected. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /ftp/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -3477,6 +3505,20 @@ components:
         created_at: { type: string, format: date-time }
         limits: { $ref: "#/components/schemas/ResellerLimits" }
         usage: { $ref: "#/components/schemas/ResellerUsage" }
+    FtpSession:
+      type: object
+      required: [pid, login, seconds, state, file, peer, current, total, percent, bytes_per_sec]
+      properties:
+        pid: { type: integer }
+        login: { type: string }
+        seconds: { type: integer, description: Connected for }
+        state: { type: string, description: "IDLE, DL, UP, ..." }
+        file: { type: string }
+        peer: { type: string }
+        current: { type: integer }
+        total: { type: integer }
+        percent: { type: integer }
+        bytes_per_sec: { type: integer }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

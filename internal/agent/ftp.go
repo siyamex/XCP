@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/siyamex/XCP/internal/execx"
 	"github.com/siyamex/XCP/internal/fsx"
 	"github.com/siyamex/XCP/internal/pwhash"
 	"github.com/siyamex/XCP/internal/validate"
@@ -31,6 +32,8 @@ type FTP struct {
 	PanelCert   string // the self-signed pair, until the host name has a certificate
 	PanelKey    string
 	Services    ServiceManager
+	Run         *execx.Runner // runs pure-ftpwho; nil in tests
+	kill        func(pid int) error
 	mu          sync.Mutex
 }
 

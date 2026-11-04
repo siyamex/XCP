@@ -145,6 +145,11 @@ service AgentService {
   // FTPAccountRemove drops an account's FTP logins.
   rpc FTPAccountRemove(FTPAccountRemoveRequest) returns (FTPAccountRemoveResponse);
 
+  // FTPSessions lists the connected FTP sessions of every login.
+  rpc FTPSessions(FTPSessionsRequest) returns (FTPSessionsResponse);
+  // FTPSessionKill ends one session (only if that pid is listed for that login).
+  rpc FTPSessionKill(FTPSessionKillRequest) returns (FTPSessionKillResponse);
+
   // Cron (ADR-0011).
 
   // CronAccountApply stores all cron jobs of an account; the agent starts
@@ -694,6 +699,34 @@ message FTPAccountApplyRequest {
 message FTPAccountApplyResponse {
   bool changed = 1;
   repeated string problems = 2;  // logins whose folder could not be made; they cannot log in until it is usable
+}
+
+message FTPSessionsRequest {}
+
+message FTPSession {
+  int32 pid = 1;
+  string login = 2;
+  int64 seconds = 3;
+  string state = 4;
+  string file = 5;
+  string peer = 6;
+  int64 current = 7;
+  int64 total = 8;
+  int32 percent = 9;
+  int64 bytes_per_sec = 10;
+}
+
+message FTPSessionsResponse {
+  repeated FTPSession sessions = 1;
+}
+
+message FTPSessionKillRequest {
+  int32 pid = 1;
+  string login = 2;
+}
+
+message FTPSessionKillResponse {
+  bool ended = 1;
 }
 
 message FTPAccountRemoveRequest {

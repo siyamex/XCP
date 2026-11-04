@@ -61,6 +61,8 @@ const (
 	AgentService_UserHelperStart_FullMethodName        = "/xcp.agent.v1.AgentService/UserHelperStart"
 	AgentService_FTPAccountApply_FullMethodName        = "/xcp.agent.v1.AgentService/FTPAccountApply"
 	AgentService_FTPAccountRemove_FullMethodName       = "/xcp.agent.v1.AgentService/FTPAccountRemove"
+	AgentService_FTPSessions_FullMethodName            = "/xcp.agent.v1.AgentService/FTPSessions"
+	AgentService_FTPSessionKill_FullMethodName         = "/xcp.agent.v1.AgentService/FTPSessionKill"
 	AgentService_CronAccountApply_FullMethodName       = "/xcp.agent.v1.AgentService/CronAccountApply"
 	AgentService_CronAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/CronAccountRemove"
 	AgentService_CronStatus_FullMethodName             = "/xcp.agent.v1.AgentService/CronStatus"
@@ -179,6 +181,10 @@ type AgentServiceClient interface {
 	FTPAccountApply(ctx context.Context, in *FTPAccountApplyRequest, opts ...grpc.CallOption) (*FTPAccountApplyResponse, error)
 	// FTPAccountRemove drops an account's FTP logins.
 	FTPAccountRemove(ctx context.Context, in *FTPAccountRemoveRequest, opts ...grpc.CallOption) (*FTPAccountRemoveResponse, error)
+	// FTPSessions lists the connected FTP sessions of every login.
+	FTPSessions(ctx context.Context, in *FTPSessionsRequest, opts ...grpc.CallOption) (*FTPSessionsResponse, error)
+	// FTPSessionKill ends one session (only if that pid is listed for that login).
+	FTPSessionKill(ctx context.Context, in *FTPSessionKillRequest, opts ...grpc.CallOption) (*FTPSessionKillResponse, error)
 	// CronAccountApply stores all cron jobs of an account; the agent starts
 	// the due ones every minute as transient units in the account's slice.
 	CronAccountApply(ctx context.Context, in *CronAccountApplyRequest, opts ...grpc.CallOption) (*CronAccountApplyResponse, error)
@@ -570,6 +576,26 @@ func (c *agentServiceClient) FTPAccountRemove(ctx context.Context, in *FTPAccoun
 	return out, nil
 }
 
+func (c *agentServiceClient) FTPSessions(ctx context.Context, in *FTPSessionsRequest, opts ...grpc.CallOption) (*FTPSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FTPSessionsResponse)
+	err := c.cc.Invoke(ctx, AgentService_FTPSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) FTPSessionKill(ctx context.Context, in *FTPSessionKillRequest, opts ...grpc.CallOption) (*FTPSessionKillResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FTPSessionKillResponse)
+	err := c.cc.Invoke(ctx, AgentService_FTPSessionKill_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentServiceClient) CronAccountApply(ctx context.Context, in *CronAccountApplyRequest, opts ...grpc.CallOption) (*CronAccountApplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CronAccountApplyResponse)
@@ -866,6 +892,10 @@ type AgentServiceServer interface {
 	FTPAccountApply(context.Context, *FTPAccountApplyRequest) (*FTPAccountApplyResponse, error)
 	// FTPAccountRemove drops an account's FTP logins.
 	FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error)
+	// FTPSessions lists the connected FTP sessions of every login.
+	FTPSessions(context.Context, *FTPSessionsRequest) (*FTPSessionsResponse, error)
+	// FTPSessionKill ends one session (only if that pid is listed for that login).
+	FTPSessionKill(context.Context, *FTPSessionKillRequest) (*FTPSessionKillResponse, error)
 	// CronAccountApply stores all cron jobs of an account; the agent starts
 	// the due ones every minute as transient units in the account's slice.
 	CronAccountApply(context.Context, *CronAccountApplyRequest) (*CronAccountApplyResponse, error)
@@ -1025,6 +1055,12 @@ func (UnimplementedAgentServiceServer) FTPAccountApply(context.Context, *FTPAcco
 }
 func (UnimplementedAgentServiceServer) FTPAccountRemove(context.Context, *FTPAccountRemoveRequest) (*FTPAccountRemoveResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FTPAccountRemove not implemented")
+}
+func (UnimplementedAgentServiceServer) FTPSessions(context.Context, *FTPSessionsRequest) (*FTPSessionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FTPSessions not implemented")
+}
+func (UnimplementedAgentServiceServer) FTPSessionKill(context.Context, *FTPSessionKillRequest) (*FTPSessionKillResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FTPSessionKill not implemented")
 }
 func (UnimplementedAgentServiceServer) CronAccountApply(context.Context, *CronAccountApplyRequest) (*CronAccountApplyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CronAccountApply not implemented")
@@ -1701,6 +1737,42 @@ func _AgentService_FTPAccountRemove_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_FTPSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FTPSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).FTPSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_FTPSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).FTPSessions(ctx, req.(*FTPSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_FTPSessionKill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FTPSessionKillRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).FTPSessionKill(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_FTPSessionKill_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).FTPSessionKill(ctx, req.(*FTPSessionKillRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentService_CronAccountApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CronAccountApplyRequest)
 	if err := dec(in); err != nil {
@@ -2199,6 +2271,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FTPAccountRemove",
 			Handler:    _AgentService_FTPAccountRemove_Handler,
+		},
+		{
+			MethodName: "FTPSessions",
+			Handler:    _AgentService_FTPSessions_Handler,
+		},
+		{
+			MethodName: "FTPSessionKill",
+			Handler:    _AgentService_FTPSessionKill_Handler,
 		},
 		{
 			MethodName: "CronAccountApply",

@@ -34,7 +34,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 
-	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath, agent.MariaDBClientPath, agent.HostnamectlPath, agent.TimedatectlPath, agent.NftPath, agent.SSHDPath, agent.PostqueuePath, agent.PostsuperPath}
+	allowed := []string{agent.SievecPath, agent.DoveadmPath, agent.SystemctlPath, agent.UseraddPath, agent.UsermodPath, agent.UserdelPath, agent.PkillPath, agent.SetquotaPath, agent.ApachectlPath, agent.SystemdRunPath, agent.MariaDBDumpPath, agent.JournalctlPath, agent.MariaDBClientPath, agent.HostnamectlPath, agent.TimedatectlPath, agent.NftPath, agent.SSHDPath, agent.PostqueuePath, agent.PostsuperPath, agent.PureFTPWhoPath}
 	allowed = append(allowed, agent.PHPFPMPaths()...)
 	for _, c := range agent.ValidatorCommands {
 		allowed = append(allowed, c.Path)
@@ -115,7 +115,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		FTP: &agent.FTP{
 			Binary: agent.FTPBinary, FragmentDir: agent.FTPFragmentDir, ConfFile: agent.FTPConfFile,
 			HomesRoot: cfg.Paths.HomesRoot, HostCert: hc, PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey,
-			Services: agent.Systemctl{Run: runner},
+			Services: agent.Systemctl{Run: runner}, Run: runner,
 		},
 		MySQL: &agent.MySQL{
 			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,

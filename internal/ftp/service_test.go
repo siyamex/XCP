@@ -298,3 +298,39 @@ func TestRemovingADomainRemovesItsLogins(t *testing.T) {
 		t.Errorf("the login outlived its domain: %+v", o.Logins)
 	}
 }
+
+func TestFTPSessions(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	o, err := e.svc.Overview(ctx, user, a.ID)
+	if err != nil || len(o.Domains) != 1 {
+		t.Fatalf("overview: %+v %v", o, err)
+	}
+	l, err := e.svc.Create(ctx, client, user, a.ID, ftp.Input{DomainID: o.Domains[0].ID, Name: "deploy", Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.fake.FTPSession(4321, l.Login, "203.0.113.5")
+	e.fake.FTPSession(4322, "someoneelse@other.example", "203.0.113.6")
+	list, err := e.svc.Sessions(ctx, user, a.ID)
+	if err != nil || len(list) != 1 || list[0].PID != 4321 || list[0].Peer != "203.0.113.5" {
+		t.Fatalf("sessions: %+v %v", list, err)
+	}
+	if _, err := e.svc.Sessions(ctx, bob, a.ID); err == nil {
+		t.Error("bob lists alice's sessions")
+	}
+	// Only a session of the account's own logins can be ended.
+	if err := e.svc.EndSession(ctx, client, user, a.ID, 4322); err == nil {
+		t.Error("alice ended someone else's session")
+	}
+	if err := e.svc.EndSession(ctx, client, user, a.ID, 4321); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := e.svc.Sessions(ctx, user, a.ID); len(list) != 0 {
+		t.Errorf("still connected: %+v", list)
+	}
+	if err := e.svc.EndSession(ctx, client, user, a.ID, 4321); err == nil {
+		t.Error("ended twice")
+	}
+}

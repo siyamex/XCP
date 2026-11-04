@@ -832,7 +832,17 @@
     "logins": "FTP logins",
     "noLogins": "No FTP logins yet.",
     "shownOnce": "Write this down: the password is not shown again.",
-    "confirmDelete": "Delete the FTP login {{login}}? Its files stay."
+    "confirmDelete": "Delete the FTP login {{login}}? Its files stay.",
+    "sessions": {
+      "title": "Connected now",
+      "login": "Login",
+      "from": "From",
+      "connected": "Connected for",
+      "doing": "Doing",
+      "end": "Disconnect",
+      "confirm": "Disconnect {{login}}? A transfer in progress stops.",
+      "none": "Nobody is connected."
+    }
   },
   "databases": {
     "title": "Databases",

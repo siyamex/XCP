@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
+import { FtpSessionsCard } from "./FtpSessionsCard";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
@@ -55,6 +56,7 @@ export function AccountFtp({ accountId }: { accountId: string }) {
       <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-400">{t("ftp.intro")}</p>
       <JobNotice jobId={jobId} onDone={refresh} />
       <ConnectCard o={o} />
+      <FtpSessionsCard accountId={accountId} />
       <CreateCard accountId={accountId} o={o} onStarted={started} />
       <Card className="overflow-x-auto p-0">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
