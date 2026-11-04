@@ -148,6 +148,8 @@ func New(d Deps) *Server {
 		{method: "DELETE", path: "/api/v1/domains/{id}", access: authed, roles: adminOrUser, h: s.deleteDomain},
 		{method: "GET", path: "/api/v1/accounts/{id}/redirects", access: authed, roles: adminOrUser, h: s.listRedirects},
 		{method: "POST", path: "/api/v1/domains/{id}/redirects", access: authed, roles: adminOrUser, h: s.addRedirect},
+		{method: "GET", path: "/api/v1/domains/{id}/web", access: authed, roles: adminOrUser, h: s.getWebSettings},
+		{method: "PUT", path: "/api/v1/domains/{id}/web", access: authed, roles: adminOrUser, h: s.putWebSettings},
 		{method: "DELETE", path: "/api/v1/redirects/{id}", access: authed, roles: adminOrUser, h: s.deleteRedirect},
 		{method: "GET", path: "/api/v1/dns/zones", access: authed, roles: adminOrUser, h: s.listZones},
 		{method: "GET", path: "/api/v1/dns/zones/{id}", access: authed, roles: adminOrUser, h: s.getZone},

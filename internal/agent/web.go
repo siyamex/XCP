@@ -72,6 +72,7 @@ type Vhost struct {
 	Redirects  []Redirect
 	TLS        *TLS // served over HTTPS too; nil = HTTP only
 	ForceHTTPS bool // HTTP redirects to HTTPS; needs TLS
+	Web        WebOptions
 }
 
 // TLS is a certificate (followed by its chain) and its private key, PEM.
@@ -167,6 +168,9 @@ func checkVhost(v Vhost) error {
 	} else if v.ForceHTTPS {
 		return invalid("%s cannot force HTTPS without a certificate", v.Name)
 	}
+	if _, err := v.Web.Clean(); err != nil {
+		return invalid("web settings of %s: %v", v.Name, err)
+	}
 	if len(v.Redirects) > MaxVhostRedirects {
 		return invalid("%s has more than %d redirects", v.Name, MaxVhostRedirects)
 	}
@@ -249,11 +253,21 @@ var (
     <Directory {{.DocRoot}}>
         Options -Indexes -ExecCGI -Includes +SymLinksIfOwnerMatch
         AllowOverride AuthConfig FileInfo Indexes Limit Options=Indexes,MultiViews,SymLinksIfOwnerMatch
+{{- if .Blocked}}
+        <RequireAll>
+            Require all granted
+            Require not ip{{range .Blocked}} {{.}}{{end}}
+        </RequireAll>
+{{- else}}
         Require all granted
+{{- end}}
     </Directory>
     <FilesMatch "\.(php|phtml)$">
         SetHandler "proxy:unix:{{.S.Socket}}|fcgi://localhost"
     </FilesMatch>
+{{- if .Options}}
+{{.Options}}
+{{- end}}
 {{- with .Canonical}}
     RewriteEngine On
     RewriteRule "^/\.well-known/acme-challenge/" - [L]
@@ -331,6 +345,8 @@ type vhostData struct {
 	ServerName, Alias, DocRoot string
 	Canonical                  *canonicalRule
 	Redirects                  []string // rendered directives
+	Options                    string   // rendered web options (ADR-0020)
+	Blocked                    []string // addresses refused
 	CertFile, KeyFile          string   // set when also served over HTTPS
 	HTTPSOnly                  bool     // HTTP only redirects to HTTPS
 }
@@ -385,6 +401,9 @@ func (w *Web) vhostOf(s *siteData, v Vhost) vhostData {
 		d.Canonical = &canonicalRule{From: regexp.QuoteMeta(v.Name), To: "www." + v.Name}
 	case CanonicalBare:
 		d.Canonical = &canonicalRule{From: regexp.QuoteMeta("www." + v.Name), To: v.Name}
+	}
+	if o, err := v.Web.Clean(); err == nil {
+		d.Options, d.Blocked = o.directives(v.Name), o.Blocked
 	}
 	rs := slices.Clone(v.Redirects)
 	// Longest path first: Apache uses the first redirect that matches.

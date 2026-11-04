@@ -335,6 +335,23 @@
         "307": "307 temporary (keeps method)",
         "308": "308 permanent (keeps method)"
       }
+    },
+    "web": {
+      "title": "Web settings",
+      "hint": "Per domain. Changes are applied to the web server within a few seconds.",
+      "domain": "Domain",
+      "errorPages": "Error pages",
+      "errorPagesHint": "The address of a page on this site (like /errors/404.html) shown instead of the server's own page. Leave empty for the default.",
+      "hotlink": "Hotlink protection",
+      "hotlinkOn": "Refuse other sites that embed these files",
+      "hotlinkTypes": "File types to protect",
+      "hotlinkSites": "Other sites that may embed them",
+      "hotlinkEmpty": "Allow requests without a referrer (direct visits)",
+      "blocked": "Blocked addresses (one per line, addresses or networks)",
+      "speed": "Speed",
+      "compress": "Compress text responses (gzip)",
+      "cache": "Browser caching: file types and days, one rule per line",
+      "saved": "Saved. Applying the settings."
     }
   },
   "dns": {

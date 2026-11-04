@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError, api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
+import { WebSettingsCard } from "./WebSettingsCard";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
@@ -61,6 +62,7 @@ export function DomainsPanel({ accountId }: { accountId: string }) {
       <JobNotice jobId={jobId} onDone={refresh} />
       <DomainList domains={list} onStarted={started} />
       <AddDomain accountId={accountId} domains={list} onStarted={started} />
+      <WebSettingsCard domains={list} onStarted={started} />
       {redirects.data && <Redirects domains={list} redirects={redirects.data.items} onStarted={started} />}
     </>
   );

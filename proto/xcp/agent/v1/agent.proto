@@ -367,6 +367,24 @@ message VirtualHost {
   repeated Redirect redirects = 4;
   TLS tls = 5;           // also serve it over HTTPS; unset = HTTP only
   bool force_https = 6;  // HTTP redirects to HTTPS (needs tls)
+  WebOptions web = 7;
+}
+
+// WebOptions are the per-domain web settings of a user.
+message WebOptions {
+  map<string, string> error_pages = 1;  // status code -> URL path
+  bool hotlink = 2;
+  repeated string hotlink_hosts = 3;
+  repeated string hotlink_exts = 4;
+  bool hotlink_allow_empty = 5;
+  repeated string blocked = 6;  // addresses and networks refused
+  bool compress = 7;
+  repeated CacheRule cache_rules = 8;
+}
+
+message CacheRule {
+  repeated string exts = 1;
+  uint32 days = 2;
 }
 
 // TLS is a certificate and its private key. The agent checks that they

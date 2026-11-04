@@ -613,7 +613,7 @@ func (in *installer) web(ctx context.Context) error {
 		return nil
 	}
 	if in.o.DryRun {
-		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers, start both")
+		in.logf("    would install apache2 and php-fpm if missing, enable proxy_fcgi, setenvif, rewrite, headers, deflate, expires, start both")
 		_, err := in.writeFile(ApacheConf, []byte(apacheConf(in.o.Hostname)), 0o644, rootRoot, false)
 		return err
 	}

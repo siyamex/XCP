@@ -17,6 +17,7 @@ var AccountTables = []struct {
 	{"recovery_codes", `login_id IN (SELECT id FROM logins WHERE account_id = ?)`},
 	{"domains", `account_id = ?`},
 	{"redirects", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
+	{"domain_web", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
 	{"dns_zones", `account_id = ?`},
 	{"dns_records", `zone_id IN (SELECT id FROM dns_zones WHERE account_id = ?)`},
 	{"certificates", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},

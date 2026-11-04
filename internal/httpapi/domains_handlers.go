@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 
+	"github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/domains"
 )
 
@@ -78,6 +79,28 @@ func (s *Server) addRedirect(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeJSON(w, http.StatusAccepted, rd)
+	return nil
+}
+
+func (s *Server) getWebSettings(w http.ResponseWriter, r *http.Request) error {
+	ws, err := s.Domains.WebSettings(r.Context(), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, ws)
+	return nil
+}
+
+func (s *Server) putWebSettings(w http.ResponseWriter, r *http.Request) error {
+	var in agent.WebOptions
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	ws, err := s.Domains.SetWebSettings(r.Context(), client(r), principal(r), r.PathValue("id"), in)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, ws)
 	return nil
 }
 

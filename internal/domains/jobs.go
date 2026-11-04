@@ -76,6 +76,10 @@ func (s *Service) SiteRequest(ctx context.Context, a *store.Account, lim plans.L
 	if err != nil {
 		return nil, err
 	}
+	webs, err := s.db.AccountDomainWeb(ctx, a.ID)
+	if err != nil {
+		return nil, err
+	}
 	byID := index(ds)
 	phpVersion, uploadMB := a.PHPVersion, 0
 	if s.defaults != nil {
@@ -95,6 +99,14 @@ func (s *Service) SiteRequest(ctx context.Context, a *store.Account, lim plans.L
 			root = byID[d.ParentID].DocRoot
 		}
 		v := &agentv1.VirtualHost{Name: d.Name, DocRoot: root, Canonical: canonicals[d.Canonical]}
+		// An alias shows its parent's site, with the parent's settings.
+		wid := d.ID
+		if d.Kind == store.DomainAlias {
+			wid = d.ParentID
+		}
+		if raw, ok := webs[wid]; ok {
+			v.Web = protoWeb(decodeWeb(raw))
+		}
 		if s.certs != nil {
 			if v.Tls, v.ForceHttps, err = s.certs.SiteTLS(ctx, d); err != nil {
 				return nil, err

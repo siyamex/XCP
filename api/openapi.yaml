@@ -817,6 +817,41 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /domains/{id}/web:
+    get:
+      tags: [domains]
+      summary: Web settings of a domain
+      operationId: getWebSettings
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebSettings" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [domains]
+      summary: Change the web settings of a domain
+      description: Error pages, hotlink protection, blocked addresses, compression and browser caching. Applied by a job.
+      operationId: putWebSettings
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebSettings" }
+      responses:
+        "202":
+          description: Saved; a job applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebSettings" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /redirects/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -3125,6 +3160,30 @@ components:
         history: { type: array, items: { $ref: "#/components/schemas/FirewallBan" } }
         your_ip: { type: string }
         panel_port: { type: integer }
+    WebSettings:
+      type: object
+      required: [error_pages, hotlink, blocked, compress, cache_rules]
+      properties:
+        error_pages: { type: object, additionalProperties: { type: string }, description: "Status code (400, 401, 403, 404, 500, 502, 503) to the URL path of the page, like /errors/404.html" }
+        hotlink:
+          type: object
+          required: [enabled, hosts, extensions, allow_empty]
+          properties:
+            enabled: { type: boolean }
+            hosts: { type: array, items: { type: string }, description: Other sites that may embed the files }
+            extensions: { type: array, items: { type: string }, description: Protected file types }
+            allow_empty: { type: boolean, description: Requests without a referrer pass }
+        blocked: { type: array, items: { type: string }, description: Addresses and networks that get 403 }
+        compress: { type: boolean }
+        cache_rules:
+          type: array
+          items:
+            type: object
+            required: [extensions, days]
+            properties:
+              extensions: { type: array, items: { type: string } }
+              days: { type: integer, minimum: 1, maximum: 365 }
+        job_id: { type: string }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

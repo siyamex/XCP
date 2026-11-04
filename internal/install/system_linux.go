@@ -172,7 +172,7 @@ func (s *LinuxSystem) InstallWebStack(ctx context.Context) (bool, error) {
 		}
 		installed = true
 	}
-	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enmodPath, Args: []string{"-q", "proxy_fcgi", "setenvif", "rewrite", "headers", "ssl"}}); err != nil {
+	if _, err := s.run.Run(ctx, execx.Cmd{Path: a2enmodPath, Args: []string{"-q", "proxy_fcgi", "setenvif", "rewrite", "headers", "ssl", "deflate", "expires"}}); err != nil {
 		return installed, fmt.Errorf("a2enmod: %w", err)
 	}
 	// Packages normally start their services, but not where a policy-rc.d

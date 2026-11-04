@@ -545,6 +545,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/domains/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Web settings of a domain */
+        get: operations["getWebSettings"];
+        /**
+         * Change the web settings of a domain
+         * @description Error pages, hotlink protection, blocked addresses, compression and browser caching. Applied by a job.
+         */
+        put: operations["putWebSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/redirects/{id}": {
         parameters: {
             query?: never;
@@ -2351,6 +2372,29 @@ export interface components {
             your_ip: string;
             panel_port: number;
         };
+        WebSettings: {
+            /** @description Status code (400, 401, 403, 404, 500, 502, 503) to the URL path of the page, like /errors/404.html */
+            error_pages: {
+                [key: string]: string;
+            };
+            hotlink: {
+                enabled: boolean;
+                /** @description Other sites that may embed the files */
+                hosts: string[];
+                /** @description Protected file types */
+                extensions: string[];
+                /** @description Requests without a referrer pass */
+                allow_empty: boolean;
+            };
+            /** @description Addresses and networks that get 403 */
+            blocked: string[];
+            compress: boolean;
+            cache_rules: {
+                extensions: string[];
+                days: number;
+            }[];
+            job_id?: string;
+        };
         SettingItem: {
             key: string;
             group: string;
@@ -3998,6 +4042,57 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    getWebSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSettings"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    putWebSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved; a job applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSettings"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     deleteRedirect: {

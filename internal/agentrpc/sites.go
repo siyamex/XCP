@@ -38,6 +38,15 @@ func siteFrom(req *agentv1.SiteApplyRequest) agent.Site {
 				Path: r.GetPath(), Target: r.GetTarget(), Code: int(r.GetCode()), KeepPath: r.GetKeepPath(),
 			})
 		}
+		if w := v.GetWeb(); w != nil {
+			vh.Web = agent.WebOptions{
+				ErrorPages: w.GetErrorPages(), Blocked: w.GetBlocked(), Compress: w.GetCompress(),
+				Hotlink: agent.Hotlink{Enabled: w.GetHotlink(), Hosts: w.GetHotlinkHosts(), Extensions: w.GetHotlinkExts(), AllowEmpty: w.GetHotlinkAllowEmpty()},
+			}
+			for _, r := range w.GetCacheRules() {
+				vh.Web.CacheRules = append(vh.Web.CacheRules, agent.CacheRule{Extensions: r.GetExts(), Days: int(r.GetDays())})
+			}
+		}
 		s.Vhosts = append(s.Vhosts, vh)
 	}
 	return s
