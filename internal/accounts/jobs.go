@@ -141,8 +141,12 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 		result[e.name] = res
 	}
 	if a.Status == store.AccountCreating || a.Status == store.AccountError {
+		first := a.Status == store.AccountCreating
 		if err := s.db.SetAccountStatus(ctx, a.ID, store.AccountActive, ""); err != nil {
 			return nil, err
+		}
+		if first && s.onActivated != nil {
+			s.onActivated(ctx, a)
 		}
 	}
 	if !res.GetQuotaApplied() {

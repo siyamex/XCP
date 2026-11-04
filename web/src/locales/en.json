@@ -56,7 +56,8 @@
     "featureLists": "Feature lists",
     "databaseServer": "Database server",
     "mailServer": "Mail server",
-    "firewall": "Firewall"
+    "firewall": "Firewall",
+    "messages": "Messages"
   },
   "role": {
     "admin": "Admin",
@@ -1115,5 +1116,20 @@
       "terminate": "Remove accounts",
       "impersonate": "Sign in as a customer"
     }
+  },
+  "messages": {
+    "title": "Messages to customers",
+    "welcome": "Welcome message",
+    "welcomeCustom": "Sent to new customers with an email address, when their account is ready. This is your own text.",
+    "welcomeDefault": "Sent to new customers with an email address, when their account is ready. This is the default text (the admin's for a reseller): save your own to change it.",
+    "subject": "Subject",
+    "body": "Message",
+    "variables": "You can use:",
+    "saved": "Saved.",
+    "reset": "Use the default",
+    "broadcast": "Message to all customers",
+    "broadcastHint": "Emails every customer that has an address. Customers who share an address get one. You can send one every ten minutes.",
+    "confirmBroadcast": "Send this message to all your customers?",
+    "send": "Send to all"
   }
 }

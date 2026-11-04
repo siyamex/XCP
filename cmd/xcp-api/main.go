@@ -34,6 +34,7 @@ import (
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
+	"github.com/siyamex/XCP/internal/messages"
 	"github.com/siyamex/XCP/internal/resellers"
 	"github.com/siyamex/XCP/internal/serverinfo"
 	"github.com/siyamex/XCP/internal/serversettings"
@@ -120,6 +121,20 @@ func serve(args []string) error {
 	sts := stats.NewService(a.DB, a.Plans, agent)
 	bks := backups.NewService(a.DB, a.Audit, a.Plans, queue, agent)
 	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
+	msgs := messages.NewService(a.DB, a.Audit, queue, messages.SMTP{}, messages.Info{
+		From: func(ctx context.Context) string {
+			var e string
+			_ = a.DB.GetSetting(ctx, "server.admin_email", &e)
+			if e != "" {
+				return e
+			}
+			return "noreply@" + hostnameOf(ctx, certs)
+		},
+		PanelURL: func(ctx context.Context) string {
+			return "https://" + hostnameOf(ctx, certs) + ":" + strconv.Itoa(listenPort(a.Cfg.API.Listen))
+		},
+	}, a.Log)
+	accts.OnActivated(msgs.OnActivated)
 	rss := resellers.NewService(a.DB, a.Audit, a.Auth, a.Plans)
 	fws := firewall.NewService(a.DB, a.Audit, queue, agent, listenPort(a.Cfg.API.Listen))
 	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
@@ -180,6 +195,7 @@ func serve(args []string) error {
 	crons.RegisterJobs(worker)
 	bks.RegisterJobs(worker)
 	fws.RegisterJobs(worker)
+	msgs.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -213,7 +229,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Resellers: rss, Firewall: fws, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Resellers: rss, Messages: msgs, Firewall: fws, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})
@@ -306,4 +322,15 @@ func listenPort(addr string) int {
 	}
 	n, _ := strconv.Atoi(p)
 	return n
+}
+
+// hostnameOf returns the server's host name for mail addresses and links.
+func hostnameOf(ctx context.Context, certs *ssl.Service) string {
+	if h := certs.Hostname(ctx); h != "" {
+		return h
+	}
+	if h, err := os.Hostname(); err == nil && h != "" {
+		return h
+	}
+	return "localhost"
 }

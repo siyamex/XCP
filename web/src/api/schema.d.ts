@@ -1422,6 +1422,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/messages/welcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The welcome message new customers get
+         * @description The sender's own text, else the admin's, else the built-in one. Variables are written {{username}}, {{domain}}, {{panel_url}}, {{owner}}.
+         */
+        get: operations["getWelcome"];
+        /**
+         * Change the welcome message
+         * @description An empty subject and body go back to the default.
+         */
+        put: operations["putWelcome"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/messages/broadcast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email all customers
+         * @description Queued as a job. Customers without an email address are skipped; an address shared by accounts gets one message. One every ten minutes per sender; at most 2000 customers.
+         */
+        post: operations["broadcastMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/resellers": {
         parameters: {
             query?: never;
@@ -2705,6 +2749,17 @@ export interface components {
             total: number;
             percent: number;
             bytes_per_sec: number;
+        };
+        MessageInput: {
+            subject: string;
+            body: string;
+        };
+        MessageTemplate: {
+            subject: string;
+            body: string;
+            /** @description false: the built-in text, or the admin's for a reseller */
+            custom: boolean;
+            variables: string[];
         };
         SettingItem: {
             key: string;
@@ -6025,6 +6080,82 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getWelcome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageTemplate"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putWelcome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageTemplate"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    broadcastMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     listResellers: {

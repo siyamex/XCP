@@ -2053,6 +2053,59 @@ paths:
         "204": { description: Done. }
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
+  /messages/welcome:
+    get:
+      tags: [messages]
+      summary: The welcome message new customers get
+      description: The sender's own text, else the admin's, else the built-in one. Variables are written {{username}}, {{domain}}, {{panel_url}}, {{owner}}.
+      operationId: getWelcome
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageTemplate" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [messages]
+      summary: Change the welcome message
+      description: An empty subject and body go back to the default.
+      operationId: putWelcome
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageTemplate" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /messages/broadcast:
+    post:
+      tags: [messages]
+      summary: Email all customers
+      description: Queued as a job. Customers without an email address are skipped; an address shared by accounts gets one message. One every ten minutes per sender; at most 2000 customers.
+      operationId: broadcastMessage
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { type: object, required: [job_id], properties: { job_id: { type: string } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /resellers:
     get:
       tags: [resellers]
@@ -3519,6 +3572,21 @@ components:
         total: { type: integer }
         percent: { type: integer }
         bytes_per_sec: { type: integer }
+    MessageInput:
+      type: object
+      additionalProperties: false
+      required: [subject, body]
+      properties:
+        subject: { type: string }
+        body: { type: string }
+    MessageTemplate:
+      type: object
+      required: [subject, body, custom, variables]
+      properties:
+        subject: { type: string }
+        body: { type: string }
+        custom: { type: boolean, description: "false: the built-in text, or the admin's for a reseller" }
+        variables: { type: array, items: { type: string } }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

@@ -78,6 +78,8 @@ type Service struct {
 	domains *domains.Service
 	zones   *zones.Service
 	extras  []extra
+
+	onActivated func(ctx context.Context, a *store.Account)
 }
 
 // Extra is a service that keeps per-account state on the server beyond the
@@ -101,6 +103,9 @@ func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Se
 ) *Service {
 	return &Service{db: db, audit: rec, auth: a, plans: pl, jobs: q, agent: ag, domains: dom, zones: zs}
 }
+
+// OnActivated sets a function called once when a new account becomes active.
+func (s *Service) OnActivated(f func(ctx context.Context, a *store.Account)) { s.onActivated = f }
 
 // Attach connects a service whose account state the account jobs apply
 // and remove too, in the order attached.

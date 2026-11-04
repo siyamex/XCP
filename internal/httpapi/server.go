@@ -26,6 +26,7 @@ import (
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
+	"github.com/siyamex/XCP/internal/messages"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/resellers"
 	"github.com/siyamex/XCP/internal/serverinfo"
@@ -52,6 +53,7 @@ type Deps struct {
 	ServerInfo *serverinfo.Service
 	Settings   *serversettings.Service
 	Resellers  *resellers.Service
+	Messages   *messages.Service
 	Firewall   *firewall.Service
 	Zones      *zones.Service
 	SSL        *ssl.Service
@@ -215,6 +217,9 @@ func New(d Deps) *Server {
 		{method: "DELETE", path: "/api/v1/server/firewall/bans/{id}", access: authed, roles: adminOnly, h: s.unbanIP},
 		{method: "GET", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueue},
 		{method: "POST", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueueAction},
+		{method: "GET", path: "/api/v1/messages/welcome", access: authed, roles: adminOrReseller, h: s.getWelcome},
+		{method: "PUT", path: "/api/v1/messages/welcome", access: authed, roles: adminOrReseller, h: s.putWelcome},
+		{method: "POST", path: "/api/v1/messages/broadcast", access: authed, roles: adminOrReseller, h: s.broadcast},
 		{method: "GET", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.listResellers},
 		{method: "POST", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.createReseller},
 		{method: "PUT", path: "/api/v1/resellers/{id}/limits", access: authed, roles: adminOnly, h: s.setResellerLimits},
