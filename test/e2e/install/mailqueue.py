@@ -42,14 +42,14 @@ try:
     items = []
     while time.time() < end:
         st, q = api("GET", "/server/mail/queue")
-        items = [m for m in q["items"] if any("remote.invalid" in r["address"] for r in m["recipients"])]
+        items = [m for m in q["items"] if m["queue"] == "deferred" and any("remote.invalid" in r["address"] for r in m["recipients"])]
         if len(items) >= 2:
             break
         time.sleep(1)
     check(st == 200 and len(items) == 2, "both messages are in the queue", f"{st} {items}")
     if len(items) == 2:
         m = items[0]
-        check(m["sender"] == "root@mq1.xcp.test" and m["size"] > 0 and m["queue"] in ("deferred", "active", "incoming"), "with sender, size and queue", str(m))
+        check(m["sender"] == "root@mq1.xcp.test" and m["size"] > 0 and m["queue"] == "deferred", "with sender, size and queue", str(m))
 
         st, r = api("POST", "/server/mail/queue", {"action": "delete", "ids": []})
         check(st == 400, "deleting nothing is refused", f"{st}")

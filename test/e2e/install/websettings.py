@@ -40,11 +40,10 @@ dom = dm["items"][0]["id"]
 
 root = f"{HOME}/public_html"
 as_user("ws1", f"{root}/index.html", "<p>home</p>")
-os.makedirs(f"{root}/errors", exist_ok=True)
+subprocess.run(["runuser", "-u", "ws1", "--", "mkdir", "-p", f"{root}/errors"], check=True)
 as_user("ws1", f"{root}/errors/404.html", "<p>custom not found</p>")
 as_user("ws1", f"{root}/pic.jpg", "not really a jpeg")
 as_user("ws1", f"{root}/style.css", "body { color: red }\n" * 200)
-subprocess.run(["chown", "-R", "ws1:ws1", f"{root}"], check=True)
 
 # Defaults.
 st, w = user.call("GET", f"/domains/{dom}/web")
@@ -109,9 +108,8 @@ check(st == 200, "other addresses are not blocked", f"{st}")
 
 # Directory privacy (ADR-0025).
 import base64, grp, stat
-os.makedirs(f"{root}/private", exist_ok=True)
+subprocess.run(["runuser", "-u", "ws1", "--", "mkdir", "-p", f"{root}/private"], check=True)
 as_user("ws1", f"{root}/private/secret.html", "<p>secret</p>")
-subprocess.run(["chown", "-R", "ws1:ws1", f"{root}/private"], check=True)
 def basic(u, pw):
     return {"Authorization": "Basic " + base64.b64encode(f"{u}:{pw}".encode()).decode()}
 st, r = user.call("PUT", f"/domains/{dom}/protected-dirs", {"dirs": [{"path": "/private", "realm": "Staff only", "users": [{"name": "amy", "password": "a long enough password"}]}]})
