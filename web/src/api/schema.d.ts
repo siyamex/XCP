@@ -1250,6 +1250,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/firewall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The firewall, the bans in force and the latest ban history */
+        get: operations["getFirewall"];
+        /**
+         * Change the firewall
+         * @description Your own address is put on the allow list when the change would shut you out.
+         */
+        put: operations["putFirewall"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/firewall/bans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ban an address */
+        post: operations["banIP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/firewall/bans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Lift a ban */
+        delete: operations["unbanIP"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/settings": {
         parameters: {
             query?: never;
@@ -2234,6 +2289,65 @@ export interface components {
             /** @description Where unknown addresses go; empty rejects them */
             catch_all: string[];
             dkim: boolean;
+        };
+        FirewallPort: {
+            /** @description A port or a range like 30000-30999 */
+            port: string;
+            /** @enum {string} */
+            proto: "tcp" | "udp";
+            comment: string;
+        };
+        FirewallEntry: {
+            cidr: string;
+            comment: string;
+        };
+        FirewallConfig: {
+            enabled: boolean;
+            /** @enum {string} */
+            policy: "open" | "closed";
+            ssh_port: number;
+            ports: components["schemas"]["FirewallPort"][];
+            allow: components["schemas"]["FirewallEntry"][];
+            deny: components["schemas"]["FirewallEntry"][];
+            /** @description Service (panel */
+            restrict: {
+                [key: string]: string[];
+            };
+            rate_limit: {
+                enabled: boolean;
+                per_minute: number;
+                ports: string[];
+            };
+            brute: {
+                enabled: boolean;
+                threshold: number;
+                window_minutes: number;
+                ban_minutes: number;
+                permanent_after: number;
+                sources: ("ssh" | "mail" | "ftp" | "panel")[];
+            };
+        };
+        FirewallBan: {
+            id: string;
+            ip: string;
+            reason: string;
+            /** @enum {string} */
+            source: "ssh" | "mail" | "ftp" | "panel" | "manual";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string | null;
+            /** Format: date-time */
+            released_at: string | null;
+            released_by: string;
+            active: boolean;
+        };
+        FirewallOverview: {
+            config: components["schemas"]["FirewallConfig"];
+            bans: components["schemas"]["FirewallBan"][];
+            history: components["schemas"]["FirewallBan"][];
+            your_ip: string;
+            panel_port: number;
         };
         SettingItem: {
             key: string;
@@ -5202,6 +5316,110 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    getFirewall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirewallOverview"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    putFirewall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FirewallConfig"];
+            };
+        };
+        responses: {
+            /** @description Saved; the rules are applied by a job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        config: components["schemas"]["FirewallConfig"];
+                        job_id: string;
+                        added_your_ip: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    banIP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ip: string;
+                    /** @description 0 bans for good */
+                    minutes?: number;
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Banned. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirewallBan"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    unbanIP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lifted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     getSettings: {

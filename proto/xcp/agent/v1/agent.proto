@@ -216,6 +216,12 @@ service AgentService {
 
   // ServerReboot restarts the server in a few seconds.
   rpc ServerReboot(ServerRebootRequest) returns (ServerRebootResponse);
+
+  // Firewall (ADR-0017). NOT_FOUND: nftables is not installed.
+
+  // FirewallApply loads XCP's nftables table from the rules, or removes it
+  // when they are not enabled. INVALID_ARGUMENT: nftables refused the rules.
+  rpc FirewallApply(FirewallApplyRequest) returns (FirewallApplyResponse);
 }
 
 message PingRequest {}
@@ -861,3 +867,36 @@ message ServerRebootRequest {
 }
 
 message ServerRebootResponse {}
+
+message FirewallPort {
+  string port = 1;   // "22" or "30000-30999"
+  string proto = 2;  // tcp or udp
+}
+
+message FirewallBan {
+  string ip = 1;
+  int64 seconds = 2;  // 0: for good
+}
+
+message FirewallRestriction {
+  string name = 1;                   // panel, ssh or ftp
+  repeated FirewallPort ports = 2;
+  repeated string allowed = 3;       // only these networks may reach the ports
+}
+
+message FirewallApplyRequest {
+  bool enabled = 1;
+  bool closed = 2;                          // only open_ports are let in
+  repeated FirewallPort open_ports = 3;
+  repeated string allow = 4;                // networks, canonical form
+  repeated string deny = 5;
+  repeated FirewallBan bans = 6;
+  repeated FirewallRestriction restrictions = 7;
+  bool rate_limit = 8;
+  int32 rate_per_minute = 9;                // new connections per source
+  repeated FirewallPort rate_ports = 10;
+}
+
+message FirewallApplyResponse {
+  bool changed = 1;
+}

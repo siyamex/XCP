@@ -238,7 +238,7 @@ func (s *LinuxSystem) InstallDatabaseServer(ctx context.Context) (bool, error) {
 		}
 		pkgs := []string{"mariadb-server", "php-mysql", "php-mbstring", "php-xml"}
 		if _, err := s.run.Run(ctx, execx.Cmd{
-			Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
+			Path: aptGetPath, Args: append(append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
 			Env: env, Timeout: 30 * time.Minute,
 		}); err != nil {
 			return false, fmt.Errorf("apt-get install %s: %w", strings.Join(pkgs, " "), err)
@@ -258,7 +258,14 @@ func (s *LinuxSystem) InstallDatabaseServer(ctx context.Context) (bool, error) {
 // Ubuntu servers have it.
 func (s *LinuxSystem) InstallBase(ctx context.Context) (bool, error) {
 	installed := false
+	var pkgs []string
 	if _, err := os.Stat("/usr/bin/dbus-daemon"); err != nil {
+		pkgs = append(pkgs, "dbus")
+	}
+	if _, err := os.Stat("/usr/sbin/nft"); err != nil {
+		pkgs = append(pkgs, "nftables") // the firewall (ADR-0017)
+	}
+	if len(pkgs) > 0 {
 		env := append(slices.Clone(execx.SafeEnv), "DEBIAN_FRONTEND=noninteractive")
 		lock := []string{"-o", "DPkg::Lock::Timeout=600"}
 		if _, err := s.run.Run(ctx, execx.Cmd{
@@ -267,9 +274,9 @@ func (s *LinuxSystem) InstallBase(ctx context.Context) (bool, error) {
 			return false, fmt.Errorf("apt-get update: %w", err)
 		}
 		if _, err := s.run.Run(ctx, execx.Cmd{
-			Path: aptGetPath, Args: append(lock, "install", "-y", "-q", "--no-install-recommends", "dbus"), Env: env, Timeout: 30 * time.Minute,
+			Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...), Env: env, Timeout: 30 * time.Minute,
 		}); err != nil {
-			return false, fmt.Errorf("apt-get install dbus: %w", err)
+			return false, fmt.Errorf("apt-get install %v: %w", pkgs, err)
 		}
 		installed = true
 	}

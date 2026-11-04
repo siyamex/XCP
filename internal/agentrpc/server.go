@@ -31,6 +31,7 @@ type Server struct {
 	Backups    *agent.Backups
 	HostInfo   *agent.HostInfo
 	HostConfig *agent.HostConfig
+	Firewall   *agent.Firewall
 	Version    string
 	Hostname   string
 	Log        *slog.Logger

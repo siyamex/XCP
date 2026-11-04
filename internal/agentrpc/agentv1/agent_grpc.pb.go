@@ -77,6 +77,7 @@ const (
 	AgentService_TimezoneSet_FullMethodName            = "/xcp.agent.v1.AgentService/TimezoneSet"
 	AgentService_OSUpdatesSet_FullMethodName           = "/xcp.agent.v1.AgentService/OSUpdatesSet"
 	AgentService_ServerReboot_FullMethodName           = "/xcp.agent.v1.AgentService/ServerReboot"
+	AgentService_FirewallApply_FullMethodName          = "/xcp.agent.v1.AgentService/FirewallApply"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -217,6 +218,9 @@ type AgentServiceClient interface {
 	OSUpdatesSet(ctx context.Context, in *OSUpdatesSetRequest, opts ...grpc.CallOption) (*OSUpdatesSetResponse, error)
 	// ServerReboot restarts the server in a few seconds.
 	ServerReboot(ctx context.Context, in *ServerRebootRequest, opts ...grpc.CallOption) (*ServerRebootResponse, error)
+	// FirewallApply loads XCP's nftables table from the rules, or removes it
+	// when they are not enabled. INVALID_ARGUMENT: nftables refused the rules.
+	FirewallApply(ctx context.Context, in *FirewallApplyRequest, opts ...grpc.CallOption) (*FirewallApplyResponse, error)
 }
 
 type agentServiceClient struct {
@@ -717,6 +721,16 @@ func (c *agentServiceClient) ServerReboot(ctx context.Context, in *ServerRebootR
 	return out, nil
 }
 
+func (c *agentServiceClient) FirewallApply(ctx context.Context, in *FirewallApplyRequest, opts ...grpc.CallOption) (*FirewallApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FirewallApplyResponse)
+	err := c.cc.Invoke(ctx, AgentService_FirewallApply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -855,6 +869,9 @@ type AgentServiceServer interface {
 	OSUpdatesSet(context.Context, *OSUpdatesSetRequest) (*OSUpdatesSetResponse, error)
 	// ServerReboot restarts the server in a few seconds.
 	ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error)
+	// FirewallApply loads XCP's nftables table from the rules, or removes it
+	// when they are not enabled. INVALID_ARGUMENT: nftables refused the rules.
+	FirewallApply(context.Context, *FirewallApplyRequest) (*FirewallApplyResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -1011,6 +1028,9 @@ func (UnimplementedAgentServiceServer) OSUpdatesSet(context.Context, *OSUpdatesS
 }
 func (UnimplementedAgentServiceServer) ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ServerReboot not implemented")
+}
+func (UnimplementedAgentServiceServer) FirewallApply(context.Context, *FirewallApplyRequest) (*FirewallApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FirewallApply not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -1915,6 +1935,24 @@ func _AgentService_ServerReboot_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_FirewallApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FirewallApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).FirewallApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_FirewallApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).FirewallApply(ctx, req.(*FirewallApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2117,6 +2155,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ServerReboot",
 			Handler:    _AgentService_ServerReboot_Handler,
+		},
+		{
+			MethodName: "FirewallApply",
+			Handler:    _AgentService_FirewallApply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

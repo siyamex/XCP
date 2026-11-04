@@ -1833,6 +1833,68 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/firewall:
+    get:
+      tags: [server]
+      summary: The firewall, the bans in force and the latest ban history
+      operationId: getFirewall
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirewallOverview" }
+        "403": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [server]
+      summary: Change the firewall
+      description: Your own address is put on the allow list when the change would shut you out.
+      operationId: putFirewall
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirewallConfig" }
+      responses:
+        "200":
+          description: Saved; the rules are applied by a job.
+          content:
+            application/json:
+              schema: { type: object, required: [config, job_id, added_your_ip], properties: { config: { $ref: "#/components/schemas/FirewallConfig" }, job_id: { type: string }, added_your_ip: { type: boolean } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /server/firewall/bans:
+    post:
+      tags: [server]
+      summary: Ban an address
+      operationId: banIP
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [ip], properties: { ip: { type: string }, minutes: { type: integer, description: 0 bans for good }, reason: { type: string } } }
+      responses:
+        "201":
+          description: Banned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirewallBan" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /server/firewall/bans/{id}:
+    delete:
+      tags: [server]
+      summary: Lift a ban
+      operationId: unbanIP
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Lifted. }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /server/settings:
     get:
       tags: [server]
@@ -2999,6 +3061,69 @@ components:
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
         dkim: { type: boolean }
 
+    FirewallPort:
+      type: object
+      required: [port, proto, comment]
+      properties:
+        port: { type: string, description: A port or a range like 30000-30999 }
+        proto: { type: string, enum: [tcp, udp] }
+        comment: { type: string }
+    FirewallEntry:
+      type: object
+      required: [cidr, comment]
+      properties:
+        cidr: { type: string }
+        comment: { type: string }
+    FirewallConfig:
+      type: object
+      required: [enabled, policy, ssh_port, ports, allow, deny, restrict, rate_limit, brute]
+      properties:
+        enabled: { type: boolean }
+        policy: { type: string, enum: [open, closed] }
+        ssh_port: { type: integer }
+        ports: { type: array, items: { $ref: "#/components/schemas/FirewallPort" } }
+        allow: { type: array, items: { $ref: "#/components/schemas/FirewallEntry" } }
+        deny: { type: array, items: { $ref: "#/components/schemas/FirewallEntry" } }
+        restrict: { type: object, additionalProperties: { type: array, items: { type: string } }, description: Service (panel, ssh, ftp) to the networks that may reach it }
+        rate_limit:
+          type: object
+          required: [enabled, per_minute, ports]
+          properties:
+            enabled: { type: boolean }
+            per_minute: { type: integer }
+            ports: { type: array, items: { type: string } }
+        brute:
+          type: object
+          required: [enabled, threshold, window_minutes, ban_minutes, permanent_after, sources]
+          properties:
+            enabled: { type: boolean }
+            threshold: { type: integer }
+            window_minutes: { type: integer }
+            ban_minutes: { type: integer }
+            permanent_after: { type: integer }
+            sources: { type: array, items: { type: string, enum: [ssh, mail, ftp, panel] } }
+    FirewallBan:
+      type: object
+      required: [id, ip, reason, source, created_at, expires_at, released_at, released_by, active]
+      properties:
+        id: { type: string }
+        ip: { type: string }
+        reason: { type: string }
+        source: { type: string, enum: [ssh, mail, ftp, panel, manual] }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: [string, "null"], format: date-time }
+        released_at: { type: [string, "null"], format: date-time }
+        released_by: { type: string }
+        active: { type: boolean }
+    FirewallOverview:
+      type: object
+      required: [config, bans, history, your_ip, panel_port]
+      properties:
+        config: { $ref: "#/components/schemas/FirewallConfig" }
+        bans: { type: array, items: { $ref: "#/components/schemas/FirewallBan" } }
+        history: { type: array, items: { $ref: "#/components/schemas/FirewallBan" } }
+        your_ip: { type: string }
+        panel_port: { type: integer }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

@@ -15,8 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/config"
 	"github.com/siyamex/XCP/internal/execx"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/logd"
 	"github.com/siyamex/XCP/internal/store"
 )
@@ -58,7 +60,7 @@ func run() error {
 		return err
 	}
 	defer db.Close()
-	in := &logd.Ingester{DB: db, WebLogs: logd.WebLogs, FTPLog: logd.FTPLog, Unit: logd.MailUnit, Log: log}
+	in := &logd.Ingester{DB: db, WebLogs: logd.WebLogs, FTPLog: logd.FTPLog, Unit: logd.MailUnit, Log: log, Queue: jobs.NewQueue(db), Audit: audit.NewRecorder(db)}
 	if _, err := os.Stat(logd.JournalctlPath); err == nil {
 		if in.Run, err = execx.NewRunner(logd.JournalctlPath); err != nil {
 			return err

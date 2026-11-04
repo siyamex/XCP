@@ -597,12 +597,12 @@ func apacheConf(hostname string) string {
 
 func (in *installer) base(ctx context.Context) error {
 	if in.o.DryRun {
-		in.logf("    would install dbus if missing")
+		in.logf("    would install dbus and nftables if missing")
 		return nil
 	}
 	installed, err := in.o.Sys.InstallBase(ctx)
 	if installed {
-		in.changed("installed dbus")
+		in.changed("installed dbus and nftables")
 	}
 	return err
 }
@@ -656,7 +656,7 @@ func (in *installer) services(ctx context.Context) error {
 			return err
 		}
 	}
-	if err := sys.Systemctl(ctx, "enable", "--now", "xcp-agent.service", "xcp-api.service", "xcp-logd.service"); err != nil {
+	if err := sys.Systemctl(ctx, "enable", "--now", "xcp-agent.service", "xcp-api.service", "xcp-logd.service", "xcp-firewall.service"); err != nil {
 		return err
 	}
 	if in.restart {

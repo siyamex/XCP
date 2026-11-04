@@ -52,11 +52,11 @@
     "jobs": "Task queue",
     "sessions": "Sessions",
     "ssl": "SSL/TLS",
-    "backups": "Backups",
     "security": "Security",
     "featureLists": "Feature lists",
     "databaseServer": "Database server",
-    "mailServer": "Mail server"
+    "mailServer": "Mail server",
+    "firewall": "Firewall"
   },
   "role": {
     "admin": "Admin",
@@ -664,7 +664,13 @@
     "day": "Day of the month (1-28)",
     "hour": "Hour (0-23)",
     "keep": "Backups kept per account",
-    "sunday": "Sunday", "monday": "Monday", "tuesday": "Tuesday", "wednesday": "Wednesday", "thursday": "Thursday", "friday": "Friday", "saturday": "Saturday"
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
   },
   "stats": {
     "title": "Usage and logs",
@@ -922,5 +928,51 @@
     "partial": "The folder has too many files to count them all; sizes are partial.",
     "encoding": "Encoding",
     "close": "Close"
+  },
+  "firewall": {
+    "title": "Firewall",
+    "rules": "Rules",
+    "hint": "Your address is {{ip}}; the panel listens on port {{port}}. A change that would shut you out puts your address on the allow list.",
+    "enabled": "Firewall on",
+    "policy": "Policy",
+    "policyOpen": "Open: let in everything not refused",
+    "policyClosed": "Closed: let in only the open ports",
+    "sshPort": "SSH port",
+    "ports": "Open ports (one per line, e.g. 25/tcp # mail)",
+    "allow": "Always allowed (address or network per line)",
+    "deny": "Always refused (address or network per line)",
+    "restrict": "Restrict a service to some networks",
+    "restrictHint": "Leave empty to let everyone reach it. Addresses and networks, separated by commas.",
+    "service": {
+      "panel": "Panel",
+      "ssh": "SSH",
+      "ftp": "FTP",
+      "mail": "Mail",
+      "manual": "By hand"
+    },
+    "rate": "Connection rate limit",
+    "rateEnabled": "Limit new connections per address",
+    "perMinute": "New connections per minute",
+    "ratePorts": "Ports (e.g. 22, 25)",
+    "brute": "Brute-force protection",
+    "bruteEnabled": "Ban addresses that fail to sign in too often",
+    "threshold": "Failed logins",
+    "window": "Within (minutes)",
+    "banMinutes": "Ban for (minutes)",
+    "permanentAfter": "Ban for good after this many bans (0: never)",
+    "addedYourIp": "Your address {{ip}} was added to the allow list so you cannot lock yourself out.",
+    "saved": "Saved. The rules are being applied.",
+    "bans": "Banned addresses",
+    "banIp": "Address",
+    "banFor": "Minutes (0: for good)",
+    "reason": "Reason",
+    "ban": "Ban",
+    "unban": "Lift",
+    "source": "Source",
+    "since": "Since",
+    "until": "Until",
+    "never": "For good",
+    "lifted": "Lifted",
+    "none": "No bans yet."
   }
 }

@@ -7,12 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net/netip"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/execx"
+	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/store"
 )
 
@@ -33,12 +36,16 @@ type Ingester struct {
 	FTPLog  string
 	Unit    string // Postfix's unit in the journal
 	Log     *slog.Logger
+	Queue   *jobs.Queue     // for queueing the firewall; nil: no brute-force bans
+	Audit   *audit.Recorder // optional
+	det     Detector
 	mail    Mail
 }
 
 const (
 	sourceInit    = "init" // marks that xcp-logd ran before
 	sourceJournal = "journal:mail"
+	sourceAudit   = "audit:logins" // the panel's refused sign-ins: the last audit event read
 )
 
 // Tick reads what the logs gained since the last tick and stores the bytes
@@ -76,14 +83,27 @@ func (in *Ingester) Tick(ctx context.Context) error {
 	if in.FTPLog != "" {
 		read(in.FTPLog, func(l []byte) { sums.AddFTP(l, time.Local) })
 	}
+	var fails []Failure
 	if in.Run != nil {
-		cursor, err := in.journal(ctx, offs[sourceJournal].Cursor, ran, sums)
+		cursor, jf, err := in.journal(ctx, offs[sourceJournal].Cursor, ran, sums)
 		if err != nil {
 			in.Log.Warn("read the mail log", "err", err)
-		} else if cursor != offs[sourceJournal].Cursor {
-			next = append(next, store.LogOffset{Source: sourceJournal, Cursor: cursor})
+		} else {
+			fails = append(fails, jf...)
+			if cursor != offs[sourceJournal].Cursor {
+				next = append(next, store.LogOffset{Source: sourceJournal, Cursor: cursor})
+			}
 		}
 	}
+	if pf, off, err := in.panelFailures(ctx, offs[sourceAudit], ran); err != nil {
+		in.Log.Warn("read the panel's sign-in failures", "err", err)
+	} else {
+		fails = append(fails, pf...)
+		if off != offs[sourceAudit].Offset {
+			next = append(next, store.LogOffset{Source: sourceAudit, Offset: off})
+		}
+	}
+	in.bruteForce(ctx, fails)
 	if !ran {
 		next = append(next, store.LogOffset{Source: sourceInit})
 	}
@@ -123,15 +143,21 @@ type journalEntry struct {
 	Cursor   string          `json:"__CURSOR"`
 	Realtime string          `json:"__REALTIME_TIMESTAMP"` // microseconds
 	Message  json.RawMessage `json:"MESSAGE"`
+	Unit     string          `json:"_SYSTEMD_UNIT"`
 }
 
-// journal reads Postfix's entries after cursor and returns the new cursor.
-// Without a cursor it starts from now ("since:<unix>" until an entry comes).
-func (in *Ingester) journal(ctx context.Context, cursor string, ran bool, sums Sums) (string, error) {
+// journal reads the entries of Postfix and the services whose failed
+// logins are counted, after cursor, and returns the new cursor and the
+// failures. Postfix's feed the bandwidth sums. Without a cursor it starts
+// from now ("since:<unix>" until an entry comes).
+func (in *Ingester) journal(ctx context.Context, cursor string, ran bool, sums Sums) (string, []Failure, error) {
 	if cursor == "" || !ran {
-		return "since:" + strconv.FormatInt(time.Now().Unix(), 10), nil
+		return "since:" + strconv.FormatInt(time.Now().Unix(), 10), nil, nil
 	}
 	args := []string{"--no-pager", "--output=json", "--unit=" + in.Unit}
+	for _, u := range BruteUnits {
+		args = append(args, "--unit="+u)
+	}
 	if since, ok := strings.CutPrefix(cursor, "since:"); ok {
 		args = append(args, "--since=@"+since)
 	} else {
@@ -140,12 +166,13 @@ func (in *Ingester) journal(ctx context.Context, cursor string, ran bool, sums S
 	res, err := in.Run.Run(ctx, execx.Cmd{Path: JournalctlPath, Args: args, Timeout: 2 * time.Minute, MaxOutput: maxJournal})
 	var ee *execx.ExitError
 	if err != nil && (!errors.As(err, &ee) || len(res.Stdout) != 0) {
-		return cursor, err
+		return cursor, nil, err
 	}
 	out := res.Stdout
 	if res.Truncated {
 		out = out[:bytes.LastIndexByte(out, '\n')+1] // the rest comes next time
 	}
+	var fails []Failure
 	for line := range bytes.Lines(out) {
 		var e journalEntry
 		if json.Unmarshal(line, &e) != nil || e.Cursor == "" {
@@ -157,9 +184,36 @@ func (in *Ingester) journal(ctx context.Context, cursor string, ran bool, sums S
 			continue // not text
 		}
 		us, _ := strconv.ParseInt(e.Realtime, 10, 64)
-		in.mail.Line(sums, msg, time.UnixMicro(us))
+		at := time.UnixMicro(us)
+		if e.Unit == in.Unit || e.Unit == "" {
+			in.mail.Line(sums, msg, at)
+		}
+		if f, ok := ParseFailure(e.Unit, msg); ok {
+			f.At = at
+			fails = append(fails, f)
+		}
 	}
-	return cursor, nil
+	return cursor, fails, nil
+}
+
+// panelFailures returns the panel's refused sign-ins after the last audit
+// event read (the first time: none, only where to start).
+func (in *Ingester) panelFailures(ctx context.Context, off store.LogOffset, ran bool) ([]Failure, int64, error) {
+	if !ran || off.Source == "" {
+		id, err := store.MaxAuditID(ctx, in.DB.R)
+		return nil, id, err
+	}
+	list, last, err := store.LoginFailuresAfter(ctx, in.DB.R, off.Offset)
+	if err != nil {
+		return nil, off.Offset, err
+	}
+	var out []Failure
+	for _, f := range list {
+		if ip, err := netip.ParseAddr(f.IP); err == nil {
+			out = append(out, Failure{IP: ip.Unmap(), Source: store.BanPanel, At: f.At})
+		}
+	}
+	return out, last, nil
 }
 
 // Loop ticks once a minute until ctx ends.

@@ -1,0 +1,16 @@
+[Unit]
+Description=XCP firewall rules (ADR-0017)
+Documentation=https://github.com/siyamex/XCP
+ConditionPathExists=/etc/xcp/firewall.nft
+After=network-pre.target
+Before=network.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/xcp/firewall.nft
+ExecStop=-/usr/sbin/nft delete table inet xcp
+
+[Install]
+WantedBy=multi-user.target

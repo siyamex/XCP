@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/files"
+	"github.com/siyamex/XCP/internal/firewall"
 	"github.com/siyamex/XCP/internal/ftp"
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -117,6 +119,7 @@ func serve(args []string) error {
 	sts := stats.NewService(a.DB, a.Plans, agent)
 	bks := backups.NewService(a.DB, a.Audit, a.Plans, queue, agent)
 	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
+	fws := firewall.NewService(a.DB, a.Audit, queue, agent, listenPort(a.Cfg.API.Listen))
 	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
 	setts.SetHooks(accts.ApplyAll, a.Auth.SetSessionLimits)
 	setts.Start(ctx)
@@ -174,6 +177,7 @@ func serve(args []string) error {
 	ftps.RegisterJobs(worker)
 	crons.RegisterJobs(worker)
 	bks.RegisterJobs(worker)
+	fws.RegisterJobs(worker)
 	workerDone := make(chan struct{})
 	go func() {
 		defer close(workerDone)
@@ -195,6 +199,9 @@ func serve(args []string) error {
 	if err := bks.Schedule(sched); err != nil {
 		return err
 	}
+	if err := fws.Schedule(sched); err != nil {
+		return err
+	}
 	go sched.Run(ctx)
 	// Catch up at once: zones may wait for a DNS server that is there now.
 	if _, err := queue.Enqueue(ctx, zones.JobSync, struct{}{}, jobs.EnqueueOptions{
@@ -204,7 +211,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Firewall: fws, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})
@@ -287,4 +294,14 @@ func purgeSessions(ctx context.Context, a *app.App) {
 		case <-t.C:
 		}
 	}
+}
+
+// listenPort returns the port of a listen address like ":2443".
+func listenPort(addr string) int {
+	_, p, err := net.SplitHostPort(addr)
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(p)
+	return n
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/siyamex/XCP/internal/databases"
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/files"
+	"github.com/siyamex/XCP/internal/firewall"
 	"github.com/siyamex/XCP/internal/ftp"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
@@ -49,6 +50,7 @@ type Deps struct {
 	Backups    *backups.Service
 	ServerInfo *serverinfo.Service
 	Settings   *serversettings.Service
+	Firewall   *firewall.Service
 	Zones      *zones.Service
 	SSL        *ssl.Service
 	Jobs       *jobs.Queue
@@ -192,6 +194,10 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
+		{method: "GET", path: "/api/v1/server/firewall", access: authed, roles: adminOnly, h: s.getFirewall},
+		{method: "PUT", path: "/api/v1/server/firewall", access: authed, roles: adminOnly, h: s.putFirewall},
+		{method: "POST", path: "/api/v1/server/firewall/bans", access: authed, roles: adminOnly, h: s.banIP},
+		{method: "DELETE", path: "/api/v1/server/firewall/bans/{id}", access: authed, roles: adminOnly, h: s.unbanIP},
 		{method: "GET", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.getSettings},
 		{method: "PUT", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.putSettings},
 		{method: "GET", path: "/api/v1/server/setup", access: authed, roles: adminOnly, h: s.getSetup},

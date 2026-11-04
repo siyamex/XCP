@@ -38,6 +38,7 @@ type Fake struct {
 	logs      fakeLogs
 	backups   fakeBackups
 	host      fakeHost
+	fw        fakeFirewall
 	hostName  string
 	hostCert  string
 }
