@@ -40,7 +40,8 @@ type Account struct {
 	StatusDetail  string    `json:"status_detail"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	JobID         string    `json:"job_id,omitempty"` // the job started by the last change, if any
+	OwnerID       string    `json:"owner_id,omitempty"` // the reseller who owns it; empty: the admins
+	JobID         string    `json:"job_id,omitempty"`   // the job started by the last change, if any
 }
 
 // CreateInput creates an account.
@@ -108,10 +109,23 @@ func (s *Service) Attach(name string, e Extra) { s.extras = append(s.extras, ext
 // scope returns the owner filter for p: admins manage admin-owned accounts
 // (resellers get their own in P2).
 func scope(p *auth.Principal) (string, error) {
-	if p == nil || p.Login.Role != store.RoleAdmin {
-		return "", apperr.ErrForbidden
+	switch {
+	case p != nil && p.Login.Role == store.RoleAdmin:
+		return "", nil
+	case p != nil && p.Login.Role == store.RoleReseller:
+		return p.Login.ID, nil
 	}
-	return "", nil
+	return "", apperr.ErrForbidden
+}
+
+// visible is the owner filter for what p may look at and manage: admins see
+// every account, resellers their own customers' (ADR-0023).
+func visible(p *auth.Principal) (string, error) {
+	own, err := scope(p)
+	if err == nil && p.Login.Role == store.RoleAdmin {
+		return "*", nil
+	}
+	return own, err
 }
 
 func event(c auth.Client, p *auth.Principal, action, accountID string, details map[string]any) audit.Event {
@@ -128,7 +142,7 @@ func event(c auth.Client, p *auth.Principal, action, accountID string, details m
 func (s *Service) view(ctx context.Context, a *store.Account) Account {
 	v := Account{
 		ID: a.ID, Username: a.Username, UID: a.UID, PrimaryDomain: a.PrimaryDomain, Email: a.Email,
-		PHPVersion: a.PHPVersion, PackageID: a.PackageID, Status: a.Status, StatusDetail: a.StatusDetail, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
+		OwnerID: a.OwnerID, PHPVersion: a.PHPVersion, PackageID: a.PackageID, Status: a.Status, StatusDetail: a.StatusDetail, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 	}
 	if pk, err := s.db.PackageByID(ctx, a.PackageID); err == nil {
 		v.PackageName = pk.Name
@@ -138,7 +152,7 @@ func (s *Service) view(ctx context.Context, a *store.Account) Account {
 
 // account loads an account the caller may manage; others look like "not found".
 func (s *Service) account(ctx context.Context, p *auth.Principal, id string) (*store.Account, error) {
-	own, err := scope(p)
+	own, err := visible(p)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +160,7 @@ func (s *Service) account(ctx context.Context, p *auth.Principal, id string) (*s
 	if err != nil {
 		return nil, err
 	}
-	if a.OwnerID != own {
+	if own != "*" && a.OwnerID != own {
 		return nil, store.ErrNotFound
 	}
 	return a, nil
@@ -154,7 +168,7 @@ func (s *Service) account(ctx context.Context, p *auth.Principal, id string) (*s
 
 // List returns the caller's accounts, newest first.
 func (s *Service) List(ctx context.Context, p *auth.Principal, search, status string) ([]Account, error) {
-	own, err := scope(p)
+	own, err := visible(p)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +255,9 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 		return Account{}, err
 	}
 	if err := s.checkPHP(ctx, in.PHPVersion, pk.Limits); err != nil {
+		return Account{}, err
+	}
+	if err := s.checkQuota(ctx, own, in.PackageID, ""); err != nil {
 		return Account{}, err
 	}
 	hash, err := s.auth.HashPassword(ctx, in.Password) // slow: done before taking the write lock
@@ -369,6 +386,11 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 	}
 	if err := s.checkPHP(ctx, in.PHPVersion, pk.Limits); err != nil {
 		return Account{}, err
+	}
+	if cur, err := s.account(ctx, p, id); err == nil && cur.PackageID != in.PackageID {
+		if err := s.checkQuota(ctx, cur.OwnerID, in.PackageID, cur.ID); err != nil {
+			return Account{}, err
+		}
 	}
 	return s.change(ctx, p, id, editable, JobApply, func(tx *sql.Tx, a *store.Account) error {
 		before := a.PackageID

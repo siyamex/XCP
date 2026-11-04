@@ -27,6 +27,7 @@ import (
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
 	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/resellers"
 	"github.com/siyamex/XCP/internal/serverinfo"
 	"github.com/siyamex/XCP/internal/serversettings"
 	"github.com/siyamex/XCP/internal/ssl"
@@ -50,6 +51,7 @@ type Deps struct {
 	Backups    *backups.Service
 	ServerInfo *serverinfo.Service
 	Settings   *serversettings.Service
+	Resellers  *resellers.Service
 	Firewall   *firewall.Service
 	Zones      *zones.Service
 	SSL        *ssl.Service
@@ -86,6 +88,12 @@ type route struct {
 
 // adminOnly limits a route to admins (resellers join for their own packages in P2).
 var adminOnly = []string{store.RoleAdmin}
+
+// adminOrReseller is for managing customers' accounts and the packages for them.
+var adminOrReseller = []string{store.RoleAdmin, store.RoleReseller}
+
+// resellerOnly is for a reseller's own pages.
+var resellerOnly = []string{store.RoleReseller}
 
 // adminOrUser is for an account's own features: the service lets a user
 // reach only their own account.
@@ -125,25 +133,25 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/me/2fa/disable", access: authed, h: s.disable2FA},
 
 		{method: "GET", path: "/api/v1/features", access: authed, roles: adminOnly, h: s.listFeatures},
-		{method: "GET", path: "/api/v1/feature-lists", access: authed, roles: adminOnly, h: s.listFeatureLists},
+		{method: "GET", path: "/api/v1/feature-lists", access: authed, roles: adminOrReseller, h: s.listFeatureLists},
 		{method: "POST", path: "/api/v1/feature-lists", access: authed, roles: adminOnly, h: s.createFeatureList},
-		{method: "GET", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.getFeatureList},
+		{method: "GET", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOrReseller, h: s.getFeatureList},
 		{method: "PUT", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.updateFeatureList},
 		{method: "DELETE", path: "/api/v1/feature-lists/{id}", access: authed, roles: adminOnly, h: s.deleteFeatureList},
-		{method: "GET", path: "/api/v1/packages", access: authed, roles: adminOnly, h: s.listPackages},
-		{method: "POST", path: "/api/v1/packages", access: authed, roles: adminOnly, h: s.createPackage},
-		{method: "GET", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.getPackage},
-		{method: "PUT", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.updatePackage},
-		{method: "DELETE", path: "/api/v1/packages/{id}", access: authed, roles: adminOnly, h: s.deletePackage},
+		{method: "GET", path: "/api/v1/packages", access: authed, roles: adminOrReseller, h: s.listPackages},
+		{method: "POST", path: "/api/v1/packages", access: authed, roles: adminOrReseller, h: s.createPackage},
+		{method: "GET", path: "/api/v1/packages/{id}", access: authed, roles: adminOrReseller, h: s.getPackage},
+		{method: "PUT", path: "/api/v1/packages/{id}", access: authed, roles: adminOrReseller, h: s.updatePackage},
+		{method: "DELETE", path: "/api/v1/packages/{id}", access: authed, roles: adminOrReseller, h: s.deletePackage},
 
-		{method: "GET", path: "/api/v1/accounts", access: authed, roles: adminOnly, h: s.listAccounts},
-		{method: "POST", path: "/api/v1/accounts", access: authed, roles: adminOnly, h: s.createAccount},
-		{method: "GET", path: "/api/v1/accounts/{id}", access: authed, roles: adminOnly, h: s.getAccount},
-		{method: "PUT", path: "/api/v1/accounts/{id}", access: authed, roles: adminOnly, h: s.updateAccount},
-		{method: "POST", path: "/api/v1/accounts/{id}/suspend", access: authed, roles: adminOnly, h: s.suspendAccount},
-		{method: "POST", path: "/api/v1/accounts/{id}/unsuspend", access: authed, roles: adminOnly, h: s.unsuspendAccount},
-		{method: "POST", path: "/api/v1/accounts/{id}/password", access: authed, roles: adminOnly, h: s.setAccountPassword},
-		{method: "POST", path: "/api/v1/accounts/{id}/terminate", access: authed, roles: adminOnly, h: s.terminateAccount},
+		{method: "GET", path: "/api/v1/accounts", access: authed, roles: adminOrReseller, h: s.listAccounts},
+		{method: "POST", path: "/api/v1/accounts", access: authed, roles: adminOrReseller, h: s.createAccount},
+		{method: "GET", path: "/api/v1/accounts/{id}", access: authed, roles: adminOrReseller, h: s.getAccount},
+		{method: "PUT", path: "/api/v1/accounts/{id}", access: authed, roles: adminOrReseller, h: s.updateAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/suspend", access: authed, roles: adminOrReseller, h: s.suspendAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/unsuspend", access: authed, roles: adminOrReseller, h: s.unsuspendAccount},
+		{method: "POST", path: "/api/v1/accounts/{id}/password", access: authed, roles: adminOrReseller, h: s.setAccountPassword},
+		{method: "POST", path: "/api/v1/accounts/{id}/terminate", access: authed, roles: adminOrReseller, h: s.terminateAccount},
 		{method: "GET", path: "/api/v1/accounts/{id}/domains", access: authed, roles: adminOrUser, h: s.listDomains},
 		{method: "POST", path: "/api/v1/accounts/{id}/domains", access: authed, roles: adminOrUser, h: s.addDomain},
 		{method: "GET", path: "/api/v1/accounts/{id}/domain-verification", access: authed, roles: adminOrUser, h: s.domainVerification},
@@ -205,6 +213,12 @@ func New(d Deps) *Server {
 		{method: "DELETE", path: "/api/v1/server/firewall/bans/{id}", access: authed, roles: adminOnly, h: s.unbanIP},
 		{method: "GET", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueue},
 		{method: "POST", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueueAction},
+		{method: "GET", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.listResellers},
+		{method: "POST", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.createReseller},
+		{method: "PUT", path: "/api/v1/resellers/{id}/limits", access: authed, roles: adminOnly, h: s.setResellerLimits},
+		{method: "POST", path: "/api/v1/resellers/{id}/suspend", access: authed, roles: adminOnly, h: s.suspendReseller},
+		{method: "POST", path: "/api/v1/resellers/{id}/unsuspend", access: authed, roles: adminOnly, h: s.unsuspendReseller},
+		{method: "GET", path: "/api/v1/reseller/overview", access: authed, roles: resellerOnly, h: s.resellerOverview},
 		{method: "GET", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.getSettings},
 		{method: "PUT", path: "/api/v1/server/settings", access: authed, roles: adminOnly, h: s.putSettings},
 		{method: "GET", path: "/api/v1/server/setup", access: authed, roles: adminOnly, h: s.getSetup},
@@ -252,7 +266,7 @@ func New(d Deps) *Server {
 		{method: "GET", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.readFileText},
 		{method: "PUT", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.writeFileText},
 		{method: "GET", path: "/api/v1/jobs/{id}", access: authed, roles: adminOrUser, h: s.getJob},
-		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOnly, h: s.listPHPVersions},
+		{method: "GET", path: "/api/v1/server/php-versions", access: authed, roles: adminOrReseller, h: s.listPHPVersions},
 	}
 	for _, rt := range s.routes {
 		s.mux.Handle(rt.method+" "+rt.path, s.wrap(rt))

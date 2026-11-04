@@ -34,6 +34,7 @@ import (
 	"github.com/siyamex/XCP/internal/httpapi"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
+	"github.com/siyamex/XCP/internal/resellers"
 	"github.com/siyamex/XCP/internal/serverinfo"
 	"github.com/siyamex/XCP/internal/serversettings"
 	"github.com/siyamex/XCP/internal/ssl"
@@ -119,6 +120,7 @@ func serve(args []string) error {
 	sts := stats.NewService(a.DB, a.Plans, agent)
 	bks := backups.NewService(a.DB, a.Audit, a.Plans, queue, agent)
 	svi := serverinfo.NewService(a.DB, a.Audit, queue, agent)
+	rss := resellers.NewService(a.DB, a.Audit, a.Auth, a.Plans)
 	fws := firewall.NewService(a.DB, a.Audit, queue, agent, listenPort(a.Cfg.API.Listen))
 	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
 	setts.SetHooks(accts.ApplyAll, a.Auth.SetSessionLimits, a.Auth.SetMFAPolicy)
@@ -211,7 +213,7 @@ func serve(args []string) error {
 	}
 
 	handler := httpapi.New(httpapi.Deps{
-		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Firewall: fws, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
+		Auth: a.Auth, Plans: a.Plans, Accounts: accts, Domains: doms, Databases: dbs, Mail: mails, Files: fls, FTP: ftps, Cron: crons, Stats: sts, Backups: bks, ServerInfo: svi, Settings: setts, Resellers: rss, Firewall: fws, Zones: zs, SSL: certs, Jobs: queue, Agent: agent, Log: a.Log,
 		SecureCookies: !a.Cfg.API.InsecureDevHTTP,
 		UI:            web.Dist(),
 	})

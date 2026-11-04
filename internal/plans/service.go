@@ -64,10 +64,29 @@ func NewService(db *store.DB, rec *audit.Recorder) *Service { return &Service{db
 // owner returns the package owner scope for p. Only admins manage packages
 // until resellers arrive (P2), and admin packages are global ("").
 func owner(p *auth.Principal) (string, error) {
-	if p == nil || p.Login.Role != store.RoleAdmin {
+	switch {
+	case p != nil && p.Login.Role == store.RoleAdmin:
+		return "", nil
+	case p != nil && p.Login.Role == store.RoleReseller:
+		return p.Login.ID, nil // resellers have their own packages (ADR-0023)
+	}
+	return "", apperr.ErrForbidden
+}
+
+// flOwner is the owner of the feature lists p sees: the admin's. Resellers
+// read them to build packages and cannot change them (RSL-PKG-02 is P3).
+func flOwner(p *auth.Principal) (string, error) {
+	if p == nil || (p.Login.Role != store.RoleAdmin && p.Login.Role != store.RoleReseller) {
 		return "", apperr.ErrForbidden
 	}
 	return "", nil
+}
+
+func adminRole(p *auth.Principal) error {
+	if p == nil || p.Login.Role != store.RoleAdmin {
+		return apperr.ErrForbidden
+	}
+	return nil
 }
 
 var nameRe = regexp.MustCompile(`^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}$`)
@@ -126,7 +145,7 @@ func toPackage(p *store.Package) (Package, error) {
 
 // ListFeatureLists returns the caller's feature lists.
 func (s *Service) ListFeatureLists(ctx context.Context, p *auth.Principal) ([]FeatureList, error) {
-	own, err := owner(p)
+	own, err := flOwner(p)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +159,7 @@ func (s *Service) ListFeatureLists(ctx context.Context, p *auth.Principal) ([]Fe
 
 // featureList loads a list the caller may see; others look like "not found".
 func (s *Service) featureList(ctx context.Context, p *auth.Principal, id string) (*store.FeatureList, error) {
-	own, err := owner(p)
+	own, err := flOwner(p)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +185,9 @@ func (s *Service) GetFeatureList(ctx context.Context, p *auth.Principal, id stri
 // SaveFeatureList creates a list (id == "") or replaces one.
 func (s *Service) SaveFeatureList(ctx context.Context, c auth.Client, p *auth.Principal, id string, in FeatureListInput) (FeatureList, error) {
 	own, err := owner(p)
+	if err == nil {
+		err = adminRole(p)
+	}
 	if err != nil {
 		return FeatureList{}, err
 	}
@@ -205,6 +227,9 @@ func (s *Service) SaveFeatureList(ctx context.Context, c auth.Client, p *auth.Pr
 
 // DeleteFeatureList removes a list that no package uses.
 func (s *Service) DeleteFeatureList(ctx context.Context, c auth.Client, p *auth.Principal, id string) error {
+	if err := adminRole(p); err != nil {
+		return err
+	}
 	f, err := s.featureList(ctx, p, id)
 	if err != nil {
 		return err

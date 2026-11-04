@@ -1050,5 +1050,31 @@
     "never": "For good",
     "lifted": "Lifted",
     "none": "No bans yet."
+  },
+  "resellers": {
+    "title": "Resellers",
+    "new": "New reseller",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "create": "Create reseller",
+    "none": "No resellers yet.",
+    "maxAccounts": "Most accounts",
+    "diskCap": "Disk to give out in all (MB)",
+    "bandwidthCap": "Bandwidth to give out in all (MB a month)",
+    "oversellDisk": "May promise more disk than that (overselling)",
+    "oversellBandwidth": "May promise more bandwidth than that",
+    "accounts": "Accounts",
+    "disk": "Disk promised in packages",
+    "bandwidth": "Bandwidth promised in packages",
+    "counts": "{{active}} active, {{suspended}} suspended",
+    "someUnlimited": "a package has no limit",
+    "oversold": "Overselling is allowed: more is promised than the cap.",
+    "suspend": "Suspend login",
+    "unsuspend": "Reactivate login",
+    "suspended": "(suspended)",
+    "noEmail": "No email address",
+    "yourUsage": "Your accounts and limits",
+    "yourHint": "What your packages promise to your customers against the caps set for you. A package without a disk or bandwidth limit counts as all of it."
   }
 }

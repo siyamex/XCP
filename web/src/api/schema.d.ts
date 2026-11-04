@@ -1382,6 +1382,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/resellers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resellers with their limits and what they have given out */
+        get: operations["listResellers"];
+        put?: never;
+        /** Create a reseller */
+        post: operations["createReseller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resellers/{id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a reseller's limits
+         * @description Lowering a limit below what is already given out only stops new accounts.
+         */
+        put: operations["setResellerLimits"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resellers/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a reseller's own login
+         * @description Its customers' accounts are not touched.
+         */
+        post: operations["suspendReseller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resellers/{id}/unsuspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a reseller's login */
+        post: operations["unsuspendReseller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reseller/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in reseller's limits and what it has given out */
+        get: operations["resellerOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/settings": {
         parameters: {
             query?: never;
@@ -2253,6 +2345,8 @@ export interface components {
             limits: components["schemas"]["Limits"];
         };
         Account: {
+            /** @description The reseller who owns the account; empty: the admins */
+            owner_id?: string;
             id: string;
             username: string;
             uid: number;
@@ -2483,6 +2577,37 @@ export interface components {
                 address: string;
                 reason: string;
             }[];
+        };
+        ResellerLimits: {
+            /** @description null: unlimited */
+            max_accounts: number | null;
+            /** @description Disk the packages of its accounts may give out in all; null: unlimited */
+            disk_mb: number | null;
+            /** @description Monthly traffic the packages may give out in all; null: unlimited */
+            bandwidth_mb: number | null;
+            /** @description Giving out more disk than the cap is allowed */
+            oversell_disk: boolean;
+            oversell_bandwidth: boolean;
+        };
+        ResellerUsage: {
+            accounts: number;
+            active: number;
+            suspended: number;
+            disk_mb: number;
+            /** @description Some package has no disk limit */
+            disk_unlimited: boolean;
+            bandwidth_mb: number;
+            bandwidth_unlimited: boolean;
+        };
+        Reseller: {
+            id: string;
+            username: string;
+            email: string;
+            status: string;
+            /** Format: date-time */
+            created_at: string;
+            limits: components["schemas"]["ResellerLimits"];
+            usage: components["schemas"]["ResellerUsage"];
         };
         SettingItem: {
             key: string;
@@ -5736,6 +5861,155 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    listResellers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Reseller"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    createReseller: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    username: string;
+                    email?: string;
+                    password: string;
+                    limits?: components["schemas"]["ResellerLimits"];
+                };
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reseller"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setResellerLimits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResellerLimits"];
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reseller"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    suspendReseller: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reseller"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    unsuspendReseller: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reseller"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    resellerOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reseller"];
+                };
+            };
             403: components["responses"]["Problem"];
         };
     };

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useMe } from "../auth";
 import { Alert, Card } from "../components/ui";
+import { ResellerDashboard } from "./ResellerPages";
 import { ServerDashboard } from "./ServerPages";
 
 export function DashboardPage() {
@@ -17,7 +18,7 @@ export function DashboardPage() {
           <Link to="/account/security" className="font-medium underline">{t("dashboard.enable2faLink")}</Link>
         </Alert>
       )}
-      {me.role === "admin" ? <ServerDashboard /> : (
+      {me.role === "admin" ? <ServerDashboard /> : me.role === "reseller" ? <ResellerDashboard /> : (
         <Card>
           <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.intro")}</p>
         </Card>

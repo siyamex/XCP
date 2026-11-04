@@ -59,7 +59,7 @@ func TestExportAccountHasEveryTableAndOnlyTheAccountsRows(t *testing.T) {
 	for _, t := range AccountTables {
 		listed[t.Table] = true
 	}
-	notState := map[string]bool{"sessions": true, "usage_bandwidth": true, "jobs": true, "job_logs": true, "audit_events": true, "backups": true, "api_tokens": true}
+	notState := map[string]bool{"sessions": true, "usage_bandwidth": true, "jobs": true, "job_logs": true, "audit_events": true, "backups": true, "api_tokens": true, "reseller_limits": true}
 	for rows.Next() {
 		var name, ddl string
 		if err := rows.Scan(&name, &ddl); err != nil {

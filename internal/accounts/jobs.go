@@ -95,7 +95,9 @@ func (s *Service) applyJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (a
 	if a.Status == store.AccountTerminating {
 		return map[string]string{"skipped": "account is being terminated"}, nil
 	}
-	pk, err := s.plans.GetPackage(ctx, systemPrincipal, a.PackageID)
+	// The package of a reseller's customer is not the admins' to "get": read its limits directly.
+	limits, _, err := s.plans.Entitlements(ctx, a.PackageID)
+	pk := struct{ Limits plans.Limits }{limits}
 	if err != nil {
 		return nil, s.fail(ctx, j, a, fmt.Errorf("package: %w", err))
 	}
@@ -211,7 +213,3 @@ func (s *Service) terminateJob(ctx context.Context, j *jobs.Job, r jobs.Reporter
 	})
 	return map[string]any{"username": a.Username, "linux_user_removed": res.GetDeleted()}, err
 }
-
-// systemPrincipal lets jobs read admin-owned packages. Jobs run on behalf of
-// whoever queued them, after that request was authorised.
-var systemPrincipal = &auth.Principal{Login: &store.Login{ID: "system", Role: store.RoleAdmin}, Session: &store.Session{}}
