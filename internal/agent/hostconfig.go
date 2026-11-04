@@ -20,6 +20,9 @@ type HostConfig struct {
 	HostsFile  string // /etc/hosts
 	AptConfDir string // /etc/apt/apt.conf.d
 	ZoneInfo   string // /usr/share/zoneinfo
+
+	// SSH settings; empty: the system's paths (tests set them).
+	SSHDConfDir, SSHKeysGlob, SSHRootKeys string
 }
 
 // Paths of the host tools and files.

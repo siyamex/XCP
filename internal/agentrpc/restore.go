@@ -63,6 +63,15 @@ func (s *Server) OSUpdatesSet(ctx context.Context, req *agentv1.OSUpdatesSetRequ
 	return &agentv1.OSUpdatesSetResponse{Changed: changed}, nil
 }
 
+// SSHSettingsSet implements agentv1.AgentServiceServer.
+func (s *Server) SSHSettingsSet(ctx context.Context, req *agentv1.SSHSettingsSetRequest) (*agentv1.SSHSettingsSetResponse, error) {
+	changed, err := s.HostConfig.SetSSHD(ctx, agent.SSHSettings{PasswordAuth: req.GetPasswordAuth(), RootLogin: req.GetRootLogin()})
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.SSHSettingsSetResponse{Changed: changed}, nil
+}
+
 // ServerReboot implements agentv1.AgentServiceServer.
 func (s *Server) ServerReboot(ctx context.Context, req *agentv1.ServerRebootRequest) (*agentv1.ServerRebootResponse, error) {
 	if err := s.HostConfig.Reboot(ctx, req.GetForce()); err != nil {
@@ -140,6 +149,12 @@ func (f *Fake) OSUpdatesSet(_ context.Context, req *agentv1.OSUpdatesSetRequest,
 	changed := f.host.osAuto != req.GetEnabled()
 	f.host.osAuto = req.GetEnabled()
 	return &agentv1.OSUpdatesSetResponse{Changed: changed}, nil
+}
+
+// SSHSettingsSet implements Client.
+func (f *Fake) SSHSettingsSet(_ context.Context, req *agentv1.SSHSettingsSetRequest, _ ...grpc.CallOption) (*agentv1.SSHSettingsSetResponse, error) {
+	f.recordf("SSHSettingsSet password=%v root=%s", req.GetPasswordAuth(), req.GetRootLogin())
+	return &agentv1.SSHSettingsSetResponse{Changed: true}, nil
 }
 
 // ServerReboot implements Client.

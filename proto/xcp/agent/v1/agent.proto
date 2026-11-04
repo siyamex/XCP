@@ -213,6 +213,8 @@ service AgentService {
 
   // OSUpdatesSet turns automatic OS security updates on or off.
   rpc OSUpdatesSet(OSUpdatesSetRequest) returns (OSUpdatesSetResponse);
+  // SSHSettingsSet writes the SSH server's login rules, checks them with sshd -t and reloads it.
+  rpc SSHSettingsSet(SSHSettingsSetRequest) returns (SSHSettingsSetResponse);
 
   // ServerReboot restarts the server in a few seconds.
   rpc ServerReboot(ServerRebootRequest) returns (ServerRebootResponse);
@@ -859,6 +861,15 @@ message OSUpdatesSetRequest {
 }
 
 message OSUpdatesSetResponse {
+  bool changed = 1;
+}
+
+message SSHSettingsSetRequest {
+  bool password_auth = 1;
+  string root_login = 2;  // yes, prohibit-password or no
+}
+
+message SSHSettingsSetResponse {
   bool changed = 1;
 }
 

@@ -590,7 +590,10 @@
       "auth_session_max_hours": "Panel session lifetime (hours)",
       "updates_channel": "Update channel",
       "updates_window_hour": "Update window starts at (hour)",
-      "updates_os_auto": "Install OS security updates automatically"
+      "updates_os_auto": "Install OS security updates automatically",
+      "auth_require_2fa": "Require two-factor sign-in",
+      "ssh_password_auth": "SSH password login",
+      "ssh_root_login": "SSH login as root"
     },
     "hints": {
       "php_default_version": "Used by accounts that did not choose a PHP version. Empty: the newest installed.",
@@ -599,12 +602,16 @@
       "auth_session_max_hours": "Panel sessions end after this long, however active.",
       "updates_channel": "stable: finished releases only; beta: pre-releases too.",
       "updates_window_hour": "When updates may be installed, in server time. Installing from the panel is not available yet; this is kept for it.",
-      "updates_os_auto": "Ubuntu's unattended security updates."
+      "updates_os_auto": "Ubuntu's unattended security updates.",
+      "auth_require_2fa": "none; admins; resellers (admins and resellers); all. Logins that must and have not set it up can only reach the page to do so.",
+      "ssh_password_auth": "Off allows keys only. Refused while no login has an authorized SSH key, because that would lock everyone out.",
+      "ssh_root_login": "yes; prohibit-password (keys only); no. Checked with sshd -t before it is applied."
     },
     "groups": {
       "php": "PHP",
       "panel": "Panel",
-      "updates": "Updates"
+      "updates": "Updates",
+      "ssh": "SSH"
     },
     "updates": "Updates",
     "updatesHint": "Looks for a newer XCP release on GitHub, in the channel set above. Installing updates from the panel is not available yet.",

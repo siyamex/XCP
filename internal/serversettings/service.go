@@ -93,6 +93,8 @@ var defs = []def{
 	{Key: "auth.session_idle_minutes", Group: "panel", Type: "int", Default: 30, Min: 5, Max: 1440},
 	{Key: "auth.session_max_hours", Group: "panel", Type: "int", Default: 12, Min: 1, Max: 720},
 	{Key: "auth.require_2fa", Group: "panel", Type: "enum", Default: "none", Options: []string{"none", "admins", "resellers", "all"}},
+	{Key: "ssh.password_auth", Group: "ssh", Type: "bool", Default: true},
+	{Key: "ssh.root_login", Group: "ssh", Type: "enum", Default: "prohibit-password", Options: []string{"yes", "prohibit-password", "no"}},
 	{Key: "updates.channel", Group: "updates", Type: "enum", Default: "stable", Options: []string{"stable", "beta"}},
 	{Key: "updates.window_hour", Group: "updates", Type: "int", Default: 3, Min: 0, Max: 23},
 	{Key: "updates.os_auto", Group: "updates", Type: "bool", Default: true},
@@ -227,6 +229,9 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 			return nil, err
 		}
 		clean[k] = cv
+	}
+	if err := s.applySSH(ctx, clean); err != nil {
+		return nil, err
 	}
 	changed := map[string]any{}
 	for k, v := range clean {
@@ -525,4 +530,28 @@ func (s *Service) CheckUpdates(ctx context.Context, p *auth.Principal) (UpdateIn
 func (u UpdateInfo) MarshalJSON() ([]byte, error) {
 	type plain UpdateInfo
 	return json.Marshal(plain(u))
+}
+
+// applySSH gives the SSH server its login rules before they are saved: the
+// agent refuses what would lock everyone out or what sshd -t rejects.
+func (s *Service) applySSH(ctx context.Context, clean map[string]any) error {
+	_, a := clean["ssh.password_auth"]
+	_, b := clean["ssh.root_login"]
+	if !a && !b {
+		return nil
+	}
+	pwDef, _ := find("ssh.password_auth")
+	rootDef, _ := find("ssh.root_login")
+	pw, _ := s.value(ctx, pwDef).(bool)
+	root, _ := s.value(ctx, rootDef).(string)
+	if v, ok := clean["ssh.password_auth"].(bool); ok {
+		pw = v
+	}
+	if v, ok := clean["ssh.root_login"].(string); ok {
+		root = v
+	}
+	if _, err := s.agent.SSHSettingsSet(ctx, &agentv1.SSHSettingsSetRequest{PasswordAuth: pw, RootLogin: root}); err != nil {
+		return badField("values.ssh", "refused: "+err.Error())
+	}
+	return nil
 }

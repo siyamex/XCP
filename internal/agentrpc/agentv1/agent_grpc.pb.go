@@ -76,6 +76,7 @@ const (
 	AgentService_HostnameSet_FullMethodName            = "/xcp.agent.v1.AgentService/HostnameSet"
 	AgentService_TimezoneSet_FullMethodName            = "/xcp.agent.v1.AgentService/TimezoneSet"
 	AgentService_OSUpdatesSet_FullMethodName           = "/xcp.agent.v1.AgentService/OSUpdatesSet"
+	AgentService_SSHSettingsSet_FullMethodName         = "/xcp.agent.v1.AgentService/SSHSettingsSet"
 	AgentService_ServerReboot_FullMethodName           = "/xcp.agent.v1.AgentService/ServerReboot"
 	AgentService_FirewallApply_FullMethodName          = "/xcp.agent.v1.AgentService/FirewallApply"
 )
@@ -216,6 +217,8 @@ type AgentServiceClient interface {
 	TimezoneSet(ctx context.Context, in *TimezoneSetRequest, opts ...grpc.CallOption) (*TimezoneSetResponse, error)
 	// OSUpdatesSet turns automatic OS security updates on or off.
 	OSUpdatesSet(ctx context.Context, in *OSUpdatesSetRequest, opts ...grpc.CallOption) (*OSUpdatesSetResponse, error)
+	// SSHSettingsSet writes the SSH server's login rules, checks them with sshd -t and reloads it.
+	SSHSettingsSet(ctx context.Context, in *SSHSettingsSetRequest, opts ...grpc.CallOption) (*SSHSettingsSetResponse, error)
 	// ServerReboot restarts the server in a few seconds.
 	ServerReboot(ctx context.Context, in *ServerRebootRequest, opts ...grpc.CallOption) (*ServerRebootResponse, error)
 	// FirewallApply loads XCP's nftables table from the rules, or removes it
@@ -711,6 +714,16 @@ func (c *agentServiceClient) OSUpdatesSet(ctx context.Context, in *OSUpdatesSetR
 	return out, nil
 }
 
+func (c *agentServiceClient) SSHSettingsSet(ctx context.Context, in *SSHSettingsSetRequest, opts ...grpc.CallOption) (*SSHSettingsSetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SSHSettingsSetResponse)
+	err := c.cc.Invoke(ctx, AgentService_SSHSettingsSet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentServiceClient) ServerReboot(ctx context.Context, in *ServerRebootRequest, opts ...grpc.CallOption) (*ServerRebootResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ServerRebootResponse)
@@ -867,6 +880,8 @@ type AgentServiceServer interface {
 	TimezoneSet(context.Context, *TimezoneSetRequest) (*TimezoneSetResponse, error)
 	// OSUpdatesSet turns automatic OS security updates on or off.
 	OSUpdatesSet(context.Context, *OSUpdatesSetRequest) (*OSUpdatesSetResponse, error)
+	// SSHSettingsSet writes the SSH server's login rules, checks them with sshd -t and reloads it.
+	SSHSettingsSet(context.Context, *SSHSettingsSetRequest) (*SSHSettingsSetResponse, error)
 	// ServerReboot restarts the server in a few seconds.
 	ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error)
 	// FirewallApply loads XCP's nftables table from the rules, or removes it
@@ -1025,6 +1040,9 @@ func (UnimplementedAgentServiceServer) TimezoneSet(context.Context, *TimezoneSet
 }
 func (UnimplementedAgentServiceServer) OSUpdatesSet(context.Context, *OSUpdatesSetRequest) (*OSUpdatesSetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OSUpdatesSet not implemented")
+}
+func (UnimplementedAgentServiceServer) SSHSettingsSet(context.Context, *SSHSettingsSetRequest) (*SSHSettingsSetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SSHSettingsSet not implemented")
 }
 func (UnimplementedAgentServiceServer) ServerReboot(context.Context, *ServerRebootRequest) (*ServerRebootResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ServerReboot not implemented")
@@ -1917,6 +1935,24 @@ func _AgentService_OSUpdatesSet_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_SSHSettingsSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SSHSettingsSetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SSHSettingsSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SSHSettingsSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SSHSettingsSet(ctx, req.(*SSHSettingsSetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentService_ServerReboot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ServerRebootRequest)
 	if err := dec(in); err != nil {
@@ -2151,6 +2187,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OSUpdatesSet",
 			Handler:    _AgentService_OSUpdatesSet_Handler,
+		},
+		{
+			MethodName: "SSHSettingsSet",
+			Handler:    _AgentService_SSHSettingsSet_Handler,
 		},
 		{
 			MethodName: "ServerReboot",
