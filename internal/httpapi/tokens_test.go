@@ -109,3 +109,37 @@ func TestImpersonationOverHTTP(t *testing.T) {
 	// And it is not an admin any more.
 	wantProblem(t, b.do("GET", "/resellers", nil), 403, "forbidden")
 }
+
+func TestMFAEnrollmentGate(t *testing.T) {
+	h := newHarness(t)
+	b := h.browser()
+	b.login("root", rootPW)
+	if resp := b.do("GET", "/packages", nil); resp.StatusCode != 200 {
+		t.Fatalf("before the policy: %d", resp.StatusCode)
+	}
+	h.auth.SetMFAPolicy("admins")
+	// The admin may still see who they are and set 2FA up, but nothing else.
+	wantProblem(t, b.do("GET", "/packages", nil), 403, "mfa_required")
+	resp := b.do("GET", "/me", nil)
+	var me struct {
+		MFA bool `json:"mfa_enrollment_required"`
+	}
+	json.Unmarshal([]byte(readAll(resp)), &me)
+	if resp.StatusCode != 200 || !me.MFA {
+		t.Fatalf("me: %d %+v", resp.StatusCode, me)
+	}
+	if resp := b.do("POST", "/me/2fa/setup", nil); resp.StatusCode != 200 {
+		t.Fatalf("2fa setup: %d %s", resp.StatusCode, readAll(resp))
+	}
+	// Tokens obey the policy too.
+	h.auth.SetMFAPolicy("none")
+	resp = b.do("POST", "/me/tokens", map[string]any{"name": "ci", "scope": "read", "password": rootPW})
+	var tk struct{ Secret string }
+	json.Unmarshal([]byte(readAll(resp)), &tk)
+	h.auth.SetMFAPolicy("admins")
+	wantProblem(t, h.browser().do("GET", "/packages", nil, header("Authorization", "Bearer "+tk.Secret)), 403, "mfa_required")
+	h.auth.SetMFAPolicy("none")
+	if resp := b.do("GET", "/packages", nil); resp.StatusCode != 200 {
+		t.Fatalf("after the policy is off: %d", resp.StatusCode)
+	}
+}

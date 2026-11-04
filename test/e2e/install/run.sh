@@ -43,7 +43,7 @@ docker cp "$OUT/." "$NAME:/opt/xcp/"
 docker exec "$NAME" sh -c 'chmod +x /opt/xcp/* && until systemctl is-system-running --wait >/dev/null 2>&1 || [ "$(systemctl is-system-running)" = degraded ]; do sleep 1; done'
 step "install" docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
 step "doctor" docker exec "$NAME" xcpctl doctor
-for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py backups.py serverinfo.py firewall.py websettings.py mailqueue.py resellers.py acme.py acceptance.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
+for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py backups.py serverinfo.py firewall.py websettings.py mailqueue.py resellers.py securitysettings.py acme.py acceptance.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
 echo "e2e test password 42" | docker exec -i "$NAME" xcpctl admin create --username e2etest
 step "websites (accounts, domains, Apache, PHP-FPM, isolation)" docker exec "$NAME" python3 /opt/xcp/websites.py
 step "DNS (PowerDNS zones, records)" docker exec "$NAME" python3 /opt/xcp/dns.py
@@ -56,6 +56,7 @@ step "cron (jobs as the account user in its slice: last run, mail, no overlap, s
 step "usage and logs (xcp-logd: web, FTP and mail bytes once per domain; log viewers)" docker exec "$NAME" python3 /opt/xcp/stats.py
 step "backups (full account archive: files, database, settings; download; root-only)" docker exec "$NAME" python3 /opt/xcp/backups.py
 step "admin server pages (dashboard, services, job monitor, sessions, sign-in history)" docker exec "$NAME" python3 /opt/xcp/serverinfo.py
+step "security settings (password rules, SSH guard, validation)" docker exec "$NAME" python3 /opt/xcp/securitysettings.py
 step "resellers (limits, own packages and accounts, isolation, quota)" docker exec "$NAME" python3 /opt/xcp/resellers.py
 step "mail queue (list, try again, delete; admins only)" docker exec "$NAME" python3 /opt/xcp/mailqueue.py
 step "web settings (error pages, hotlink protection, IP blocker, compression, caching)" docker exec "$NAME" python3 /opt/xcp/websettings.py
