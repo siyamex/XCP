@@ -5,6 +5,7 @@ package resellers
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"strings"
 	"time"
 
@@ -37,6 +38,8 @@ type Limits struct {
 	BandwidthMB       *int64 `json:"bandwidth_mb"`
 	OversellDisk      bool   `json:"oversell_disk"`
 	OversellBandwidth bool   `json:"oversell_bandwidth"`
+	// Privileges: what the reseller may do with its customers (create, modify, suspend, password, terminate, impersonate). Empty or missing in a request: all.
+	Privileges []string `json:"privileges"`
 }
 
 // Usage is what a reseller has given out.
@@ -73,6 +76,11 @@ func bad(field, msg string) error {
 }
 
 func (l Limits) check() error {
+	for _, p := range l.Privileges {
+		if !slices.Contains(store.AllPrivileges, p) {
+			return bad("privileges", p+" is not a privilege: "+strings.Join(store.AllPrivileges, ", "))
+		}
+	}
 	for field, v := range map[string]*int64{"max_accounts": l.MaxAccounts, "disk_mb": l.DiskMB, "bandwidth_mb": l.BandwidthMB} {
 		if v != nil && (*v < 0 || *v > 1_000_000_000) {
 			return bad(field, "0 to 1000000000, or empty for unlimited")
@@ -82,7 +90,7 @@ func (l Limits) check() error {
 }
 
 func limitsOf(l store.ResellerLimits) Limits {
-	return Limits{MaxAccounts: l.MaxAccounts, DiskMB: l.DiskMB, BandwidthMB: l.BandwidthMB, OversellDisk: l.OversellDisk, OversellBandwidth: l.OversellBandwidth}
+	return Limits{MaxAccounts: l.MaxAccounts, DiskMB: l.DiskMB, BandwidthMB: l.BandwidthMB, OversellDisk: l.OversellDisk, OversellBandwidth: l.OversellBandwidth, Privileges: l.Privileges}
 }
 
 func (s *Service) usage(ctx context.Context, ownerID string) (Usage, error) {
@@ -190,7 +198,7 @@ func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, 
 	}
 	if err := store.SetResellerLimits(ctx, s.db.W, store.ResellerLimits{
 		LoginID: l.ID, MaxAccounts: in.Limits.MaxAccounts, DiskMB: in.Limits.DiskMB, BandwidthMB: in.Limits.BandwidthMB,
-		OversellDisk: in.Limits.OversellDisk, OversellBandwidth: in.Limits.OversellBandwidth,
+		OversellDisk: in.Limits.OversellDisk, OversellBandwidth: in.Limits.OversellBandwidth, Privileges: privs(in.Limits.Privileges),
 	}, s.Now().UTC()); err != nil {
 		return Reseller{}, err
 	}
@@ -220,7 +228,7 @@ func (s *Service) SetLimits(ctx context.Context, c auth.Client, p *auth.Principa
 	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
 		if err := store.SetResellerLimits(ctx, tx, store.ResellerLimits{
 			LoginID: id, MaxAccounts: in.MaxAccounts, DiskMB: in.DiskMB, BandwidthMB: in.BandwidthMB,
-			OversellDisk: in.OversellDisk, OversellBandwidth: in.OversellBandwidth,
+			OversellDisk: in.OversellDisk, OversellBandwidth: in.OversellBandwidth, Privileges: privs(in.Privileges),
 		}, s.Now().UTC()); err != nil {
 			return err
 		}
@@ -283,4 +291,19 @@ func (s *Service) event(c auth.Client, p *auth.Principal, action, id string, det
 		IP: c.IP, UserAgent: c.UserAgent, RequestID: c.RequestID, Action: action, Result: audit.ResultOK,
 		TargetType: "reseller", TargetID: id, Details: details,
 	}
+}
+
+// privs returns the privileges to store: a request without any means all of
+// them. Ordered and without duplicates.
+func privs(in []string) []string {
+	if len(in) == 0 {
+		return slices.Clone(store.AllPrivileges)
+	}
+	out := make([]string, 0, len(in))
+	for _, p := range store.AllPrivileges {
+		if slices.Contains(in, p) {
+			out = append(out, p)
+		}
+	}
+	return out
 }

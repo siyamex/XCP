@@ -147,6 +147,16 @@ if st == 200:
     st, _ = imp.call("GET", "/reseller/overview")
     check(st == 403, "and is not a reseller any more", f"{st}")
 
+# Privileges: without them the action is refused.
+privs = ["create", "modify", "suspend", "password", "impersonate"]
+st, r = api("PUT", f"/resellers/{r1['id']}/limits", {"max_accounts": 2, "disk_mb": 300, "bandwidth_mb": None, "oversell_disk": False, "oversell_bandwidth": False, "privileges": privs})
+check(st == 200 and "terminate" not in r["limits"]["privileges"], "an admin takes a privilege away", f"{st} {r}")
+st, _ = a1.call("POST", f"/accounts/{c2['id']}/terminate", {"confirm": "rsc2"})
+check(st == 403, "the reseller can no longer terminate", f"{st}")
+st, _ = api("PUT", f"/resellers/{r1['id']}/limits", {"max_accounts": 2, "disk_mb": 300, "bandwidth_mb": None, "oversell_disk": False, "oversell_bandwidth": False, "privileges": ["fly"]})
+check(st == 400, "an unknown privilege is refused", f"{st}")
+api("PUT", f"/resellers/{r1['id']}/limits", {"max_accounts": 2, "disk_mb": 300, "bandwidth_mb": None, "oversell_disk": False, "oversell_bandwidth": False})
+
 # Suspended reseller cannot sign in.
 st, _ = api("POST", f"/resellers/{r2['id']}/suspend")
 check(st == 200, "an admin suspends a reseller", f"{st}")

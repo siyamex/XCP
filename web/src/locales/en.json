@@ -1081,6 +1081,15 @@
     "suspended": "(suspended)",
     "noEmail": "No email address",
     "yourUsage": "Your accounts and limits",
-    "yourHint": "What your packages promise to your customers against the caps set for you. A package without a disk or bandwidth limit counts as all of it."
+    "yourHint": "What your packages promise to your customers against the caps set for you. A package without a disk or bandwidth limit counts as all of it.",
+    "privileges": "What this reseller may do with its customers",
+    "priv": {
+      "create": "Make accounts",
+      "modify": "Change package and contact",
+      "suspend": "Suspend and reactivate",
+      "password": "Set passwords",
+      "terminate": "Remove accounts",
+      "impersonate": "Sign in as a customer"
+    }
   }
 }

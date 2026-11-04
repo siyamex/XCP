@@ -138,3 +138,39 @@ func TestResellerQuota(t *testing.T) {
 		t.Errorf("a fourth account over the limit of 3: %v", err)
 	}
 }
+
+func TestResellerPrivileges(t *testing.T) {
+	e := newEnv(t)
+	r := e.reseller(t, "reseller1", store.ResellerLimits{Privileges: []string{store.PrivCreate, store.PrivSuspend}})
+	pk := e.resellerPackage(t, r, "Small", i64(100))
+	a, err := e.svc.Create(ctx, client, r, CreateInput{Username: "cust1", Domain: "cust1.example", PackageID: pk, Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitStatus(t, a.ID, store.AccountActive)
+	if _, err := e.svc.Suspend(ctx, client, r, a.ID, "x"); err != nil {
+		t.Errorf("a granted privilege: %v", err)
+	}
+	if _, err := e.svc.Unsuspend(ctx, client, r, a.ID); err != nil {
+		t.Errorf("a granted privilege: %v", err)
+	}
+	if _, err := e.svc.Update(ctx, client, r, a.ID, UpdateInput{PackageID: pk}); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("modify without the privilege: %v", err)
+	}
+	if err := e.svc.SetPassword(ctx, client, r, a.ID, pw+"x", false); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("password without the privilege: %v", err)
+	}
+	if _, err := e.svc.Terminate(ctx, client, r, a.ID, "cust1"); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("terminate without the privilege: %v", err)
+	}
+	if _, err := e.svc.Impersonate(ctx, client, r, a.ID); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("impersonate without the privilege: %v", err)
+	}
+	// Reading stays open, and admins are never limited by this.
+	if _, err := e.svc.Get(ctx, r, a.ID); err != nil {
+		t.Errorf("reading: %v", err)
+	}
+	if _, err := e.svc.Suspend(ctx, client, e.admin, a.ID, "x"); err != nil {
+		t.Errorf("admin: %v", err)
+	}
+}

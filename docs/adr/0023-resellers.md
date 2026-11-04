@@ -38,9 +38,17 @@
   (the reseller). `/accounts*` (lifecycle), `/packages*` and the read of
   `/feature-lists*` are open to resellers.
 
+## Privileges (ADM-RSL-03)
+
+Each reseller has a list of privileges (`reseller_limits.privileges`, migration
+0021): `create`, `modify` (package and contact), `suspend` (and reactivate),
+`password`, `terminate` and `impersonate` (ADR-0024). The accounts service
+checks them before each action; reading is always allowed; admins are never
+limited. A request that names none grants all, and existing resellers keep
+all.
+
 ## Not done
 
-Privilege lists per reseller (ADM-RSL-03), logging in as a customer
-(impersonation does not exist yet, for admins either), resellers editing
+Resellers editing
 DNS/domains/mail of their customers (they use impersonation in the plan),
 bulk actions, welcome messages, branding, IP delegation, token scopes.

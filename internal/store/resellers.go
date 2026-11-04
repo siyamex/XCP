@@ -3,7 +3,9 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 )
 
@@ -15,7 +17,21 @@ type ResellerLimits struct {
 	BandwidthMB       *int64
 	OversellDisk      bool
 	OversellBandwidth bool
+	Privileges        []string // see Privileges in this package
 }
+
+// Reseller privileges (ADM-RSL-03).
+const (
+	PrivCreate      = "create"      // make accounts
+	PrivModify      = "modify"      // change an account's package and contact details
+	PrivSuspend     = "suspend"     // suspend and reactivate accounts
+	PrivPassword    = "password"    // set a customer's password
+	PrivTerminate   = "terminate"   // remove accounts for good
+	PrivImpersonate = "impersonate" // sign in as a customer
+)
+
+// AllPrivileges lists every privilege, in display order.
+var AllPrivileges = []string{PrivCreate, PrivModify, PrivSuspend, PrivPassword, PrivTerminate, PrivImpersonate}
 
 func nullInt(p *int64) any {
 	if p == nil {
@@ -26,15 +42,20 @@ func nullInt(p *int64) any {
 
 // ResellerLimitsOf returns a reseller's limits (all unlimited if never set).
 func (db *DB) ResellerLimitsOf(ctx context.Context, loginID string) (ResellerLimits, error) {
-	l := ResellerLimits{LoginID: loginID}
+	l := ResellerLimits{LoginID: loginID, Privileges: slices.Clone(AllPrivileges)}
+	var privs string
 	var maxAcc, disk, bw sql.NullInt64
-	err := db.R.QueryRowContext(ctx, `SELECT max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth
-		FROM reseller_limits WHERE login_id = ?`, loginID).Scan(&maxAcc, &disk, &bw, &l.OversellDisk, &l.OversellBandwidth)
+	err := db.R.QueryRowContext(ctx, `SELECT max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth, privileges
+		FROM reseller_limits WHERE login_id = ?`, loginID).Scan(&maxAcc, &disk, &bw, &l.OversellDisk, &l.OversellBandwidth, &privs)
 	if errors.Is(err, sql.ErrNoRows) {
 		return l, nil
 	}
 	if err != nil {
 		return l, err
+	}
+	var list []string
+	if json.Unmarshal([]byte(privs), &list) == nil {
+		l.Privileges = list
 	}
 	for _, x := range []struct {
 		n sql.NullInt64
@@ -50,11 +71,18 @@ func (db *DB) ResellerLimitsOf(ctx context.Context, loginID string) (ResellerLim
 
 // SetResellerLimits saves a reseller's limits.
 func SetResellerLimits(ctx context.Context, q querier, l ResellerLimits, t time.Time) error {
-	_, err := q.ExecContext(ctx, `INSERT INTO reseller_limits (login_id, max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	if l.Privileges == nil {
+		l.Privileges = slices.Clone(AllPrivileges)
+	}
+	privs, err := json.Marshal(l.Privileges)
+	if err != nil {
+		return err
+	}
+	_, err = q.ExecContext(ctx, `INSERT INTO reseller_limits (login_id, max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth, privileges, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (login_id) DO UPDATE SET max_accounts = excluded.max_accounts, disk_mb = excluded.disk_mb, bandwidth_mb = excluded.bandwidth_mb,
-			oversell_disk = excluded.oversell_disk, oversell_bandwidth = excluded.oversell_bandwidth, updated_at = excluded.updated_at`,
-		l.LoginID, nullInt(l.MaxAccounts), nullInt(l.DiskMB), nullInt(l.BandwidthMB), l.OversellDisk, l.OversellBandwidth, FormatTime(t))
+			oversell_disk = excluded.oversell_disk, oversell_bandwidth = excluded.oversell_bandwidth, privileges = excluded.privileges, updated_at = excluded.updated_at`,
+		l.LoginID, nullInt(l.MaxAccounts), nullInt(l.DiskMB), nullInt(l.BandwidthMB), l.OversellDisk, l.OversellBandwidth, string(privs), FormatTime(t))
 	return err
 }
 

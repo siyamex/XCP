@@ -3401,8 +3401,9 @@ components:
           items: { type: object, required: [address, reason], properties: { address: { type: string }, reason: { type: string } } }
     ResellerLimits:
       type: object
-      required: [max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth]
+      required: [max_accounts, disk_mb, bandwidth_mb, oversell_disk, oversell_bandwidth, privileges]
       properties:
+        privileges: { type: array, items: { type: string, enum: [create, modify, suspend, password, terminate, impersonate] }, description: "What the reseller may do with its customers' accounts; empty in a request: all" }
         max_accounts: { type: [integer, "null"], minimum: 0, description: "null: unlimited" }
         disk_mb: { type: [integer, "null"], minimum: 0, description: "Disk the packages of its accounts may give out in all; null: unlimited" }
         bandwidth_mb: { type: [integer, "null"], minimum: 0, description: "Monthly traffic the packages may give out in all; null: unlimited" }

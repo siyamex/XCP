@@ -9,6 +9,9 @@ import { Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui
 type Reseller = components["schemas"]["Reseller"];
 type Limits = components["schemas"]["ResellerLimits"];
 
+const PRIVS = ["create", "modify", "suspend", "password", "terminate", "impersonate"] as const;
+type Form = { max: string; disk: string; bw: string; osd: boolean; osb: boolean; privs: string[] };
+
 const num = (s: string): number | null => (s.trim() === "" ? null : Number(s));
 const show = (n: number | null | undefined, unit = "") => (n == null ? "∞" : `${n.toLocaleString()}${unit}`);
 
@@ -76,7 +79,7 @@ export function ResellersPage() {
   );
 }
 
-function LimitFields({ f, set }: { f: { max: string; disk: string; bw: string; osd: boolean; osb: boolean }; set: (v: { max: string; disk: string; bw: string; osd: boolean; osb: boolean }) => void }) {
+function LimitFields({ f, set }: { f: Form; set: (v: Form) => void }) {
   const { t } = useTranslation();
   return (
     <>
@@ -89,12 +92,24 @@ function LimitFields({ f, set }: { f: { max: string; disk: string; bw: string; o
         <label className="flex items-center gap-2"><input type="checkbox" checked={f.osd} onChange={(e) => set({ ...f, osd: e.target.checked })} />{t("resellers.oversellDisk")}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={f.osb} onChange={(e) => set({ ...f, osb: e.target.checked })} />{t("resellers.oversellBandwidth")}</label>
       </div>
+      <fieldset>
+        <legend className="text-sm font-medium">{t("resellers.privileges")}</legend>
+        <div className="mt-1 flex flex-wrap gap-4 text-sm">
+          {PRIVS.map((p) => (
+            <label key={p} className="flex items-center gap-2">
+              <input type="checkbox" checked={f.privs.includes(p)} onChange={(e) => set({ ...f, privs: e.target.checked ? [...f.privs, p] : f.privs.filter((x) => x !== p) })} />
+              {t(`resellers.priv.${p}`)}
+            </label>
+          ))}
+        </div>
+      </fieldset>
     </>
   );
 }
 
-const toLimits = (f: { max: string; disk: string; bw: string; osd: boolean; osb: boolean }): Limits => ({
+const toLimits = (f: Form): Limits => ({
   max_accounts: num(f.max), disk_mb: num(f.disk), bandwidth_mb: num(f.bw), oversell_disk: f.osd, oversell_bandwidth: f.osb,
+  privileges: f.privs as Limits["privileges"],
 });
 
 function NewReseller() {
@@ -103,7 +118,7 @@ function NewReseller() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [f, setF] = useState({ max: "", disk: "", bw: "", osd: false, osb: false });
+  const [f, setF] = useState<Form>({ max: "", disk: "", bw: "", osd: false, osb: false, privs: [...PRIVS] });
   const create = useMutation({
     mutationFn: () => unwrap(api.POST("/resellers", { body: { username: name, email, password, limits: toLimits(f) } })),
     onSuccess: () => { setName(""); setEmail(""); setPassword(""); void qc.invalidateQueries({ queryKey: ["resellers"] }); },
@@ -128,9 +143,9 @@ function NewReseller() {
 function ResellerCard({ r }: { r: Reseller }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [f, setF] = useState({
+  const [f, setF] = useState<Form>({
     max: r.limits.max_accounts?.toString() ?? "", disk: r.limits.disk_mb?.toString() ?? "", bw: r.limits.bandwidth_mb?.toString() ?? "",
-    osd: r.limits.oversell_disk, osb: r.limits.oversell_bandwidth,
+    osd: r.limits.oversell_disk, osb: r.limits.oversell_bandwidth, privs: r.limits.privileges,
   });
   const done = () => void qc.invalidateQueries({ queryKey: ["resellers"] });
   const save = useMutation({ mutationFn: () => unwrap(api.PUT("/resellers/{id}/limits", { params: { path: { id: r.id } }, body: toLimits(f) })), onSuccess: done });

@@ -187,6 +187,9 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, search, status st
 // resellers for their own customers) and returns the session token. The
 // caller must have confirmed its password just now.
 func (s *Service) Impersonate(ctx context.Context, c auth.Client, p *auth.Principal, id string) (string, error) {
+	if err := s.allowed(ctx, p, store.PrivImpersonate); err != nil {
+		return "", err
+	}
 	a, err := s.account(ctx, p, id)
 	if err != nil {
 		return "", err
@@ -248,6 +251,9 @@ func (s *Service) checkPHP(ctx context.Context, version string, lim plans.Limits
 // Create adds an account and its login, and queues the job that creates
 // the Linux user. The account starts in status "creating".
 func (s *Service) Create(ctx context.Context, c auth.Client, p *auth.Principal, in CreateInput) (Account, error) {
+	if err := s.allowed(ctx, p, store.PrivCreate); err != nil {
+		return Account{}, err
+	}
 	own, err := scope(p)
 	if err != nil {
 		return Account{}, err
@@ -389,6 +395,9 @@ var editable = []string{store.AccountActive, store.AccountSuspended, store.Accou
 
 // Update changes the package and contact email, then re-applies limits.
 func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, id string, in UpdateInput) (Account, error) {
+	if err := s.allowed(ctx, p, store.PrivModify); err != nil {
+		return Account{}, err
+	}
 	email := ""
 	if strings.TrimSpace(in.Email) != "" {
 		var err error
@@ -425,6 +434,9 @@ func (s *Service) Update(ctx context.Context, c auth.Client, p *auth.Principal, 
 // Suspend blocks the account: its login is disabled, its sessions end and
 // its Linux user is locked with all processes stopped.
 func (s *Service) Suspend(ctx context.Context, c auth.Client, p *auth.Principal, id, reason string) (Account, error) {
+	if err := s.allowed(ctx, p, store.PrivSuspend); err != nil {
+		return Account{}, err
+	}
 	reason = strings.TrimSpace(reason)
 	if len(reason) > 500 {
 		return Account{}, &validate.Error{Field: "reason", Code: validate.CodeTooLong, Message: "reason must be at most 500 characters"}
@@ -440,6 +452,9 @@ func (s *Service) Suspend(ctx context.Context, c auth.Client, p *auth.Principal,
 
 // Unsuspend restores a suspended account.
 func (s *Service) Unsuspend(ctx context.Context, c auth.Client, p *auth.Principal, id string) (Account, error) {
+	if err := s.allowed(ctx, p, store.PrivSuspend); err != nil {
+		return Account{}, err
+	}
 	return s.change(ctx, p, id, []string{store.AccountSuspended}, JobApply, func(tx *sql.Tx, a *store.Account) error {
 		a.Status, a.StatusDetail = store.AccountActive, ""
 		if err := s.setLogin(ctx, tx, a.ID, store.LoginActive); err != nil {
@@ -469,6 +484,9 @@ func (s *Service) setLogin(ctx context.Context, tx *sql.Tx, accountID, status st
 
 // SetPassword sets the account login's password and ends its sessions.
 func (s *Service) SetPassword(ctx context.Context, c auth.Client, p *auth.Principal, id, password string, mustChange bool) error {
+	if err := s.allowed(ctx, p, store.PrivPassword); err != nil {
+		return err
+	}
 	a, err := s.account(ctx, p, id)
 	if err != nil {
 		return err
@@ -494,6 +512,9 @@ func (s *Service) SetPassword(ctx context.Context, c auth.Client, p *auth.Princi
 
 // Terminate starts removing an account. confirm must equal the username.
 func (s *Service) Terminate(ctx context.Context, c auth.Client, p *auth.Principal, id, confirm string) (Account, error) {
+	if err := s.allowed(ctx, p, store.PrivTerminate); err != nil {
+		return Account{}, err
+	}
 	all := []string{store.AccountCreating, store.AccountActive, store.AccountSuspended, store.AccountError}
 	return s.change(ctx, p, id, all, JobTerminate, func(tx *sql.Tx, a *store.Account) error {
 		if confirm != a.Username {

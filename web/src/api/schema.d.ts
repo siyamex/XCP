@@ -2599,6 +2599,8 @@ export interface components {
             }[];
         };
         ResellerLimits: {
+            /** @description What the reseller may do with its customers' accounts; empty in a request: all */
+            privileges: ("create" | "modify" | "suspend" | "password" | "terminate" | "impersonate")[];
             /** @description null: unlimited */
             max_accounts: number | null;
             /** @description Disk the packages of its accounts may give out in all; null: unlimited */
