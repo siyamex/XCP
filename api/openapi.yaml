@@ -213,6 +213,48 @@ paths:
         "401": { $ref: "#/components/responses/Problem" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
+  /me/tokens:
+    get:
+      tags: [auth]
+      summary: The login's API tokens
+      operationId: listTokens
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/ApiToken" } } } }
+    post:
+      tags: [auth]
+      summary: Make an API token
+      description: The secret is shown once. Needs the login's password. At most 20 tokens per login.
+      operationId: createToken
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [name, scope, password], properties: { name: { type: string }, scope: { type: string, enum: [read, write] }, expires_days: { type: integer, description: 0 never }, ip_allow: { type: array, items: { type: string } }, password: { type: string } } }
+      responses:
+        "201":
+          description: Made.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewApiToken" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /me/tokens/{id}:
+    delete:
+      tags: [auth]
+      summary: Revoke an API token
+      operationId: revokeToken
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Revoked. }
+        "404": { $ref: "#/components/responses/Problem" }
   /me/sessions:
     get:
       tags: [me]
@@ -2819,6 +2861,10 @@ components:
       type: apiKey
       in: cookie
       name: __Host-xcp_session
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: An API token made under /me/tokens (xcp_...). Read tokens can only GET; no token can use /me/* (except GET /me) or /auth/*. No CSRF token is needed.
     csrfHeader:
       type: apiKey
       in: header
@@ -3184,6 +3230,23 @@ components:
               extensions: { type: array, items: { type: string } }
               days: { type: integer, minimum: 1, maximum: 365 }
         job_id: { type: string }
+    ApiToken:
+      type: object
+      required: [id, name, prefix, scope, ip_allow, created_at, expires_at, last_used_at, last_used_ip]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        prefix: { type: string, description: The start of the token, to recognise it }
+        scope: { type: string, enum: [read, write] }
+        ip_allow: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: [string, "null"], format: date-time }
+        last_used_at: { type: [string, "null"], format: date-time }
+        last_used_ip: { type: string }
+    NewApiToken:
+      allOf:
+        - { $ref: "#/components/schemas/ApiToken" }
+        - { type: object, required: [secret], properties: { secret: { type: string, description: The whole token; shown only now } } }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

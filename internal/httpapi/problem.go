@@ -50,12 +50,14 @@ func newAPIError(status int, code, detail string) *apiError {
 }
 
 var (
-	errCSRF          = newAPIError(http.StatusForbidden, "csrf_failed", "missing or invalid X-CSRF-Token header")
-	errCrossOrigin   = newAPIError(http.StatusForbidden, "cross_origin", "cross-origin request refused")
-	errMFARequired   = newAPIError(http.StatusForbidden, "mfa_required", "set up two-factor sign-in to continue")
-	errMustChangePwd = newAPIError(http.StatusForbidden, "password_change_required", "change your password to continue")
-	errMediaType     = newAPIError(http.StatusUnsupportedMediaType, "unsupported_media_type", "send Content-Type: application/json")
-	errNotFound      = newAPIError(http.StatusNotFound, "not_found", "not found")
+	errCSRF           = newAPIError(http.StatusForbidden, "csrf_failed", "missing or invalid X-CSRF-Token header")
+	errCrossOrigin    = newAPIError(http.StatusForbidden, "cross_origin", "cross-origin request refused")
+	errTokenReadOnly  = newAPIError(http.StatusForbidden, "token_read_only", "this API token can only read")
+	errTokenForbidden = newAPIError(http.StatusForbidden, "token_not_allowed", "this page needs a signed-in session, not an API token")
+	errMFARequired    = newAPIError(http.StatusForbidden, "mfa_required", "set up two-factor sign-in to continue")
+	errMustChangePwd  = newAPIError(http.StatusForbidden, "password_change_required", "change your password to continue")
+	errMediaType      = newAPIError(http.StatusUnsupportedMediaType, "unsupported_media_type", "send Content-Type: application/json")
+	errNotFound       = newAPIError(http.StatusNotFound, "not_found", "not found")
 )
 
 // toProblem maps any error to a Problem. Unknown errors become a generic 500

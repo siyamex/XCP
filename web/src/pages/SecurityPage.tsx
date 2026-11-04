@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api, unwrap } from "../api/client";
 import { errorKey, useMe } from "../auth";
+import { TokensCard } from "./TokensCard";
 import { Alert, Button, Card, CardTitle, Field, Input } from "../components/ui";
 
 function ErrorAlert({ error }: { error: unknown }) {
@@ -202,6 +203,7 @@ export function SecurityPage() {
         <>
           <TwoFactor enabled={me.totp_enabled} />
           {!me.mfa_enrollment_required && <Sessions />}
+          {!me.mfa_enrollment_required && <TokensCard />}
         </>
       )}
     </div>

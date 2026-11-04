@@ -133,6 +133,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The login's API tokens */
+        get: operations["listTokens"];
+        put?: never;
+        /**
+         * Make an API token
+         * @description The secret is shown once. Needs the login's password. At most 20 tokens per login.
+         */
+        post: operations["createToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API token */
+        delete: operations["revokeToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/sessions": {
         parameters: {
             query?: never;
@@ -2395,6 +2433,26 @@ export interface components {
             }[];
             job_id?: string;
         };
+        ApiToken: {
+            id: string;
+            name: string;
+            /** @description The start of the token */
+            prefix: string;
+            /** @enum {string} */
+            scope: "read" | "write";
+            ip_allow: string[];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string | null;
+            /** Format: date-time */
+            last_used_at: string | null;
+            last_used_ip: string;
+        };
+        NewApiToken: components["schemas"]["ApiToken"] & {
+            /** @description The whole token; shown only now */
+            secret: string;
+        };
         SettingItem: {
             key: string;
             group: string;
@@ -3231,6 +3289,84 @@ export interface operations {
             };
             401: components["responses"]["Problem"];
             429: components["responses"]["RateLimited"];
+        };
+    };
+    listTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ApiToken"][];
+                    };
+                };
+            };
+        };
+    };
+    createToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    scope: "read" | "write";
+                    /** @description 0 never */
+                    expires_days?: number;
+                    ip_allow?: string[];
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Made. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewApiToken"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    revokeToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
         };
     };
     listSessions: {

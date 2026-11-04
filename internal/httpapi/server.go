@@ -115,6 +115,9 @@ func New(d Deps) *Server {
 		{method: "GET", path: "/api/v1/me", access: authed, allowMustChange: true, h: s.me},
 		{method: "POST", path: "/api/v1/me/password", access: authed, allowMustChange: true, h: s.changePassword},
 		{method: "POST", path: "/api/v1/me/reauth", access: authed, h: s.reauth},
+		{method: "GET", path: "/api/v1/me/tokens", access: authed, h: s.listTokens},
+		{method: "POST", path: "/api/v1/me/tokens", access: authed, h: s.createToken},
+		{method: "DELETE", path: "/api/v1/me/tokens/{id}", access: authed, h: s.revokeToken},
 		{method: "GET", path: "/api/v1/me/sessions", access: authed, h: s.listSessions},
 		{method: "DELETE", path: "/api/v1/me/sessions/{id}", access: authed, h: s.revokeSession},
 		{method: "POST", path: "/api/v1/me/2fa/setup", access: authed, allowMustChange: true, h: s.setup2FA},
@@ -350,6 +353,9 @@ func (s *Server) wrap(rt route) http.Handler {
 
 func (s *Server) guard(r *http.Request, rt route) (*http.Request, error) {
 	unsafe := !isSafeMethod(r.Method)
+	if bearer, ok := bearerToken(r); ok && rt.access == authed {
+		return s.guardToken(r, rt, bearer, unsafe)
+	}
 	if unsafe && !sameOrigin(r) {
 		return r, errCrossOrigin
 	}
@@ -382,6 +388,44 @@ func (s *Server) guard(r *http.Request, rt route) (*http.Request, error) {
 		ctx = context.WithValue(ctx, keyPrincipal, p)
 	}
 	return r.WithContext(ctx), nil
+}
+
+// bearerToken returns the API token of an Authorization header.
+func bearerToken(r *http.Request) (string, bool) {
+	h := r.Header.Get("Authorization")
+	if len(h) > 7 && strings.EqualFold(h[:7], "Bearer ") {
+		return strings.TrimSpace(h[7:]), true
+	}
+	return "", false
+}
+
+// guardToken authenticates a request that carries an API token (ADR-0021).
+// Tokens need no CSRF token (they are not sent by browsers on their own),
+// but they cannot use the pages meant for a person with a session: the
+// account's security pages and everything that confirms a password.
+func (s *Server) guardToken(r *http.Request, rt route, token string, unsafe bool) (*http.Request, error) {
+	tp, err := s.Auth.AuthenticateToken(r.Context(), token, client(r).IP)
+	if err != nil {
+		return r, err
+	}
+	p := tp.Principal
+	switch {
+	case len(rt.roles) > 0 && !slices.Contains(rt.roles, p.Login.Role):
+		return r, apperr.ErrForbidden
+	case unsafe && tp.Scope != store.TokenWrite:
+		return r, errTokenReadOnly
+	case !isTokenSafeRoute(rt):
+		return r, errTokenForbidden
+	case p.Login.MustChangePassword || s.Auth.MFAEnrollmentRequired(p.Login):
+		return r, errMFARequired
+	}
+	return r.WithContext(context.WithValue(r.Context(), keyPrincipal, p)), nil
+}
+
+// isTokenSafeRoute reports whether a route may be used with a token: not
+// the sign-in, security and session pages, which are for a person.
+func isTokenSafeRoute(rt route) bool {
+	return rt.path == "/api/v1/me" || !strings.HasPrefix(rt.path, "/api/v1/me/") && !strings.HasPrefix(rt.path, "/api/v1/auth/")
 }
 
 // sameOrigin refuses state-changing requests that a browser marks as

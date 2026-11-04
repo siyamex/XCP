@@ -110,7 +110,32 @@
       "lastSeen": "Last active",
       "revoke": "Sign out"
     },
-    "mfaRequired": "This server requires two-factor sign-in for your login. Set it up below to continue."
+    "mfaRequired": "This server requires two-factor sign-in for your login. Set it up below to continue.",
+    "tokens": {
+      "title": "API tokens",
+      "hint": "For scripts that call the panel's API (Authorization: Bearer ...). A read token can only read. Tokens cannot change passwords, 2FA or sessions, and cannot confirm a password.",
+      "made": "Copy the token now. It is not shown again.",
+      "name": "Name",
+      "scope": "Access",
+      "read": "Read only",
+      "write": "Read and write",
+      "days": "Valid for (days, 0: no end)",
+      "ips": "Only from these networks (optional)",
+      "password": "Your password",
+      "create": "Make token",
+      "revoke": "Revoke",
+      "confirmRevoke": "Revoke the token {{name}}? Scripts that use it stop working.",
+      "never": "No end",
+      "unused": "Never used",
+      "none": "No tokens.",
+      "col": {
+        "name": "Name",
+        "prefix": "Starts with",
+        "scope": "Access",
+        "expires": "Valid until",
+        "lastUsed": "Last used"
+      }
+    }
   },
   "errors": {
     "invalid_credentials": "Wrong username or password.",
