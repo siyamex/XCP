@@ -64,7 +64,7 @@ function WebForm({ domainId, initial, onStarted }: { domainId: string; initial: 
       return unwrap(api.PUT("/domains/{id}/web", {
         params: { path: { id: domainId } },
         body: {
-          error_pages, blocked: lines(blocked), compress, cache_rules,
+          error_pages, blocked: lines(blocked), compress, cache_rules, protected_dirs: [],
           hotlink: { enabled: hot, hosts: lines(hotHosts), extensions: lines(hotExts), allow_empty: hotEmpty },
         },
       }));

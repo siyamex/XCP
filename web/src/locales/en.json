@@ -383,6 +383,20 @@
       "compress": "Compress text responses (gzip)",
       "cache": "Browser caching: file types and days, one rule per line",
       "saved": "Saved. Applying the settings."
+    },
+    "protected": {
+      "title": "Password-protected folders",
+      "hint": "Visitors to these folders of the site must enter a user name and password. Passwords are stored as hashes and cannot be shown again; leave the password empty to keep it.",
+      "folder": "Folder (like /private)",
+      "realm": "Title of the prompt",
+      "user": "User name",
+      "password": "Password",
+      "newPassword": "New password (optional)",
+      "addFolder": "Add a folder",
+      "removeFolder": "Remove folder",
+      "addUser": "Add a user",
+      "removeUser": "Remove",
+      "none": "No protected folders."
     }
   },
   "dns": {

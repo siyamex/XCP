@@ -67,3 +67,40 @@ func TestWebOptionsRender(t *testing.T) {
 		t.Error("empty options render something")
 	}
 }
+
+const testHash = "$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234"
+
+func TestProtectedDirsClean(t *testing.T) {
+	good := WebOptions{ProtectedDirs: []ProtectedDir{
+		{Path: "/private/", Users: []HtUser{{Name: "zed", Hash: testHash}, {Name: "amy@example.test", Hash: testHash}}},
+		{Path: "/admin", Realm: "Staff only"},
+	}}
+	c, err := good.Clean()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.ProtectedDirs) != 2 || c.ProtectedDirs[0].Path != "/admin" || c.ProtectedDirs[1].Path != "/private" || c.ProtectedDirs[1].Realm != "Restricted area" ||
+		c.ProtectedDirs[1].Users[0].Name != "amy@example.test" {
+		t.Errorf("%+v", c.ProtectedDirs)
+	}
+	for name, d := range map[string]ProtectedDir{
+		"root":     {Path: "/"},
+		"dots":     {Path: "/a/../b"},
+		"relative": {Path: "private"},
+		"quote":    {Path: "/a\"b"},
+		"realm":    {Path: "/a", Realm: "bad\"realm"},
+		"user":     {Path: "/a", Users: []HtUser{{Name: "a b", Hash: testHash}}},
+		"colon":    {Path: "/a", Users: []HtUser{{Name: "a:b", Hash: testHash}}},
+		"no hash":  {Path: "/a", Users: []HtUser{{Name: "amy"}}},
+		"plain":    {Path: "/a", Users: []HtUser{{Name: "amy", Hash: "secret"}}},
+		"newline":  {Path: "/a", Users: []HtUser{{Name: "amy", Hash: testHash + "\nroot:x"}}},
+		"dup user": {Path: "/a", Users: []HtUser{{Name: "amy", Hash: testHash}, {Name: "amy", Hash: testHash}}},
+	} {
+		if _, err := (WebOptions{ProtectedDirs: []ProtectedDir{d}}).Clean(); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if _, err := (WebOptions{ProtectedDirs: []ProtectedDir{{Path: "/a"}, {Path: "/a/"}}}).Clean(); err == nil {
+		t.Error("a folder listed twice")
+	}
+}

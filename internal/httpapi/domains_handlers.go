@@ -104,6 +104,21 @@ func (s *Server) putWebSettings(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) putProtectedDirs(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Dirs []domains.ProtectedInput `json:"dirs"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	ws, err := s.Domains.SetProtectedDirs(r.Context(), client(r), principal(r), r.PathValue("id"), in.Dirs)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, ws)
+	return nil
+}
+
 func (s *Server) deleteRedirect(w http.ResponseWriter, r *http.Request) error {
 	jobID, err := s.Domains.DeleteRedirect(r.Context(), client(r), principal(r), r.PathValue("id"))
 	if err != nil {

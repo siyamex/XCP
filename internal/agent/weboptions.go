@@ -14,11 +14,12 @@ import (
 // custom error pages, hotlink protection, an IP blocker, compression and
 // browser caching. The panel stores them as JSON, so the tags matter.
 type WebOptions struct {
-	ErrorPages map[string]string `json:"error_pages"` // status code -> URL path of the page, like "/errors/404.html"
-	Hotlink    Hotlink           `json:"hotlink"`
-	Blocked    []string          `json:"blocked"`  // addresses and networks refused
-	Compress   bool              `json:"compress"` // gzip text responses
-	CacheRules []CacheRule       `json:"cache_rules"`
+	ErrorPages    map[string]string `json:"error_pages"` // status code -> URL path of the page, like "/errors/404.html"
+	Hotlink       Hotlink           `json:"hotlink"`
+	Blocked       []string          `json:"blocked"`  // addresses and networks refused
+	Compress      bool              `json:"compress"` // gzip text responses
+	CacheRules    []CacheRule       `json:"cache_rules"`
+	ProtectedDirs []ProtectedDir    `json:"protected_dirs"` // folders behind a password
 }
 
 // Hotlink stops other sites from embedding this site's files.
@@ -28,6 +29,33 @@ type Hotlink struct {
 	Extensions []string `json:"extensions"`  // protected file types: jpg, png, mp4, ...
 	AllowEmpty bool     `json:"allow_empty"` // requests without a referrer (direct visits, privacy tools) pass
 }
+
+// ProtectedDir is a folder of the site that needs a user name and password
+// (HTTP basic authentication). Hash is a bcrypt hash; the password itself is
+// never stored.
+type ProtectedDir struct {
+	Path  string   `json:"path"`  // folder below the document root, like "/private"
+	Realm string   `json:"realm"` // the prompt's title
+	Users []HtUser `json:"users"`
+}
+
+// HtUser is one login of a protected folder.
+type HtUser struct {
+	Name string `json:"name"`
+	Hash string `json:"hash,omitempty"`
+}
+
+// Bounds of directory privacy.
+const (
+	MaxProtectedDirs  = 20
+	MaxProtectedUsers = 30
+)
+
+var (
+	htNameRe  = regexp.MustCompile(`^[A-Za-z0-9._@-]{1,40}$`)
+	htRealmRe = regexp.MustCompile(`^[A-Za-z0-9 ._-]{1,50}$`)
+	bcryptRe  = regexp.MustCompile(`^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$`)
+)
 
 // CacheRule tells browsers to keep files of some types for Days.
 type CacheRule struct {
@@ -151,6 +179,48 @@ func (o WebOptions) Clean() (WebOptions, error) {
 		}
 		out.CacheRules = append(out.CacheRules, CacheRule{Extensions: exts, Days: r.Days})
 	}
+	if len(o.ProtectedDirs) > MaxProtectedDirs {
+		return out, fmt.Errorf("at most %d protected folders", MaxProtectedDirs)
+	}
+	seenDir := map[string]bool{}
+	out.ProtectedDirs = []ProtectedDir{}
+	for _, d := range o.ProtectedDirs {
+		if !errorPathRe.MatchString(d.Path) || strings.Contains(d.Path, "..") || strings.Contains(d.Path, "//") || d.Path == "/" {
+			return out, fmt.Errorf("protected folder %q is not a clean folder like /private", d.Path)
+		}
+		d.Path = strings.TrimSuffix(d.Path, "/")
+		if seenDir[d.Path] {
+			return out, fmt.Errorf("protected folder %s is listed twice", d.Path)
+		}
+		seenDir[d.Path] = true
+		if d.Realm == "" {
+			d.Realm = "Restricted area"
+		}
+		if !htRealmRe.MatchString(d.Realm) {
+			return out, fmt.Errorf("protected folder %s: the title is 1 to 50 letters, digits, spaces, . _ -", d.Path)
+		}
+		if len(d.Users) > MaxProtectedUsers {
+			return out, fmt.Errorf("protected folder %s: at most %d users", d.Path, MaxProtectedUsers)
+		}
+		seenUser := map[string]bool{}
+		users := []HtUser{}
+		for _, u := range d.Users {
+			if !htNameRe.MatchString(u.Name) {
+				return out, fmt.Errorf("protected folder %s: user name %q is 1 to 40 letters, digits and . _ @ -", d.Path, u.Name)
+			}
+			if !bcryptRe.MatchString(u.Hash) {
+				return out, fmt.Errorf("protected folder %s: user %s has no valid password hash", d.Path, u.Name)
+			}
+			if seenUser[u.Name] {
+				return out, fmt.Errorf("protected folder %s: user %s is listed twice", d.Path, u.Name)
+			}
+			seenUser[u.Name] = true
+			users = append(users, u)
+		}
+		slices.SortFunc(users, func(a, b HtUser) int { return strings.Compare(a.Name, b.Name) })
+		out.ProtectedDirs = append(out.ProtectedDirs, ProtectedDir{Path: d.Path, Realm: d.Realm, Users: users})
+	}
+	slices.SortFunc(out.ProtectedDirs, func(a, b ProtectedDir) int { return strings.Compare(a.Path, b.Path) })
 	slices.Sort(out.Blocked)
 	slices.Sort(out.Hotlink.Hosts)
 	slices.Sort(out.Hotlink.Extensions)

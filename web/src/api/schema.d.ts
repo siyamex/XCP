@@ -624,6 +624,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/domains/{id}/protected-dirs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the password-protected folders of a domain
+         * @description Users with a password get a new one; users without keep their password. Password hashes are never returned.
+         */
+        put: operations["putProtectedDirs"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/redirects/{id}": {
         parameters: {
             query?: never;
@@ -2558,6 +2578,13 @@ export interface components {
             };
             /** @description Addresses and networks that get 403 */
             blocked: string[];
+            protected_dirs: {
+                path: string;
+                realm: string;
+                users: {
+                    name: string;
+                }[];
+            }[];
             compress: boolean;
             cache_rules: {
                 extensions: string[];
@@ -4420,6 +4447,45 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WebSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved; a job applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebSettings"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    putProtectedDirs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    dirs: {
+                        /** @description A folder below the document root */
+                        path: string;
+                        /** @description The title of the password prompt */
+                        realm: string;
+                        users: {
+                            name: string;
+                            password?: string;
+                        }[];
+                    }[];
+                };
             };
         };
         responses: {

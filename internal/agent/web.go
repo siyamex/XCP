@@ -3,6 +3,8 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -204,6 +206,7 @@ type Web struct {
 	VhostDir     string // /etc/apache2/xcp/vhosts
 	WildcardDir  string // /etc/apache2/xcp/wildcards, included after VhostDir
 	CertDir      string // /etc/xcp/ssl/sites: <user>/<domain>.crt and .key, root only
+	AuthFileDir  string // /etc/xcp/webauth: <user>/<name>.htpasswd, root:web group 0640 (ADR-0025)
 	PHPDir       string // /etc/php
 	SuspendedDir string // /var/www/xcp-suspended
 	LogDir       string // /var/log/apache2/xcp
@@ -262,6 +265,15 @@ var (
         Require all granted
 {{- end}}
     </Directory>
+{{- range .Protected}}
+    <Directory "{{.Dir}}">
+        AuthType Basic
+        AuthName "{{.Realm}}"
+        AuthBasicProvider file
+        AuthUserFile {{.File}}
+        Require valid-user
+    </Directory>
+{{- end}}
     <FilesMatch "\.(php|phtml)$">
         SetHandler "proxy:unix:{{.S.Socket}}|fcgi://localhost"
     </FilesMatch>
@@ -346,6 +358,7 @@ type vhostData struct {
 	Canonical                  *canonicalRule
 	Redirects                  []string // rendered directives
 	Options                    string   // rendered web options (ADR-0020)
+	Protected                  []protectedData
 	Blocked                    []string // addresses refused
 	CertFile, KeyFile          string   // set when also served over HTTPS
 	HTTPSOnly                  bool     // HTTP only redirects to HTTPS
@@ -353,6 +366,9 @@ type vhostData struct {
 
 // canonicalRule redirects hosts matching the regex From to the host To.
 type canonicalRule struct{ From, To string }
+
+// protectedData is a password-protected folder of a vhost (ADR-0025).
+type protectedData struct{ Dir, Realm, File string }
 
 // data prepares the template fields for the wildcard or the other vhosts.
 // The socket name includes the PHP version: when a site switches version,
@@ -404,6 +420,9 @@ func (w *Web) vhostOf(s *siteData, v Vhost) vhostData {
 	}
 	if o, err := v.Web.Clean(); err == nil {
 		d.Options, d.Blocked = o.directives(v.Name), o.Blocked
+		for _, pd := range o.ProtectedDirs {
+			d.Protected = append(d.Protected, protectedData{Dir: d.DocRoot + pd.Path, Realm: pd.Realm, File: path.Join(w.AuthFileDir, s.Username, htpasswdName(v.Name, pd.Path))})
+		}
 	}
 	rs := slices.Clone(v.Redirects)
 	// Longest path first: Apache uses the first redirect that matches.
@@ -450,11 +469,15 @@ type managedFile struct {
 	content   []byte // nil = must not exist
 	unit      string // the service that reads it
 	private   bool   // root only (0600): private keys
+	gid       int    // not 0: group owner, and 0640 (htpasswd files)
 }
 
 func (f managedFile) mode() fs.FileMode {
 	if f.private {
 		return 0o600
+	}
+	if f.gid != 0 {
+		return 0o640
 	}
 	return 0o644
 }
@@ -519,7 +542,11 @@ func (w *Web) Apply(ctx context.Context, s Site) (SiteResult, error) {
 	if err != nil {
 		return SiteResult{}, err
 	}
-	changed, err := w.write(ctx, append(files, certs...), installed)
+	pw, err := w.htpasswdFiles(s)
+	if err != nil {
+		return SiteResult{}, err
+	}
+	changed, err := w.write(ctx, slices.Concat(files, certs, pw), installed)
 	return SiteResult{Changed: changed, PHPVersion: version}, err
 }
 
@@ -644,11 +671,13 @@ func (w *Web) Remove(ctx context.Context, username string) (bool, error) {
 		files = append(files, managedFile{dir: w.poolDir(v), name: "xcp-" + username + ".conf", unit: fpmUnit(v)})
 	}
 	certDir := filepath.Join(w.CertDir, username)
+	pwDir := filepath.Join(w.AuthFileDir, username)
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	changed, err := w.write(ctx, append(files, w.staleCerts(certDir, nil)...), installed)
+	changed, err := w.write(ctx, slices.Concat(files, w.staleCerts(certDir, nil), w.staleCerts(pwDir, nil)), installed)
 	if err == nil {
 		_ = os.Remove(certDir) // empty now
+		_ = os.Remove(pwDir)
 	}
 	return changed, err
 }
@@ -704,6 +733,9 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 			}
 			if p.existed {
 				_ = root.WriteFileAtomic(p.f.name, p.old, p.f.mode())
+				if p.f.gid != 0 {
+					_ = root.Chown(p.f.name, 0, p.f.gid)
+				}
 			} else {
 				_ = root.Remove(p.f.name)
 			}
@@ -734,6 +766,9 @@ func (w *Web) write(ctx context.Context, files []managedFile, installed []string
 			err = root.Remove(f.name)
 		default:
 			err = root.WriteFileAtomic(f.name, f.content, f.mode())
+			if err == nil && f.gid != 0 {
+				err = root.Chown(f.name, 0, f.gid)
+			}
 		}
 		root.Close()
 		if err != nil {
@@ -802,6 +837,69 @@ func (w *Web) check(ctx context.Context, installed []string) error {
 			return &ValidationFailedError{Output: strings.TrimSpace(string(res.Stderr) + "\n" + string(res.Stdout))}
 		}
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// htpasswdName is the password file of a protected folder of a domain.
+func htpasswdName(domain, folder string) string {
+	h := sha256.Sum256([]byte(domain + "|" + folder))
+	return hex.EncodeToString(h[:8]) + ".htpasswd"
+}
+
+// htpasswdFiles are the password files of the site's protected folders:
+// root:web-group 0640, so the web server's workers can read them and the
+// accounts' users cannot. Files of folders that are gone are removed.
+func (w *Web) htpasswdFiles(s Site) ([]managedFile, error) {
+	if w.AuthFileDir == "" {
+		return nil, nil
+	}
+	dir := filepath.Join(w.AuthFileDir, s.Username)
+	want := map[string]bool{}
+	var out []managedFile
+	gid := 0
+	for _, v := range s.Vhosts {
+		o, err := v.Web.Clean()
+		if err != nil || s.Suspended {
+			continue
+		}
+		for _, pd := range o.ProtectedDirs {
+			if gid == 0 {
+				g, err := user.LookupGroup(w.WebUser)
+				if err != nil {
+					return nil, fmt.Errorf("group %s: %w", w.WebUser, err)
+				}
+				gid, _ = strconv.Atoi(g.Gid)
+			}
+			var b strings.Builder
+			for _, u := range pd.Users {
+				b.WriteString(u.Name + ":" + u.Hash + "\n")
+			}
+			name := htpasswdName(v.Name, pd.Path)
+			want[name] = true
+			out = append(out, managedFile{dir: dir, name: name, content: []byte(b.String()), unit: apacheUnit, gid: gid})
+		}
+	}
+	if len(want) > 0 {
+		if err := w.ensureAuthFileDir(dir, gid); err != nil {
+			return nil, err
+		}
+	}
+	return append(out, w.staleCerts(dir, want)...), nil
+}
+
+// ensureAuthFileDir creates the account's folder for password files.
+func (w *Web) ensureAuthFileDir(dir string, gid int) error {
+	for _, d := range []string{w.AuthFileDir, dir} {
+		if err := os.MkdirAll(d, 0o750); err != nil {
+			return err
+		}
+		if err := os.Chown(d, 0, gid); err != nil && os.Geteuid() == 0 {
+			return err
+		}
+		if err := os.Chmod(d, 0o750); err != nil { //nolint:gosec // G302: a folder the web server's group enters
 			return err
 		}
 	}

@@ -43,6 +43,13 @@ func siteFrom(req *agentv1.SiteApplyRequest) agent.Site {
 				ErrorPages: w.GetErrorPages(), Blocked: w.GetBlocked(), Compress: w.GetCompress(),
 				Hotlink: agent.Hotlink{Enabled: w.GetHotlink(), Hosts: w.GetHotlinkHosts(), Extensions: w.GetHotlinkExts(), AllowEmpty: w.GetHotlinkAllowEmpty()},
 			}
+			for _, d := range w.GetProtectedDirs() {
+				pd := agent.ProtectedDir{Path: d.GetPath(), Realm: d.GetRealm()}
+				for _, u := range d.GetUsers() {
+					pd.Users = append(pd.Users, agent.HtUser{Name: u.GetName(), Hash: u.GetHash()})
+				}
+				vh.Web.ProtectedDirs = append(vh.Web.ProtectedDirs, pd)
+			}
 			for _, r := range w.GetCacheRules() {
 				vh.Web.CacheRules = append(vh.Web.CacheRules, agent.CacheRule{Extensions: r.GetExts(), Days: int(r.GetDays())})
 			}

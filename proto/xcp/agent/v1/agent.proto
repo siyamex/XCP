@@ -384,6 +384,18 @@ message WebOptions {
   repeated string blocked = 6;  // addresses and networks refused
   bool compress = 7;
   repeated CacheRule cache_rules = 8;
+  repeated ProtectedDir protected_dirs = 9;
+}
+
+message ProtectedDir {
+  string path = 1;
+  string realm = 2;
+  repeated HtUser users = 3;
+}
+
+message HtUser {
+  string name = 1;
+  string hash = 2;  // bcrypt
 }
 
 message CacheRule {

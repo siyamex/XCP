@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError, api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
+import { ProtectedDirsCard } from "./ProtectedDirsCard";
 import { WebSettingsCard } from "./WebSettingsCard";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
@@ -63,6 +64,7 @@ export function DomainsPanel({ accountId }: { accountId: string }) {
       <DomainList domains={list} onStarted={started} />
       <AddDomain accountId={accountId} domains={list} onStarted={started} />
       <WebSettingsCard domains={list} onStarted={started} />
+      <ProtectedDirsCard domains={list} onStarted={started} />
       {redirects.data && <Redirects domains={list} redirects={redirects.data.items} onStarted={started} />}
     </>
   );

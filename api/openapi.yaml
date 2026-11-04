@@ -912,6 +912,43 @@ paths:
               schema: { $ref: "#/components/schemas/WebSettings" }
         "400": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
+  /domains/{id}/protected-dirs:
+    put:
+      tags: [domains]
+      summary: Replace the password-protected folders of a domain
+      description: Users with a password get a new one; users without keep their password. Password hashes are never returned.
+      operationId: putProtectedDirs
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [dirs]
+              properties:
+                dirs:
+                  type: array
+                  items:
+                    type: object
+                    required: [path, realm, users]
+                    properties:
+                      path: { type: string, description: A folder below the document root, like /private }
+                      realm: { type: string, description: The title of the password prompt }
+                      users:
+                        type: array
+                        items: { type: object, required: [name], properties: { name: { type: string }, password: { type: string } } }
+      responses:
+        "202":
+          description: Saved; a job applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebSettings" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /redirects/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -3348,7 +3385,7 @@ components:
         panel_port: { type: integer }
     WebSettings:
       type: object
-      required: [error_pages, hotlink, blocked, compress, cache_rules]
+      required: [error_pages, hotlink, blocked, compress, cache_rules, protected_dirs]
       properties:
         error_pages: { type: object, additionalProperties: { type: string }, description: "Status code (400, 401, 403, 404, 500, 502, 503) to the URL path of the page, like /errors/404.html" }
         hotlink:
@@ -3360,6 +3397,15 @@ components:
             extensions: { type: array, items: { type: string }, description: Protected file types }
             allow_empty: { type: boolean, description: Requests without a referrer pass }
         blocked: { type: array, items: { type: string }, description: Addresses and networks that get 403 }
+        protected_dirs:
+          type: array
+          items:
+            type: object
+            required: [path, realm, users]
+            properties:
+              path: { type: string }
+              realm: { type: string }
+              users: { type: array, items: { type: object, required: [name], properties: { name: { type: string } } } }
         compress: { type: boolean }
         cache_rules:
           type: array

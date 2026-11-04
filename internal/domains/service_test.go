@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -411,5 +412,63 @@ func TestVerificationStopsTakeover(t *testing.T) {
 	}
 	if !slices.Contains(names, "shop.example.com") || !slices.Contains(names, "admin.example.com") {
 		t.Fatalf("bob's domains = %v", names)
+	}
+}
+
+func TestProtectedDirs(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice", "alice.example")
+	list, err := e.svc.List(ctx, user, a.ID)
+	if err != nil || len(list) == 0 {
+		t.Fatal(list, err)
+	}
+	dm := list[0]
+	var ws domains.WebSettings
+	in := []domains.ProtectedInput{{Path: "/private", Realm: "Staff", Users: []struct {
+		Name     string `json:"name"`
+		Password string `json:"password"`
+	}{{Name: "amy", Password: "a long enough password"}}}}
+	ws, err = e.svc.SetProtectedDirs(ctx, client, user, dm.ID, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ws.ProtectedDirs) != 1 || ws.ProtectedDirs[0].Users[0].Hash != "" {
+		t.Errorf("the API shows a hash: %+v", ws.ProtectedDirs)
+	}
+	raw, _ := e.db.DomainWeb(ctx, dm.ID)
+	if !strings.Contains(raw, "$2a$10$") || strings.Contains(raw, "a long enough password") {
+		t.Errorf("stored: %s", raw)
+	}
+	// A user without a password keeps the hash; a new one needs a password.
+	in[0].Users[0].Password = ""
+	if _, err := e.svc.SetProtectedDirs(ctx, client, user, dm.ID, in); err != nil {
+		t.Errorf("keeping a password: %v", err)
+	}
+	raw2, _ := e.db.DomainWeb(ctx, dm.ID)
+	if raw2 != raw {
+		t.Error("the hash changed without a new password")
+	}
+	in[0].Users = append(in[0].Users, struct {
+		Name     string `json:"name"`
+		Password string `json:"password"`
+	}{Name: "bob"})
+	if _, err := e.svc.SetProtectedDirs(ctx, client, user, dm.ID, in); err == nil {
+		t.Error("a new user without a password")
+	}
+	// The general form leaves the folders alone.
+	if _, err := e.svc.SetWebSettings(ctx, client, user, dm.ID, agent.WebOptions{Compress: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := e.svc.WebSettings(ctx, user, dm.ID); len(got.ProtectedDirs) != 1 || !got.Compress {
+		t.Errorf("after the general form: %+v", got)
+	}
+	// And the site request carries them to the agent.
+	acct, _ := e.db.AccountByID(ctx, a.ID)
+	req, err := e.svc.SiteRequest(ctx, acct, plans.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := req.GetVhosts()[0].GetWeb(); len(w.GetProtectedDirs()) != 1 || w.GetProtectedDirs()[0].GetUsers()[0].GetHash() == "" {
+		t.Errorf("request: %+v", w)
 	}
 }

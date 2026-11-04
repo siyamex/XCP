@@ -96,6 +96,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Run: runner, Services: agent.Systemctl{Run: runner}, HomesRoot: cfg.Paths.HomesRoot,
 			VhostDir: "/etc/apache2/xcp/vhosts", WildcardDir: "/etc/apache2/xcp/wildcards", PHPDir: "/etc/php",
 			CertDir:      "/etc/xcp/ssl/sites",
+			AuthFileDir:  "/etc/xcp/webauth",
 			SuspendedDir: "/var/www/xcp-suspended",
 			LogDir:       "/var/log/apache2/xcp", WebUser: "www-data",
 		},
