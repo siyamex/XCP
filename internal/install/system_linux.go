@@ -238,7 +238,7 @@ func (s *LinuxSystem) InstallDatabaseServer(ctx context.Context) (bool, error) {
 		}
 		pkgs := []string{"mariadb-server", "php-mysql", "php-mbstring", "php-xml"}
 		if _, err := s.run.Run(ctx, execx.Cmd{
-			Path: aptGetPath, Args: append(append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
+			Path: aptGetPath, Args: append(append(lock, "install", "-y", "-q", "--no-install-recommends"), pkgs...),
 			Env: env, Timeout: 30 * time.Minute,
 		}); err != nil {
 			return false, fmt.Errorf("apt-get install %s: %w", strings.Join(pkgs, " "), err)

@@ -328,7 +328,7 @@ func TestFirstInstall(t *testing.T) {
 		}
 	}
 	want := []string{
-		"useradd xcp", "base install", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service xcp-logd.service",
+		"useradd xcp", "base install", "systemctl daemon-reload", "systemctl enable --now xcp-agent.service xcp-api.service xcp-logd.service xcp-firewall.service",
 		"systemctl restart xcp-agent.service xcp-api.service xcp-logd.service", "health", "web install", "a2ensite xcp",
 		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service",
 		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",

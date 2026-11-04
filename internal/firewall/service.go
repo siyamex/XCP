@@ -186,6 +186,13 @@ func (s *Service) BanIP(ctx context.Context, c auth.Client, p *auth.Principal, i
 	if ip.IsLoopback() || ip.IsUnspecified() || ip.String() == c.IP {
 		return Ban{}, &validate.Error{Field: "ip", Code: validate.CodeFormat, Message: "not this server and not your own address"}
 	}
+	cfg, err := fwcfg.Load(ctx, s.db, s.PanelPort)
+	if err != nil {
+		return Ban{}, err
+	}
+	if fwcfg.Contains(fwcfg.Cidrs(cfg.Allow), ip) {
+		return Ban{}, &validate.Error{Field: "ip", Code: validate.CodeFormat, Message: "this address is on the allow list"}
+	}
 	if in.Minutes < 0 || in.Minutes > 525600 {
 		return Ban{}, &validate.Error{Field: "minutes", Code: validate.CodeOutOfRange, Message: "0 (for good) to 525600"}
 	}

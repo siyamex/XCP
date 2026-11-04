@@ -3,6 +3,7 @@ package agent
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -237,6 +238,7 @@ func (b *Backups) RestoreHome(ctx context.Context, username, file string) (int64
 		return 0, err
 	}
 	defer closeArchive()
+	removePlaceholders(home)
 	pr, pw := io.Pipe()
 	type filtered struct {
 		n   int64
@@ -346,4 +348,36 @@ func stripDefiners(dst io.Writer, src io.Reader) error {
 			midLine = false
 		}
 	}
+}
+
+// removePlaceholders deletes the placeholder pages that creating the
+// account just wrote, so they do not hide the restored site's own index
+// file (Apache serves index.html before index.php). Only a file that is
+// still exactly such a page goes, and only in the folders up to two levels
+// below the home folder.
+func removePlaceholders(home string) {
+	root, err := fsx.OpenRoot(home)
+	if err != nil {
+		return
+	}
+	defer root.Close()
+	var visit func(dir string, depth int)
+	visit = func(dir string, depth int) {
+		ents, err := root.ReadDir(dir)
+		if err != nil {
+			return
+		}
+		for _, e := range ents {
+			rel := path.Join(dir, e.Name())
+			switch {
+			case e.Type().IsRegular() && e.Name() == "index.html":
+				if data, err := root.ReadFile(rel, 1024); err == nil && bytes.Contains(data, []byte("is hosted with XCP.")) {
+					_ = root.Remove(rel)
+				}
+			case e.IsDir() && depth < 2:
+				visit(rel, depth+1)
+			}
+		}
+	}
+	visit(".", 0)
 }

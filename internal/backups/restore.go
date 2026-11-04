@@ -160,8 +160,11 @@ func (s *Service) restoreJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) 
 	var af AccountFile
 	dec := json.NewDecoder(bytes.NewReader(plan.GetAccountJson()))
 	dec.UseNumber()
-	if err := dec.Decode(&af); err != nil || af.Format != 1 {
-		return nil, jobs.Permanent(fmt.Errorf("account.json is not format 1: %v", err))
+	if err := dec.Decode(&af); err != nil {
+		return nil, jobs.Permanent(fmt.Errorf("account.json: %w", err))
+	}
+	if af.Format != 1 {
+		return nil, jobs.Permanent(fmt.Errorf("account.json is format %d, not 1", af.Format))
 	}
 	pkgID, err := s.packageFor(ctx, af.Package, p.PackageID)
 	if err != nil {

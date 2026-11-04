@@ -38,7 +38,7 @@ type Service struct {
 	Now     func() time.Time
 
 	applyAll  func(ctx context.Context, by string) (int, error)
-	setLimits func(idle, max time.Duration)
+	setLimits func(idle, lifetime time.Duration)
 
 	mu      sync.Mutex
 	updInfo UpdateInfo
@@ -52,7 +52,7 @@ func NewService(db *store.DB, rec *audit.Recorder, ag agentrpc.Client, zs *zones
 
 // SetHooks connects what a changed setting must reach: applying every
 // account again (PHP settings) and the panel's session limits.
-func (s *Service) SetHooks(applyAll func(ctx context.Context, by string) (int, error), setLimits func(idle, max time.Duration)) {
+func (s *Service) SetHooks(applyAll func(ctx context.Context, by string) (int, error), setLimits func(idle, lifetime time.Duration)) {
 	s.applyAll, s.setLimits = applyAll, setLimits
 }
 

@@ -171,6 +171,8 @@ php_admin_value[upload_tmp_dir] = /home/demo1/tmp
 php_admin_value[session.save_path] = /home/demo1/tmp
 php_admin_value[sys_temp_dir] = /home/demo1/tmp
 php_admin_flag[allow_url_include] = off
+php_admin_value[upload_max_filesize] = 64M
+php_admin_value[post_max_size] = 72M
 `
 	if got != want {
 		t.Fatalf("pool:\n%s\nwant:\n%s", got, want)

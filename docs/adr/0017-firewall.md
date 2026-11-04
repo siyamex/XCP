@@ -50,9 +50,9 @@ themselves out by accident.
   failures; Dovecot auth failures with `rip=`; pure-ftpd "Authentication
   failed" with the client address) and the panel's refused sign-ins from the
   audit log (after the last event read). A sliding window per address counts
-  them; at the threshold (default 5 in 10 minutes) the address is banned for
+  them; at the threshold (default 10 in 10 minutes) the address is banned for
   a time (default 60 minutes), and for good after N earlier bans (default
-  3). The configuration decides which sources count. Allow-listed and
+  5). The configuration decides which sources count. Allow-listed and
   loopback addresses are never banned.
 - **IP access control** (ADM-SEC-03): `restrict` lists networks per service
   (`panel`, `ssh`, `ftp`); only they reach it. Empty: everyone.

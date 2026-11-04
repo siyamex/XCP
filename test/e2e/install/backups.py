@@ -136,9 +136,19 @@ st2, r2 = api("GET", "/server/backups/schedule")
 check(st == 200 and r2 == sched, "the admin sets the schedule", f"{st} {r2}")
 api("PUT", "/server/backups/schedule", {**sched, "enabled": False})
 
-# Termination removes the backups.
+# Backups outlive the account (ADR-0015): they are listed as the backups of removed accounts.
 for name, id_ in ids.items():
     st, t = api("POST", f"/accounts/{id_}/terminate", {"confirm": name})
     wait_job(t["job_id"])
-check(not os.path.exists(DIR), "terminating the account removes its backups")
+check(os.path.isdir(DIR) and len(os.listdir(DIR)) > 0, "terminating the account keeps its backups")
+st, orph = api("GET", "/server/backups")
+check(st == 200 and any(o["username"] == "bak1" for o in orph.get("orphans", orph.get("items", []))), "they are listed as the backups of a removed account", f"{st} {str(orph)[:200]}")
+st, r = user.call("GET", "/server/backups")
+check(st in (401, 403), "a user cannot list them", f"{st}")
+# Clean up what this test left.
+subprocess.run(["rm", "-rf", DIR], check=True)
+import sqlite3
+_db = sqlite3.connect("/var/lib/xcp/xcp.db")
+_db.execute("DELETE FROM backups WHERE account_id IS NULL AND username LIKE 'bak%'")
+_db.commit()
 finish()

@@ -217,7 +217,14 @@ func TestManualBackups(t *testing.T) {
 	if _, err := e.accts.Terminate(ctx, client, e.admin, a.ID, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return len(e.fake.Backups("alice")) == 0 })
+	// Backups outlive the account (ADR-0015): they are listed as orphans.
+	waitFor(t, func() bool {
+		orphans, err := e.svc.Orphans(ctx, e.admin)
+		return err == nil && len(orphans) > 0 && orphans[0].Username == "alice"
+	})
+	if len(e.fake.Backups("alice")) == 0 {
+		t.Error("alice's backup files were removed with the account")
+	}
 }
 
 func TestScheduledBackups(t *testing.T) {

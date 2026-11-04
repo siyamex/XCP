@@ -205,6 +205,9 @@ try:
         wait_job(fl["job_id"])
         ftp_upload("deploy@" + DOMAIN, {"index.php": index, "wp-content/uploads/data.bin": blob})
         check(open(f"{HOME}/public_html/wp-content/uploads/data.bin", "rb").read() == blob, "upload a site by FTP")
+        # A real site replaces the placeholder page, which Apache would serve before index.php.
+        if os.path.exists(f"{HOME}/public_html/index.html"):
+            os.remove(f"{HOME}/public_html/index.html")
 
         # 5. The site loads over HTTPS, with the ACME certificate (chain checked).
         ok, body = wait_site(DOMAIN, root, "42 acceptance-row")

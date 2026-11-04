@@ -15,8 +15,8 @@ import (
 	"github.com/siyamex/XCP/internal/store"
 )
 
-// Journal units whose failed logins xcp-logd counts (ADR-0017). Postfix's is
-// read for bandwidth too (Ingester.Unit).
+// BruteUnits are the journal units whose failed logins xcp-logd counts
+// (ADR-0017). Postfix's is read for bandwidth too (Ingester.Unit).
 var BruteUnits = []string{"ssh.service", "dovecot.service", "pure-ftpd.service"}
 
 // Failure is one refused login.
