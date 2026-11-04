@@ -167,7 +167,8 @@ for _ in range(20):  # the socket is there a moment after systemd starts it
     time.sleep(0.5)
 check(not isinstance(f, str), "logins work after xcp-ftpauth restarts", str(f))
 
-# Who is connected (ADR-0026).
+# Who is connected (ADR-0026). The suspension above ended the user's session.
+user.login("ftp1", PW)
 live = ftp("web@ftp1.xcp.test", "a brand new ftp password")
 sess = []
 for _ in range(10):
