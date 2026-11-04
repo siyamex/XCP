@@ -24,7 +24,7 @@ type APIToken struct {
 	LastUsedIP                string
 }
 
-const apiKeyColumns = `id, login_id, name, prefix, hash, scope, ip_allow, created_at, expires_at, last_used_at, last_used_ip`
+const apiRowColumns = `id, login_id, name, prefix, hash, scope, ip_allow, created_at, expires_at, last_used_at, last_used_ip` //nolint:gosec // G101: column names
 
 func scanToken(s scanner) (*APIToken, error) {
 	var t APIToken
@@ -50,7 +50,7 @@ func InsertToken(ctx context.Context, q querier, t *APIToken) error {
 	if t.ExpiresAt != nil {
 		expires = FormatTime(*t.ExpiresAt)
 	}
-	_, err := q.ExecContext(ctx, `INSERT INTO api_tokens (`+apiKeyColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '')`,
+	_, err := q.ExecContext(ctx, `INSERT INTO api_tokens (`+apiRowColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '')`,
 		t.ID, t.LoginID, t.Name, t.Prefix, t.Hash, t.Scope, t.IPAllow, FormatTime(t.CreatedAt), expires)
 	if uniqueViolation(err) {
 		return ErrConflict
@@ -60,7 +60,7 @@ func InsertToken(ctx context.Context, q querier, t *APIToken) error {
 
 // TokensOf lists a login's tokens, newest first.
 func (db *DB) TokensOf(ctx context.Context, loginID string) ([]APIToken, error) {
-	rows, err := db.R.QueryContext(ctx, `SELECT `+apiKeyColumns+` FROM api_tokens WHERE login_id = ? ORDER BY created_at DESC, id DESC`, loginID)
+	rows, err := db.R.QueryContext(ctx, `SELECT `+apiRowColumns+` FROM api_tokens WHERE login_id = ? ORDER BY created_at DESC, id DESC`, loginID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +78,12 @@ func (db *DB) TokensOf(ctx context.Context, loginID string) ([]APIToken, error) 
 
 // TokenByPrefix finds a token by its public prefix.
 func (db *DB) TokenByPrefix(ctx context.Context, prefix string) (*APIToken, error) {
-	return scanToken(db.R.QueryRowContext(ctx, `SELECT `+apiKeyColumns+` FROM api_tokens WHERE prefix = ?`, prefix))
+	return scanToken(db.R.QueryRowContext(ctx, `SELECT `+apiRowColumns+` FROM api_tokens WHERE prefix = ?`, prefix))
 }
 
 // TokenByID finds a token.
 func (db *DB) TokenByID(ctx context.Context, id string) (*APIToken, error) {
-	return scanToken(db.R.QueryRowContext(ctx, `SELECT `+apiKeyColumns+` FROM api_tokens WHERE id = ?`, id))
+	return scanToken(db.R.QueryRowContext(ctx, `SELECT `+apiRowColumns+` FROM api_tokens WHERE id = ?`, id))
 }
 
 // CountTokens counts a login's tokens.
