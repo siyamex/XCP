@@ -1988,6 +1988,9 @@ paths:
                 rbls: { type: array, items: { type: string } }
                 helo_checks: { type: boolean }
                 greylisting: { type: boolean }
+                spam_reject: { type: integer, minimum: 0, maximum: 100, description: "Rspamd refuses mail scoring this much; 0: 15" }
+                spam_allow: { type: array, items: { type: string }, description: Domains whose mail is trusted when it is signed or passes SPF }
+                spam_block: { type: array, items: { type: string }, description: Addresses and domains whose mail is spam }
       responses:
         "202":
           description: Saved; the job in `job_id` applies them.
@@ -4039,7 +4042,7 @@ components:
 
     MailSettings:
       type: object
-      required: [hostname, max_message_mb, relay_host, relay_user, has_relay_password, rbls, helo_checks, greylisting]
+      required: [hostname, max_message_mb, relay_host, relay_user, has_relay_password, rbls, helo_checks, greylisting, spam_reject, spam_allow, spam_block]
       properties:
         hostname: { type: string }
         max_message_mb: { type: integer }
@@ -4049,6 +4052,9 @@ components:
         rbls: { type: array, items: { type: string } }
         helo_checks: { type: boolean }
         greylisting: { type: boolean }
+        spam_reject: { type: integer, description: Rspamd refuses mail scoring this much }
+        spam_allow: { type: array, items: { type: string } }
+        spam_block: { type: array, items: { type: string } }
 
     FileEntry:
       type: object

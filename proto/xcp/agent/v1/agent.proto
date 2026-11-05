@@ -666,6 +666,9 @@ message MailSettingsApplyRequest {
   repeated string rbls = 6;
   bool helo_checks = 7;
   bool greylisting = 8;
+  int32 spam_reject = 9;
+  repeated string spam_allow = 10;
+  repeated string spam_block = 11;
 }
 
 message MailSettingsApplyResponse {

@@ -48,6 +48,7 @@ func mailSettingsFrom(req *agentv1.MailSettingsApplyRequest) agent.MailSettings 
 		Hostname: req.GetHostname(), MaxMessageMB: req.GetMaxMessageMb(), RelayHost: req.GetRelayHost(),
 		RelayUser: req.GetRelayUser(), RelayPassword: req.GetRelayPassword(), RBLs: req.GetRbls(),
 		HeloChecks: req.GetHeloChecks(), Greylisting: req.GetGreylisting(),
+		SpamReject: int(req.GetSpamReject()), SpamAllow: req.GetSpamAllow(), SpamBlock: req.GetSpamBlock(),
 	}
 }
 

@@ -995,6 +995,16 @@
       "allow": "Never treat as spam (an address or a pattern per line)",
       "block": "Always treat as spam",
       "saved": "Saved. The filter is being applied."
+    },
+    "serverSpam": {
+      "title": "Spam (the whole server)",
+      "hint": "Rspamd scores every message. Each mailbox decides what to do with spam; these settings are for the server.",
+      "reject": "Refuse mail scoring",
+      "rejectHint": "8 to 100. Mail at or above this is refused while it is still being sent; 15 is Rspamd's own limit.",
+      "allow": "Trusted domains",
+      "allowHint": "Mail from these domains counts as good, but only when it is signed (DKIM) or passes SPF, so a forged sender gets no credit.",
+      "block": "Blocked senders",
+      "blockHint": "Addresses or domains whose mail is always spam."
     }
   },
   "files": {

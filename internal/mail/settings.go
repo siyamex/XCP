@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/siyamex/XCP/internal/agent"
@@ -26,6 +27,9 @@ type Settings struct {
 	RBLs         []string `json:"rbls"`
 	HeloChecks   bool     `json:"helo_checks"`
 	Greylisting  bool     `json:"greylisting"`
+	SpamReject   int      `json:"spam_reject"` // Rspamd refuses mail scoring this much
+	SpamAllow    []string `json:"spam_allow"`  // domains whose signed mail is trusted
+	SpamBlock    []string `json:"spam_block"`  // addresses and domains whose mail is spam
 }
 
 // SettingsInput changes them; an empty relay password keeps the stored one.
@@ -38,6 +42,9 @@ type SettingsInput struct {
 	RBLs          []string `json:"rbls"`
 	HeloChecks    bool     `json:"helo_checks"`
 	Greylisting   bool     `json:"greylisting"`
+	SpamReject    int      `json:"spam_reject"`
+	SpamAllow     []string `json:"spam_allow"`
+	SpamBlock     []string `json:"spam_block"`
 }
 
 // stored is the settings as kept in the database.
@@ -50,6 +57,9 @@ type stored struct {
 	RBLs         []string `json:"rbls"`
 	HeloChecks   bool     `json:"helo_checks"`
 	Greylisting  bool     `json:"greylisting"`
+	SpamReject   int      `json:"spam_reject,omitempty"`
+	SpamAllow    []string `json:"spam_allow,omitempty"`
+	SpamBlock    []string `json:"spam_block,omitempty"`
 }
 
 const relayAD = "mail-relay-password"
@@ -84,6 +94,7 @@ func view(st stored) Settings {
 	return Settings{
 		Hostname: st.Hostname, MaxMessageMB: st.MaxMessageMB, RelayHost: st.RelayHost, RelayUser: st.RelayUser,
 		HasRelayPass: len(st.RelayPassEnc) > 0, RBLs: st.RBLs, HeloChecks: st.HeloChecks, Greylisting: st.Greylisting,
+		SpamReject: reject(st.SpamReject), SpamAllow: nonNil(st.SpamAllow), SpamBlock: nonNil(st.SpamBlock),
 	}
 }
 
@@ -109,6 +120,14 @@ func (s *Service) SaveSettings(ctx context.Context, c auth.Client, p *auth.Princ
 		Hostname: strings.ToLower(strings.TrimSpace(in.Hostname)), MaxMessageMB: in.MaxMessageMB,
 		RelayHost: strings.ToLower(strings.TrimSpace(in.RelayHost)), RelayUser: strings.TrimSpace(in.RelayUser),
 		RBLs: []string{}, HeloChecks: in.HeloChecks, Greylisting: in.Greylisting, RelayPassEnc: old.RelayPassEnc,
+		SpamReject: in.SpamReject,
+	}
+	var lerr error
+	if st.SpamAllow, lerr = cleanServerList("spam_allow", in.SpamAllow, true); lerr != nil {
+		return Settings{}, "", lerr
+	}
+	if st.SpamBlock, lerr = cleanServerList("spam_block", in.SpamBlock, false); lerr != nil {
+		return Settings{}, "", lerr
 	}
 	for _, r := range in.RBLs {
 		if r = strings.ToLower(strings.TrimSpace(r)); r != "" {
@@ -139,7 +158,8 @@ func (s *Service) SaveSettings(ctx context.Context, c auth.Client, p *auth.Princ
 	}
 	_ = s.audit.Record(ctx, event(c, p, "mail.settings", "", "server", "mail", map[string]any{
 		"hostname": st.Hostname, "max_message_mb": st.MaxMessageMB, "relay_host": st.RelayHost, "rbls": st.RBLs,
-		"helo_checks": st.HeloChecks, "greylisting": st.Greylisting,
+		"helo_checks": st.HeloChecks, "greylisting": st.Greylisting, "spam_reject": st.SpamReject,
+		"spam_allow": len(st.SpamAllow), "spam_block": len(st.SpamBlock),
 	}))
 	return view(st), jobID, nil
 }
@@ -148,6 +168,7 @@ func (s *Service) agentSettings(st stored) (agent.MailSettings, error) {
 	m := agent.MailSettings{
 		Hostname: st.Hostname, MaxMessageMB: st.MaxMessageMB, RelayHost: st.RelayHost, RelayUser: st.RelayUser,
 		RBLs: st.RBLs, HeloChecks: st.HeloChecks, Greylisting: st.Greylisting,
+		SpamReject: st.SpamReject, SpamAllow: st.SpamAllow, SpamBlock: st.SpamBlock,
 	}
 	if len(st.RelayPassEnc) > 0 {
 		pw, err := s.box.Open(st.RelayPassEnc, []byte(relayAD))
@@ -157,4 +178,46 @@ func (s *Service) agentSettings(st stored) (agent.MailSettings, error) {
 		m.RelayPassword = string(pw)
 	}
 	return m, nil
+}
+
+// cleanServerList normalises the global spam lists: domains for the allow
+// list, addresses and domains for the block list.
+func cleanServerList(field string, in []string, domainsOnly bool) ([]string, error) {
+	out := make([]string, 0, len(in))
+	for _, e := range in {
+		e = strings.ToLower(strings.TrimSpace(e))
+		if e == "" {
+			continue
+		}
+		var c string
+		var err error
+		if domainsOnly {
+			c, err = validate.Domain(e)
+		} else {
+			c, err = agent.CleanSpamSender(e)
+		}
+		if err != nil {
+			return nil, &validate.Error{Field: field, Code: validate.CodeFormat, Message: e + " is not " + map[bool]string{true: "a domain", false: "an address or a domain"}[domainsOnly]}
+		}
+		if !slices.Contains(out, c) {
+			out = append(out, c)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+// reject shows Rspamd's own limit for settings saved before it was one.
+func reject(n int) int {
+	if n == 0 {
+		return agent.DefaultSpamReject
+	}
+	return n
+}
+
+func nonNil(l []string) []string {
+	if l == nil {
+		return []string{}
+	}
+	return l
 }

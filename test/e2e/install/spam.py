@@ -169,6 +169,59 @@ if got:
     levels = [l for l in got.splitlines() if l.lower().startswith("x-spam-level")]
     check(len(levels) <= 1 and (not levels or levels[0].count("*") < 49), "the made-up X-Spam-Level is replaced by Rspamd's", str(levels))
 
+# Server-wide settings (ADR-0030): the block list and the score from which Rspamd refuses mail.
+def server_mail(**kw):
+    st, cur = api("GET", "/server/mail")
+    body = {k: v for k, v in cur.items() if k != "has_relay_password"}
+    body["relay_password"] = ""
+    body.update(kw)
+    st, r = api("PUT", "/server/mail", body)
+    if st == 202:
+        wait_job(r["job_id"])
+        return 200, r["settings"], cur
+    return st, r, cur
+
+
+def smtp_in(sender, subject):
+    """Hands a message to port 25; returns None when accepted, else the SMTP error."""
+    msg = EmailMessage()
+    msg["From"], msg["To"], msg["Subject"] = sender, ADDR, subject
+    msg.set_content("hello from the test\n")
+    try:
+        with smtplib.SMTP("127.0.0.1", 25, timeout=30) as c:
+            c.send_message(msg)
+        return None
+    except smtplib.SMTPException as e:
+        return e
+
+
+put(enabled=True, threshold=6, action="junk", allow=[], block=[])
+st, r, orig = server_mail()
+check(st == 200 and r["spam_reject"] == 15, "the server starts with Rspamd's own refusal score", f"{st} {r.get('spam_reject')}")
+for bad in ({"spam_reject": 3}, {"spam_reject": 500}, {"spam_allow": ["a@b.example"]}, {"spam_block": ["x y"]}):
+    st, _, _ = server_mail(**bad)
+    check(st == 400, f"bad server spam settings are refused {bad}", f"{st}")
+try:
+    st, r, _ = server_mail(spam_block=["Bad@Blocked.example", "evil.example"], spam_allow=["partner.example"])
+    check(st == 200 and r["spam_block"] == ["bad@blocked.example", "evil.example"] and r["spam_allow"] == ["partner.example"], "the lists are saved in lower case", f"{st} {r}")
+    time.sleep(3)  # Rspamd reloads its configuration
+    e = smtp_in("bad@blocked.example", "from a blocked sender")
+    check(isinstance(e, smtplib.SMTPException), "a blocked sender is refused at the score of 15", str(e))
+    e = smtp_in("nobody@evil.example", "from a blocked domain")
+    check(isinstance(e, smtplib.SMTPException), "so is a blocked domain", str(e))
+    st, r, _ = server_mail(spam_reject=100)
+    time.sleep(3)
+    e = smtp_in("bad@blocked.example", "blocked but not refused")
+    check(e is None, "with the refusal score at 100 the blocked sender is accepted", str(e))
+    for _ in range(30):
+        if has("Junk", "blocked but not refused"):
+            break
+        time.sleep(1)
+    check(has("Junk", "blocked but not refused"), "and its mail goes to the mailbox's Junk folder")
+    check(not has("INBOX", "blocked but not refused"), "not to the inbox")
+finally:
+    server_mail(spam_reject=15, spam_block=[], spam_allow=[])
+
 if os.environ.get("KEEP"):  # leave the accounts for a look at the server
     finish()
     sys.exit(0)

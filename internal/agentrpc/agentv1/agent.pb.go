@@ -4185,6 +4185,9 @@ type MailSettingsApplyRequest struct {
 	Rbls          []string               `protobuf:"bytes,6,rep,name=rbls,proto3" json:"rbls,omitempty"`
 	HeloChecks    bool                   `protobuf:"varint,7,opt,name=helo_checks,json=heloChecks,proto3" json:"helo_checks,omitempty"`
 	Greylisting   bool                   `protobuf:"varint,8,opt,name=greylisting,proto3" json:"greylisting,omitempty"`
+	SpamReject    int32                  `protobuf:"varint,9,opt,name=spam_reject,json=spamReject,proto3" json:"spam_reject,omitempty"`
+	SpamAllow     []string               `protobuf:"bytes,10,rep,name=spam_allow,json=spamAllow,proto3" json:"spam_allow,omitempty"`
+	SpamBlock     []string               `protobuf:"bytes,11,rep,name=spam_block,json=spamBlock,proto3" json:"spam_block,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4273,6 +4276,27 @@ func (x *MailSettingsApplyRequest) GetGreylisting() bool {
 		return x.Greylisting
 	}
 	return false
+}
+
+func (x *MailSettingsApplyRequest) GetSpamReject() int32 {
+	if x != nil {
+		return x.SpamReject
+	}
+	return 0
+}
+
+func (x *MailSettingsApplyRequest) GetSpamAllow() []string {
+	if x != nil {
+		return x.SpamAllow
+	}
+	return nil
+}
+
+func (x *MailSettingsApplyRequest) GetSpamBlock() []string {
+	if x != nil {
+		return x.SpamBlock
+	}
+	return nil
 }
 
 type MailSettingsApplyResponse struct {
@@ -8162,7 +8186,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x16MailQueueActionRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x10\n" +
 	"\x03ids\x18\x02 \x03(\tR\x03ids\"\x19\n" +
-	"\x17MailQueueActionResponse\"\x98\x02\n" +
+	"\x17MailQueueActionResponse\"\xf7\x02\n" +
 	"\x18MailSettingsApplyRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12$\n" +
 	"\x0emax_message_mb\x18\x02 \x01(\x03R\fmaxMessageMb\x12\x1d\n" +
@@ -8174,7 +8198,14 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x04rbls\x18\x06 \x03(\tR\x04rbls\x12\x1f\n" +
 	"\vhelo_checks\x18\a \x01(\bR\n" +
 	"heloChecks\x12 \n" +
-	"\vgreylisting\x18\b \x01(\bR\vgreylisting\"5\n" +
+	"\vgreylisting\x18\b \x01(\bR\vgreylisting\x12\x1f\n" +
+	"\vspam_reject\x18\t \x01(\x05R\n" +
+	"spamReject\x12\x1d\n" +
+	"\n" +
+	"spam_allow\x18\n" +
+	" \x03(\tR\tspamAllow\x12\x1d\n" +
+	"\n" +
+	"spam_block\x18\v \x03(\tR\tspamBlock\"5\n" +
 	"\x19MailSettingsApplyResponse\x12\x18\n" +
 	"\achanged\x18\x01 \x01(\bR\achanged\"P\n" +
 	"\x18MailWebmailSignonRequest\x12\x1a\n" +

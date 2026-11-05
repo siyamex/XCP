@@ -434,16 +434,20 @@ function SettingsCard() {
   const current = useQuery({ queryKey: ["mail-settings"], queryFn: () => unwrap(api.GET("/server/mail")), retry: false });
   const [form, setForm] = useState<SettingsInput>();
   const [rbls, setRbls] = useState("");
+  const [spamAllow, setSpamAllow] = useState("");
+  const [spamBlock, setSpamBlock] = useState("");
   useEffect(() => {
     if (current.data && !form) {
       setForm({ ...current.data, relay_password: "" });
       setRbls(current.data.rbls.join("\n"));
+      setSpamAllow(current.data.spam_allow.join("\n"));
+      setSpamBlock(current.data.spam_block.join("\n"));
     }
   }, [current.data, form]);
   const save = useMutation({
     mutationFn: () => {
       const { has_relay_password: _, ...rest } = form!;
-      return unwrap(api.PUT("/server/mail", { body: { ...rest, rbls: rbls.split(/\s+/).filter(Boolean) } }));
+      return unwrap(api.PUT("/server/mail", { body: { ...rest, rbls: rbls.split(/\s+/).filter(Boolean), spam_allow: spamAllow.split(/[\s,]+/).filter(Boolean), spam_block: spamBlock.split(/[\s,]+/).filter(Boolean) } }));
     },
     onSuccess: (r) => {
       setJobId(r.job_id);
@@ -483,6 +487,24 @@ function SettingsCard() {
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.helo_checks} onChange={(e) => setForm({ ...form, helo_checks: e.target.checked })} /> {t("email.heloChecks")}</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.greylisting} onChange={(e) => setForm({ ...form, greylisting: e.target.checked })} /> {t("email.greylisting")}</label>
         </div>
+        <fieldset className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <legend className="text-sm font-semibold">{t("email.serverSpam.title")}</legend>
+          <p className="text-sm text-slate-500">{t("email.serverSpam.hint")}</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field id="m-reject" label={t("email.serverSpam.reject")}>
+              <Input id="m-reject" type="number" min={8} max={100} value={form.spam_reject} onChange={(e) => setForm({ ...form, spam_reject: Number(e.target.value) })} />
+              <p className="text-xs text-slate-500">{t("email.serverSpam.rejectHint")}</p>
+            </Field>
+            <Field id="m-sallow" label={t("email.serverSpam.allow")}>
+              <textarea id="m-sallow" rows={3} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-900" placeholder="partner.example" value={spamAllow} onChange={(e) => setSpamAllow(e.target.value)} />
+              <p className="text-xs text-slate-500">{t("email.serverSpam.allowHint")}</p>
+            </Field>
+            <Field id="m-sblock" label={t("email.serverSpam.block")}>
+              <textarea id="m-sblock" rows={3} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-900" placeholder="spammer@bad.example" value={spamBlock} onChange={(e) => setSpamBlock(e.target.value)} />
+              <p className="text-xs text-slate-500">{t("email.serverSpam.blockHint")}</p>
+            </Field>
+          </div>
+        </fieldset>
         <ErrorAlert error={save.error} />
         <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>
       </form>

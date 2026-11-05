@@ -210,6 +210,7 @@ func (s *Service) settingsJob(ctx context.Context, _ *jobs.Job, r jobs.Reporter)
 	res, err := s.agent.MailSettingsApply(ctx, &agentv1.MailSettingsApplyRequest{
 		Hostname: m.Hostname, MaxMessageMb: m.MaxMessageMB, RelayHost: m.RelayHost, RelayUser: m.RelayUser,
 		RelayPassword: m.RelayPassword, Rbls: m.RBLs, HeloChecks: m.HeloChecks, Greylisting: m.Greylisting,
+		SpamReject: int32(m.SpamReject), SpamAllow: m.SpamAllow, SpamBlock: m.SpamBlock, //nolint:gosec // G115: 0..100
 	})
 	switch {
 	case status.Code(err) == codes.NotFound:

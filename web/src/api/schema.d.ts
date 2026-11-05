@@ -3162,6 +3162,10 @@ export interface components {
             rbls: string[];
             helo_checks: boolean;
             greylisting: boolean;
+            /** @description Rspamd refuses mail scoring this much */
+            spam_reject: number;
+            spam_allow: string[];
+            spam_block: string[];
         };
         FileEntry: {
             name: string;
@@ -5991,6 +5995,12 @@ export interface operations {
                     rbls?: string[];
                     helo_checks?: boolean;
                     greylisting?: boolean;
+                    /** @description Rspamd refuses mail scoring this much; 0: 15 */
+                    spam_reject?: number;
+                    /** @description Domains whose mail is trusted when it is signed or passes SPF */
+                    spam_allow?: string[];
+                    /** @description Addresses and domains whose mail is spam */
+                    spam_block?: string[];
                 };
             };
         };

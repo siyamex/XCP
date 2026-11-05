@@ -375,12 +375,18 @@ type MailSettings struct {
 	RBLs          []string `json:"rbls"`           // DNS block lists checked for incoming mail
 	HeloChecks    bool     `json:"helo_checks"`    // refuse senders without a valid HELO name
 	Greylisting   bool     `json:"greylisting"`    // Rspamd greylisting of unknown senders
+	SpamReject    int      `json:"spam_reject"`    // Rspamd refuses mail scoring this much; 0: 15
+	SpamAllow     []string `json:"spam_allow"`     // domains whose signed mail is trusted
+	SpamBlock     []string `json:"spam_block"`     // addresses and domains whose mail is spam
 }
 
 var relayRe = regexp.MustCompile(`^[a-z0-9.-]+(:[0-9]{1,5})?$`)
 
 // CheckMailSettings validates mail settings.
 func CheckMailSettings(s MailSettings) error {
+	if err := checkSpamSettings(s); err != nil {
+		return err
+	}
 	if n, err := validate.Domain(s.Hostname); err != nil || n != s.Hostname {
 		return invalid("mail host name %q is not a host name", s.Hostname)
 	}
@@ -822,6 +828,11 @@ func (m *Mail) render(ctx context.Context, s MailSettings) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	rSpam, err := m.writeSpamServer(s)
+	if err != nil {
+		return false, err
+	}
+	rHdr = rHdr || rSpam
 	for _, r := range []struct {
 		changed bool
 		unit    string
