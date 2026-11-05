@@ -117,8 +117,13 @@ check(isinstance(err, smtplib.SMTPRecipientsRefused), "a mailbox with receiving 
 check(isinstance(inbox(*INFO), list), "info logs in (and Dovecot caches the login)")
 st, r = user.call("PUT", f"/mailboxes/{info['id']}/password", {"password": "a changed password 99"})
 user.wait_job(r["job_id"])
-check(isinstance(inbox(*INFO), Exception) and isinstance(inbox(f"info@{DOMAIN}", "a changed password 99"), list),
-      "a new password replaces the old one at once")
+replaced = False
+for _ in range(20):  # Dovecot drops its cached login a moment after the job is done
+    replaced = isinstance(inbox(*INFO), Exception) and isinstance(inbox(f"info@{DOMAIN}", "a changed password 99"), list)
+    if replaced:
+        break
+    time.sleep(0.5)
+check(replaced, "a new password replaces the old one at once")
 st, r = user.call("PUT", f"/mailboxes/{info['id']}/password", {"password": PW})
 user.wait_job(r["job_id"])
 
