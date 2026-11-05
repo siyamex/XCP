@@ -592,6 +592,15 @@ message Mailbox {
   bool receive = 5;
   bool send = 6;
   MailAutoresponder autoresponder = 7;  // unset: none
+  MailSpamFilter spam = 8;              // unset: no spam script
+}
+
+message MailSpamFilter {
+  bool enabled = 1;
+  int32 threshold = 2;  // 1..50 stars
+  string action = 3;    // junk or delete
+  repeated string allow = 4;
+  repeated string block = 5;
 }
 
 message MailAutoresponder {

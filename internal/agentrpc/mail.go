@@ -24,6 +24,11 @@ func mailAccountFrom(req *agentv1.MailAccountApplyRequest) agent.MailAccount {
 				Local: m.GetLocal(), PasswordHash: m.GetPasswordHash(), QuotaMB: m.GetQuotaMb(),
 				Login: m.GetLogin(), Receive: m.GetReceive(), Send: m.GetSend(),
 			})
+			if sp := m.GetSpam(); sp != nil {
+				md.Mailboxes[len(md.Mailboxes)-1].Spam = &agent.SpamFilter{
+					Enabled: sp.GetEnabled(), Threshold: int(sp.GetThreshold()), Action: sp.GetAction(), Allow: sp.GetAllow(), Block: sp.GetBlock(),
+				}
+			}
 			if r := m.GetAutoresponder(); r != nil {
 				md.Mailboxes[len(md.Mailboxes)-1].Reply = &agent.Autoresponder{
 					Subject: r.GetSubject(), Body: r.GetBody(), Start: r.GetStart(), End: r.GetEnd(), Days: int(r.GetDays()),

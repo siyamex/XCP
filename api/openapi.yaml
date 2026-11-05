@@ -1720,6 +1720,43 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /mailboxes/{id}/spam:
+    get:
+      tags: [mail]
+      summary: The spam filter of a mailbox
+      operationId: getMailboxSpam
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailboxSpam" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [mail]
+      summary: Change the spam filter of a mailbox
+      description: Needs the spam_filter feature. Applied by a job.
+      operationId: putMailboxSpam
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MailboxSpam" }
+      responses:
+        "202":
+          description: Saved; a job applies it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailboxSpam" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /mailboxes/{id}/password:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -3587,6 +3624,16 @@ components:
         body: { type: string }
         custom: { type: boolean, description: "false: the built-in text, or the admin's for a reseller" }
         variables: { type: array, items: { type: string } }
+    MailboxSpam:
+      type: object
+      required: [enabled, threshold, action, allow, block]
+      properties:
+        enabled: { type: boolean }
+        threshold: { type: integer, minimum: 1, maximum: 50, description: "Mail scoring this many points or more is spam (the server marks 6 and above)" }
+        action: { type: string, enum: [junk, delete] }
+        allow: { type: array, items: { type: string }, description: "Senders that are never spam: addresses or patterns like *@example.com" }
+        block: { type: array, items: { type: string }, description: Senders that are always spam }
+        job_id: { type: string }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

@@ -7,6 +7,7 @@ import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { MailQueueCard } from "./MailQueueCard";
+import { SpamCard } from "./SpamCard";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { cn } from "../lib/cn";
 import { generatePassword } from "../lib/password";
@@ -63,6 +64,7 @@ export function AccountMail({ accountId }: { accountId: string }) {
       <JobNotice jobId={jobId} onDone={refresh} />
       <Mailboxes accountId={accountId} o={o} domains={own} onStarted={started} />
       <Forwarders accountId={accountId} o={o} domains={own} onStarted={started} />
+      {o.mailboxes.length > 0 && <SpamCard mailboxes={o.mailboxes.map((m) => ({ id: m.id, address: m.address }))} onStarted={started} />}
       <Card className="space-y-4">
         <CardTitle>{t("email.domains")}</CardTitle>
         {o.domains.map((d) => <DomainMail key={d.id} d={d} onStarted={started} />)}

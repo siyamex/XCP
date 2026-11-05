@@ -980,6 +980,21 @@
         "from": "From",
         "to": "To"
       }
+    },
+    "spam": {
+      "title": "Spam filter",
+      "hint": "Every message is scored when it arrives. Mail that scores at or above the limit is moved to the Junk folder or deleted. The server marks 6 and above as spam.",
+      "mailbox": "Mailbox",
+      "enabled": "Filter spam for this mailbox",
+      "threshold": "Spam from a score of",
+      "thresholdHint": "Lower catches more spam but also more good mail; higher lets more spam in. 6 suits most mailboxes.",
+      "action": "What to do with spam",
+      "junk": "Move to the Junk folder",
+      "delete": "Delete it",
+      "deleteWarning": "Deleted mail is gone for good and the sender is not told. Moving to Junk is safer.",
+      "allow": "Never treat as spam (an address or a pattern per line)",
+      "block": "Always treat as spam",
+      "saved": "Saved. The filter is being applied."
     }
   },
   "files": {

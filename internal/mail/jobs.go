@@ -67,6 +67,10 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 	if err != nil {
 		return nil, err
 	}
+	spam, err := store.AccountSpam(ctx, s.db.R, a.ID)
+	if err != nil {
+		return nil, err
+	}
 	replies, err := store.AccountAutoresponders(ctx, s.db.R, a.ID)
 	if err != nil {
 		return nil, err
@@ -108,6 +112,13 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 							Local: b.LocalPart, PasswordHash: b.PasswordHash, QuotaMb: b.QuotaMB,
 							Login: b.CanLogin && !suspended, Receive: b.CanReceive, Send: b.CanSend && !suspended,
 						})
+						sp, ok := spam[b.ID]
+						if !ok {
+							sp = store.DefaultSpam(b.ID)
+						}
+						md.Mailboxes[len(md.Mailboxes)-1].Spam = &agentv1.MailSpamFilter{
+							Enabled: sp.Enabled, Threshold: int32(sp.Threshold), Action: sp.Action, Allow: sp.Allow, Block: sp.Block, //nolint:gosec // G115: 1..50
+						}
 						if r, ok := replies[b.ID]; ok {
 							md.Mailboxes[len(md.Mailboxes)-1].Autoresponder = &agentv1.MailAutoresponder{
 								Subject: r.Subject, Body: r.Body, Start: r.StartDate, End: r.EndDate, Days: int32(r.Days), //nolint:gosec // G115: 1..30

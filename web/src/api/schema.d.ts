@@ -1172,6 +1172,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mailboxes/{id}/spam": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The spam filter of a mailbox */
+        get: operations["getMailboxSpam"];
+        /**
+         * Change the spam filter of a mailbox
+         * @description Needs the spam_filter feature. Applied by a job.
+         */
+        put: operations["putMailboxSpam"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/mailboxes/{id}/password": {
         parameters: {
             query?: never;
@@ -2760,6 +2781,18 @@ export interface components {
             /** @description false: the built-in text, or the admin's for a reseller */
             custom: boolean;
             variables: string[];
+        };
+        MailboxSpam: {
+            enabled: boolean;
+            /** @description Mail scoring this many points or more is spam (the server marks 6 and above) */
+            threshold: number;
+            /** @enum {string} */
+            action: "junk" | "delete";
+            /** @description Senders that are never spam: addresses or patterns like *@example.com */
+            allow: string[];
+            /** @description Senders that are always spam */
+            block: string[];
+            job_id?: string;
         };
         SettingItem: {
             key: string;
@@ -5606,6 +5639,59 @@ export interface operations {
             };
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    getMailboxSpam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailboxSpam"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    putMailboxSpam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailboxSpam"];
+            };
+        };
+        responses: {
+            /** @description Saved; a job applies it. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailboxSpam"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     setMailboxPassword: {

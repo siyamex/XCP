@@ -102,6 +102,7 @@ type Mailbox struct {
 	Receive      bool
 	Send         bool
 	Reply        *Autoresponder // nil: none
+	Spam         *SpamFilter    // nil: no script of its own for spam (ADR-0029)
 }
 
 // Autoresponder answers mail to a mailbox between two dates (ADR-0008).
@@ -325,8 +326,8 @@ func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 					extra += " nologin=y"
 				}
 				fmt.Fprintf(&passwd, "%s:%s:%d:%d::%s::%s\n", addr, m.PasswordHash, a.UID, a.GID, home, strings.TrimSpace(extra))
-				if m.Reply != nil {
-					sieve[d.Name+"/"+m.Local+".sieve"] = sieveFile{script: renderSieve(addr, *m.Reply), gid: a.GID}
+				if m.Reply != nil || m.Spam != nil {
+					sieve[d.Name+"/"+m.Local+".sieve"] = sieveFile{script: renderMailboxSieve(addr, m.Reply, m.Spam), gid: a.GID}
 				}
 				if m.Send {
 					fmt.Fprintf(&senders, "%s %s\n", addr, addr)
@@ -817,18 +818,51 @@ func (m *Mail) render(ctx context.Context, s MailSettings) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	rHdr, err := writeFile(filepath.Join(m.RspamdDir, "local.d"), "milter_headers.conf", RspamdMilterHeaders, 0o644, "")
+	if err != nil {
+		return false, err
+	}
 	for _, r := range []struct {
 		changed bool
 		unit    string
-	}{{pMain || pRelay, "postfix.service"}, {dSSL, "dovecot.service"}, {rGrey, "rspamd.service"}} {
+	}{{pMain || pRelay, "postfix.service"}, {dSSL, "dovecot.service"}, {rGrey || rHdr, "rspamd.service"}} {
 		if r.changed {
 			if err := m.Services.Do(ctx, r.unit, ActionReloadOrRestart); err != nil {
 				return true, err
 			}
 		}
 	}
-	return pMain || pRelay || dSSL || rGrey, nil
+	return pMain || pRelay || dSSL || rGrey || rHdr, nil
 }
+
+// RspamdMilterHeaders makes Rspamd put X-Spam-Level (one star per point of
+// score) and X-Spam-Status on every message, replacing any the sender made
+// up, for the mailboxes' spam filters (ADR-0029).
+const RspamdMilterHeaders = `# Managed by XCP (ADR-0029). Changes are overwritten.
+# remove-headers first: whatever X-Spam header a sender made up goes, whatever the score.
+use = ["remove-headers", "x-spam-level", "x-spam-status", "authentication-results"];
+authenticated_headers = ["authentication-results"];
+# Headers are added for local and signed-in senders too: a made-up X-Spam-Level must never reach a mailbox.
+skip_local = false;
+skip_authenticated = false;
+routines {
+  remove-headers {
+    headers {
+      "X-Spam" = 0;
+      "X-Spam-Level" = 0;
+      "X-Spam-Status" = 0;
+      "X-Spam-Flag" = 0;
+    }
+  }
+  x-spam-level {
+    header = "X-Spam-Level";
+    char = "*";
+  }
+  x-spam-status {
+    header = "X-Spam-Status";
+  }
+}
+`
 
 // MailRenderDefaults returns the files xcp-install writes before the panel
 // has applied any settings, so the installer and the agent agree.

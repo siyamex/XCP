@@ -15,7 +15,7 @@ import (
 // (its sites, pools, and the services attached). Raise it when a release
 // changes that output, so existing accounts get it too: for example 2,
 // account logs in vhost_combined format (ADR-0012).
-const RenderVersion = 2
+const RenderVersion = 3
 
 const renderVersionKey = "accounts.render_version"
 

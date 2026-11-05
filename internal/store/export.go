@@ -27,6 +27,7 @@ var AccountTables = []struct {
 	{"mail_domains", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
 	{"mailboxes", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
 	{"mail_forwarders", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
+	{"mailbox_spam", `mailbox_id IN (SELECT m.id FROM mailboxes m JOIN domains d ON d.id = m.domain_id WHERE d.account_id = ?)`},
 	{"mail_autoresponders", `mailbox_id IN (SELECT m.id FROM mailboxes m JOIN domains d ON d.id = m.domain_id WHERE d.account_id = ?)`},
 	{"ftp_accounts", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
 	{"cron_jobs", `account_id = ?`},

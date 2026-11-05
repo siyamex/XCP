@@ -230,6 +230,7 @@ func (in *installer) mail(ctx context.Context) error {
 		{rspamdLocal + "/dkim_signing.conf", rspamdDKIM, "rspamd.service", 0o644, rootRoot},
 		{rspamdLocal + "/redis.conf", rspamdRedis, "rspamd.service", 0o644, rootRoot},
 		{rspamdLocal + "/greylist.conf", greylist, "rspamd.service", 0o644, rootRoot},
+		{rspamdLocal + "/milter_headers.conf", agent.RspamdMilterHeaders, "rspamd.service", 0o644, rootRoot},
 	} {
 		wrote, err := in.writeFile(f.path, []byte(f.content), f.mode, f.own, false)
 		if err != nil {

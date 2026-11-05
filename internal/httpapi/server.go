@@ -196,6 +196,8 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/phpmyadmin", access: authed, roles: adminOrUser, h: s.phpMyAdminSignon},
 		{method: "GET", path: "/api/v1/server/mysql", access: authed, roles: adminOnly, h: s.mysqlStatus},
 		{method: "PUT", path: "/api/v1/server/mysql/root-password", access: authed, roles: adminOnly, h: s.setMySQLRootPassword},
+		{method: "GET", path: "/api/v1/mailboxes/{id}/spam", access: authed, roles: adminOrUser, h: s.getSpam},
+		{method: "PUT", path: "/api/v1/mailboxes/{id}/spam", access: authed, roles: adminOrUser, h: s.putSpam},
 		{method: "GET", path: "/api/v1/accounts/{id}/mail", access: authed, roles: adminOrUser, h: s.mailOverview},
 		{method: "POST", path: "/api/v1/accounts/{id}/mailboxes", access: authed, roles: adminOrUser, h: s.createMailbox},
 		{method: "PUT", path: "/api/v1/mailboxes/{id}", access: authed, roles: adminOrUser, h: s.updateMailbox},
