@@ -463,6 +463,8 @@ func renderMainCF(s MailSettings, cert, key string) string {
 	w("mua_client_restrictions", "permit_sasl_authenticated, reject")
 	w("mua_sender_restrictions", "check_sasl_access "+m("sasl_access")+", reject_authenticated_sender_login_mismatch, permit")
 	w("mua_relay_restrictions", "permit_sasl_authenticated, reject")
+	// The sending limit of the account (ADR-0028): ask xcp-mailpolicy at the end of each message.
+	w("mua_data_restrictions", "check_policy_service unix:/run/xcp-mailpolicy/policy.sock")
 	w("smtpd_sasl_authenticated_header", "no")
 	rcpt := []string{"check_recipient_access " + m("recipient_access"), "permit_mynetworks", "permit_sasl_authenticated", "reject_unauth_destination"}
 	for _, r := range s.RBLs {

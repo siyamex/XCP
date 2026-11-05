@@ -237,7 +237,7 @@ func (in *installer) mail(ctx context.Context) error {
 		}
 		changed[f.unit] = changed[f.unit] || wrote || installed
 	}
-	if err := in.o.Sys.Systemctl(ctx, "enable", "--now", "redis-server.service", "rspamd.service", "dovecot.service", "postfix.service"); err != nil {
+	if err := in.o.Sys.Systemctl(ctx, "enable", "--now", "redis-server.service", "rspamd.service", "dovecot.service", "xcp-mailpolicy.service", "postfix.service"); err != nil {
 		return err
 	}
 	for _, unit := range []string{"rspamd.service", "dovecot.service", "postfix.service"} {

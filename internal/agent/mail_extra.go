@@ -105,6 +105,9 @@ submission inet n       -       n       -       -       smtpd
   -o smtpd_sender_restrictions=$mua_sender_restrictions
   -o smtpd_relay_restrictions=$mua_relay_restrictions
   -o smtpd_recipient_restrictions=
+  -o smtpd_end_of_data_restrictions=$mua_data_restrictions
+  -o smtpd_policy_service_default_action=DUNNO
+  -o smtpd_policy_service_timeout=10s
   -o milter_macro_daemon_name=ORIGINATING
 smtps     inet  n       -       n       -       -       smtpd
   -o syslog_name=postfix/smtps
@@ -114,6 +117,9 @@ smtps     inet  n       -       n       -       -       smtpd
   -o smtpd_sender_restrictions=$mua_sender_restrictions
   -o smtpd_relay_restrictions=$mua_relay_restrictions
   -o smtpd_recipient_restrictions=
+  -o smtpd_end_of_data_restrictions=$mua_data_restrictions
+  -o smtpd_policy_service_default_action=DUNNO
+  -o smtpd_policy_service_timeout=10s
   -o milter_macro_daemon_name=ORIGINATING
 pickup    unix  n       -       n       60      1       pickup
 cleanup   unix  n       -       n       -       0       cleanup

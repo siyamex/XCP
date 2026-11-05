@@ -30,13 +30,14 @@ const ServiceUser = "xcp"
 
 // Binaries copied from Options.BinDir, with their install paths.
 var Binaries = map[string]string{
-	"xcp-agent":   "/usr/sbin/xcp-agent",
-	"xcp-api":     "/usr/sbin/xcp-api",
-	"xcpctl":      "/usr/bin/xcpctl",
-	"xcp-userd":   "/usr/sbin/xcp-userd",
-	"xcp-ftpauth": "/usr/sbin/xcp-ftpauth",
-	"xcp-cronrun": "/usr/sbin/xcp-cronrun",
-	"xcp-logd":    "/usr/sbin/xcp-logd",
+	"xcp-agent":      "/usr/sbin/xcp-agent",
+	"xcp-api":        "/usr/sbin/xcp-api",
+	"xcpctl":         "/usr/bin/xcpctl",
+	"xcp-userd":      "/usr/sbin/xcp-userd",
+	"xcp-ftpauth":    "/usr/sbin/xcp-ftpauth",
+	"xcp-cronrun":    "/usr/sbin/xcp-cronrun",
+	"xcp-logd":       "/usr/sbin/xcp-logd",
+	"xcp-mailpolicy": "/usr/sbin/xcp-mailpolicy",
 }
 
 // Well-known paths (without Options.Root).

@@ -333,7 +333,7 @@ func TestFirstInstall(t *testing.T) {
 		"dns install", "systemctl enable --now pdns.service", "systemctl restart pdns.service",
 		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
-		"mail install", "systemctl enable --now redis-server.service rspamd.service dovecot.service postfix.service",
+		"mail install", "systemctl enable --now redis-server.service rspamd.service dovecot.service xcp-mailpolicy.service postfix.service",
 		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart postfix.service",
 		"useradd xcp-rc", "download https://files.example/rc.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",

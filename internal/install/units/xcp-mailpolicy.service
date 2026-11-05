@@ -1,0 +1,48 @@
+[Unit]
+Description=XCP mail sending limits: Postfix policy service (per account, per hour)
+Documentation=https://github.com/siyamex/XCP/blob/main/docs/adr/0028-mail-send-limits.md
+After=xcp-api.service
+Before=postfix.service
+
+[Service]
+Type=simple
+User=xcp
+Group=xcp
+# postfix: the group that may connect to the socket (set by the daemon).
+SupplementaryGroups=postfix
+RuntimeDirectory=xcp-mailpolicy
+RuntimeDirectoryMode=0750
+ExecStart=/usr/sbin/xcp-mailpolicy --config /etc/xcp/xcp.toml
+Restart=always
+RestartSec=3s
+UMask=0027
+
+# It reads the panel database and answers on a socket: no network, no privileges.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/xcp
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
