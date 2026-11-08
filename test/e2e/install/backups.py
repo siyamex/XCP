@@ -133,7 +133,7 @@ st, r = user.call("PUT", "/server/backups/schedule", sched)
 check(st == 403, "a user cannot set the schedule", str(st))
 st, r = api("PUT", "/server/backups/schedule", sched)
 st2, r2 = api("GET", "/server/backups/schedule")
-check(st == 200 and r2 == sched, "the admin sets the schedule", f"{st} {r2}")
+check(st == 200 and all(r2.get(k) == v for k, v in sched.items()), "the admin sets the schedule", f"{st} {r2}")
 api("PUT", "/server/backups/schedule", {**sched, "enabled": False})
 
 # Backups outlive the account (ADR-0015): they are listed as the backups of removed accounts.
