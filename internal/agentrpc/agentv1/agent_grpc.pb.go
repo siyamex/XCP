@@ -75,6 +75,11 @@ const (
 	AgentService_ServerStatus_FullMethodName           = "/xcp.agent.v1.AgentService/ServerStatus"
 	AgentService_ServiceLog_FullMethodName             = "/xcp.agent.v1.AgentService/ServiceLog"
 	AgentService_BackupInspect_FullMethodName          = "/xcp.agent.v1.AgentService/BackupInspect"
+	AgentService_BackupRemoteTest_FullMethodName       = "/xcp.agent.v1.AgentService/BackupRemoteTest"
+	AgentService_BackupRemoteUpload_FullMethodName     = "/xcp.agent.v1.AgentService/BackupRemoteUpload"
+	AgentService_BackupRemoteList_FullMethodName       = "/xcp.agent.v1.AgentService/BackupRemoteList"
+	AgentService_BackupRemoteDelete_FullMethodName     = "/xcp.agent.v1.AgentService/BackupRemoteDelete"
+	AgentService_BackupRemoteFetch_FullMethodName      = "/xcp.agent.v1.AgentService/BackupRemoteFetch"
 	AgentService_BackupRestoreHome_FullMethodName      = "/xcp.agent.v1.AgentService/BackupRestoreHome"
 	AgentService_BackupRestoreDatabases_FullMethodName = "/xcp.agent.v1.AgentService/BackupRestoreDatabases"
 	AgentService_HostnameSet_FullMethodName            = "/xcp.agent.v1.AgentService/HostnameSet"
@@ -217,6 +222,17 @@ type AgentServiceClient interface {
 	// it returns the account.json and the database names. Nothing is written.
 	// INVALID_ARGUMENT: the backup is damaged or not of this account.
 	BackupInspect(ctx context.Context, in *BackupInspectRequest, opts ...grpc.CallOption) (*BackupInspectResponse, error)
+	// Remote destinations (ADR-0031). The spec (with its secrets) comes with each call; nothing is kept.
+	// BackupRemoteTest connects and writes a test file. For SFTP without a host_key it only reports the server's key.
+	BackupRemoteTest(ctx context.Context, in *BackupRemoteTestRequest, opts ...grpc.CallOption) (*BackupRemoteTestResponse, error)
+	// BackupRemoteUpload copies a local backup to the destination and checks its size there.
+	BackupRemoteUpload(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteSizeResponse, error)
+	// BackupRemoteList lists the backups at the destination (of one account, or all).
+	BackupRemoteList(ctx context.Context, in *BackupRemoteListRequest, opts ...grpc.CallOption) (*BackupRemoteListResponse, error)
+	// BackupRemoteDelete removes a backup from the destination.
+	BackupRemoteDelete(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteDeleteResponse, error)
+	// BackupRemoteFetch copies a backup from the destination into the server's backup folder of the account.
+	BackupRemoteFetch(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteSizeResponse, error)
 	// BackupRestoreHome unpacks the backup's home folder into the account's
 	// home, as the account's user.
 	BackupRestoreHome(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreHomeResponse, error)
@@ -716,6 +732,56 @@ func (c *agentServiceClient) BackupInspect(ctx context.Context, in *BackupInspec
 	return out, nil
 }
 
+func (c *agentServiceClient) BackupRemoteTest(ctx context.Context, in *BackupRemoteTestRequest, opts ...grpc.CallOption) (*BackupRemoteTestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoteTestResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoteTest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRemoteUpload(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteSizeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoteSizeResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoteUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRemoteList(ctx context.Context, in *BackupRemoteListRequest, opts ...grpc.CallOption) (*BackupRemoteListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoteListResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoteList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRemoteDelete(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteDeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoteDeleteResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoteDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) BackupRemoteFetch(ctx context.Context, in *BackupRemoteFileRequest, opts ...grpc.CallOption) (*BackupRemoteSizeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupRemoteSizeResponse)
+	err := c.cc.Invoke(ctx, AgentService_BackupRemoteFetch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentServiceClient) BackupRestoreHome(ctx context.Context, in *BackupRestoreRequest, opts ...grpc.CallOption) (*BackupRestoreHomeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BackupRestoreHomeResponse)
@@ -928,6 +994,17 @@ type AgentServiceServer interface {
 	// it returns the account.json and the database names. Nothing is written.
 	// INVALID_ARGUMENT: the backup is damaged or not of this account.
 	BackupInspect(context.Context, *BackupInspectRequest) (*BackupInspectResponse, error)
+	// Remote destinations (ADR-0031). The spec (with its secrets) comes with each call; nothing is kept.
+	// BackupRemoteTest connects and writes a test file. For SFTP without a host_key it only reports the server's key.
+	BackupRemoteTest(context.Context, *BackupRemoteTestRequest) (*BackupRemoteTestResponse, error)
+	// BackupRemoteUpload copies a local backup to the destination and checks its size there.
+	BackupRemoteUpload(context.Context, *BackupRemoteFileRequest) (*BackupRemoteSizeResponse, error)
+	// BackupRemoteList lists the backups at the destination (of one account, or all).
+	BackupRemoteList(context.Context, *BackupRemoteListRequest) (*BackupRemoteListResponse, error)
+	// BackupRemoteDelete removes a backup from the destination.
+	BackupRemoteDelete(context.Context, *BackupRemoteFileRequest) (*BackupRemoteDeleteResponse, error)
+	// BackupRemoteFetch copies a backup from the destination into the server's backup folder of the account.
+	BackupRemoteFetch(context.Context, *BackupRemoteFileRequest) (*BackupRemoteSizeResponse, error)
 	// BackupRestoreHome unpacks the backup's home folder into the account's
 	// home, as the account's user.
 	BackupRestoreHome(context.Context, *BackupRestoreRequest) (*BackupRestoreHomeResponse, error)
@@ -1097,6 +1174,21 @@ func (UnimplementedAgentServiceServer) ServiceLog(context.Context, *ServiceLogRe
 }
 func (UnimplementedAgentServiceServer) BackupInspect(context.Context, *BackupInspectRequest) (*BackupInspectResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BackupInspect not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoteTest(context.Context, *BackupRemoteTestRequest) (*BackupRemoteTestResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoteTest not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoteUpload(context.Context, *BackupRemoteFileRequest) (*BackupRemoteSizeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoteUpload not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoteList(context.Context, *BackupRemoteListRequest) (*BackupRemoteListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoteList not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoteDelete(context.Context, *BackupRemoteFileRequest) (*BackupRemoteDeleteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoteDelete not implemented")
+}
+func (UnimplementedAgentServiceServer) BackupRemoteFetch(context.Context, *BackupRemoteFileRequest) (*BackupRemoteSizeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BackupRemoteFetch not implemented")
 }
 func (UnimplementedAgentServiceServer) BackupRestoreHome(context.Context, *BackupRestoreRequest) (*BackupRestoreHomeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BackupRestoreHome not implemented")
@@ -1989,6 +2081,96 @@ func _AgentService_BackupInspect_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_BackupRemoteTest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoteTestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoteTest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoteTest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoteTest(ctx, req.(*BackupRemoteTestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRemoteUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoteUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoteUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoteUpload(ctx, req.(*BackupRemoteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRemoteList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoteListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoteList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoteList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoteList(ctx, req.(*BackupRemoteListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRemoteDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoteDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoteDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoteDelete(ctx, req.(*BackupRemoteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_BackupRemoteFetch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRemoteFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).BackupRemoteFetch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_BackupRemoteFetch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).BackupRemoteFetch(ctx, req.(*BackupRemoteFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentService_BackupRestoreHome_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BackupRestoreRequest)
 	if err := dec(in); err != nil {
@@ -2327,6 +2509,26 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BackupInspect",
 			Handler:    _AgentService_BackupInspect_Handler,
+		},
+		{
+			MethodName: "BackupRemoteTest",
+			Handler:    _AgentService_BackupRemoteTest_Handler,
+		},
+		{
+			MethodName: "BackupRemoteUpload",
+			Handler:    _AgentService_BackupRemoteUpload_Handler,
+		},
+		{
+			MethodName: "BackupRemoteList",
+			Handler:    _AgentService_BackupRemoteList_Handler,
+		},
+		{
+			MethodName: "BackupRemoteDelete",
+			Handler:    _AgentService_BackupRemoteDelete_Handler,
+		},
+		{
+			MethodName: "BackupRemoteFetch",
+			Handler:    _AgentService_BackupRemoteFetch_Handler,
 		},
 		{
 			MethodName: "BackupRestoreHome",

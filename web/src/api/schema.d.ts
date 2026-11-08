@@ -1973,6 +1973,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/backup-destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where copies of the backups are kept off the server */
+        get: operations["listBackupDestinations"];
+        put?: never;
+        /**
+         * Add a destination
+         * @description It is tested before it is saved. An SFTP server without a host_key is trusted on first use; the key it presented is returned (host_key_new) for the admin to check.
+         */
+        post: operations["createBackupDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backup-destinations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a destination
+         * @description Empty secrets keep the stored ones. It is tested again.
+         */
+        put: operations["updateBackupDestination"];
+        post?: never;
+        /** Forget a destination (its files stay) */
+        delete: operations["deleteBackupDestination"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backup-destinations/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect to a destination again */
+        post: operations["testBackupDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backup-destinations/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The backups a destination holds */
+        get: operations["listBackupDestinationFiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/backup-destinations/{id}/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring a backup from a destination to this server
+         * @description It appears with the backups (those of removed accounts can be restored).
+         */
+        post: operations["fetchBackupFromDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{id}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a backup to a destination */
+        post: operations["uploadBackupToDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/backups/schedule": {
         parameters: {
             query?: never;
@@ -2794,6 +2907,72 @@ export interface components {
             block: string[];
             job_id?: string;
         };
+        BackupDestinationInput: {
+            name: string;
+            /** @enum {string} */
+            kind: "folder" | "sftp" | "s3";
+            /** @description folder: an absolute folder on this server; sftp: the folder on the server; s3: a key prefix */
+            path?: string;
+            host?: string;
+            port?: number;
+            user?: string;
+            /** Format: password */
+            password?: string;
+            /** @description PEM */
+            private_key?: string;
+            /** @description SHA256:... fingerprint; empty: trust the server on first use */
+            host_key?: string;
+            /** @description host[:port]; empty: Amazon S3 */
+            endpoint?: string;
+            region?: string;
+            bucket?: string;
+            access_key?: string;
+            /** Format: password */
+            secret_key?: string;
+            use_tls?: boolean;
+        };
+        BackupDestination: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "folder" | "sftp" | "s3";
+            path: string;
+            host: string;
+            port: number;
+            user: string;
+            host_key: string;
+            endpoint: string;
+            region: string;
+            bucket: string;
+            access_key: string;
+            use_tls: boolean;
+            has_password: boolean;
+            has_private_key: boolean;
+            has_secret_key: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** @description The host key was just learned from the server, so check it */
+            host_key_new?: boolean;
+        };
+        RemoteBackupFile: {
+            username: string;
+            file: string;
+            size: number;
+            /** Format: date-time */
+            modified: string;
+            /** @description This server has a record of the backup */
+            on_server: boolean;
+        };
+        RemoteCopy: {
+            destination_id: string;
+            destination: string;
+            /** @enum {string} */
+            status: "running" | "ok" | "failed";
+            detail: string;
+            size: number;
+            /** Format: date-time */
+            at: string;
+        };
         SettingItem: {
             key: string;
             group: string;
@@ -2841,6 +3020,7 @@ export interface components {
             error?: string;
         };
         OrphanBackup: {
+            remote: components["schemas"]["RemoteCopy"][];
             id: string;
             username: string;
             kind: string;
@@ -2983,8 +3163,14 @@ export interface components {
             /** Format: date-time */
             finished_at: string | null;
             job_id?: string;
+            /** @description Copies at destinations (admins only) */
+            remote?: components["schemas"]["RemoteCopy"][];
         };
         BackupSchedule: {
+            /** @description Copy every scheduled backup to this destination; empty: nowhere */
+            destination_id: string;
+            /** @description Copies kept per account at the destination; 0: as many as keep */
+            remote_keep: number;
             enabled: boolean;
             /** @enum {string} */
             frequency: "daily" | "weekly" | "monthly";
@@ -7009,6 +7195,224 @@ export interface operations {
                     "application/zstd": string;
                 };
             };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listBackupDestinations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["BackupDestination"][];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    createBackupDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupDestinationInput"];
+            };
+        };
+        responses: {
+            /** @description Tested and saved. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDestination"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateBackupDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupDestinationInput"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDestination"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    deleteBackupDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    testBackupDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description It works. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    listBackupDestinationFiles: {
+        parameters: {
+            query?: {
+                /** @description Only this account */
+                username?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["RemoteBackupFile"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    fetchBackupFromDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    username: string;
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    uploadBackupToDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    destination_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };

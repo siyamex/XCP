@@ -193,6 +193,7 @@ func serve(args []string) error {
 	mails.RegisterJobs(worker)
 	ftps.RegisterJobs(worker)
 	crons.RegisterJobs(worker)
+	bks.UseBox(a.Box)
 	bks.RegisterJobs(worker)
 	fws.RegisterJobs(worker)
 	msgs.RegisterJobs(worker)

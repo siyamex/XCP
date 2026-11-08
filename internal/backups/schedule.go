@@ -19,6 +19,9 @@ type Schedule struct {
 	Weekday   int    `json:"weekday"`   // weekly: 0 (Sunday) - 6
 	Day       int    `json:"day"`       // monthly: 1-28
 	Keep      int    `json:"keep"`      // scheduled backups kept per account
+	// DestinationID: copy every scheduled backup there (empty: nowhere).
+	DestinationID string `json:"destination_id"`
+	RemoteKeep    int    `json:"remote_keep"` // copies kept per account at the destination; 0: as many as Keep
 }
 
 const (
@@ -78,12 +81,20 @@ func (s *Service) SetSchedule(ctx context.Context, c auth.Client, p *auth.Princi
 		return Schedule{}, badField("day", validate.CodeOutOfRange, "1 to 28, so every month has it")
 	case in.Keep < 1 || in.Keep > 90:
 		return Schedule{}, badField("keep", validate.CodeOutOfRange, "1 to 90")
+	case in.RemoteKeep < 0 || in.RemoteKeep > 365:
+		return Schedule{}, badField("remote_keep", validate.CodeOutOfRange, "0 (as many as kept here) to 365")
+	}
+	if in.DestinationID != "" {
+		if _, err := s.db.BackupDestinationByID(ctx, in.DestinationID); err != nil {
+			return Schedule{}, badField("destination_id", validate.CodeFormat, "no such destination")
+		}
 	}
 	if err := s.db.SetSetting(ctx, scheduleKey, in); err != nil {
 		return Schedule{}, err
 	}
 	return in, s.audit.Record(ctx, event(c, p, "backup.schedule.update", "", "", map[string]any{
 		"enabled": in.Enabled, "frequency": in.Frequency, "hour": in.Hour, "weekday": in.Weekday, "day": in.Day, "keep": in.Keep,
+		"destination_id": in.DestinationID, "remote_keep": in.RemoteKeep,
 	}))
 }
 

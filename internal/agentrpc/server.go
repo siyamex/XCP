@@ -29,6 +29,7 @@ type Server struct {
 	FTP        *agent.FTP
 	Cron       *agent.Cron
 	Backups    *agent.Backups
+	Remote     *agent.Remote
 	HostInfo   *agent.HostInfo
 	HostConfig *agent.HostConfig
 	MailQueue  *agent.MailQueue

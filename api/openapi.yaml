@@ -2651,6 +2651,144 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /server/backup-destinations:
+    get:
+      tags: [backups]
+      summary: Where copies of the backups are kept off the server
+      operationId: listBackupDestinations
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/BackupDestination" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [backups]
+      summary: Add a destination
+      description: It is tested before it is saved. An SFTP server without a host_key is trusted on first use; the key it presented is returned (host_key_new) for the admin to check.
+      operationId: createBackupDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupDestinationInput" }
+      responses:
+        "201":
+          description: Tested and saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackupDestination" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /server/backup-destinations/{id}:
+    put:
+      tags: [backups]
+      summary: Change a destination
+      description: Empty secrets keep the stored ones. It is tested again.
+      operationId: updateBackupDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupDestinationInput" }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackupDestination" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [backups]
+      summary: Forget a destination (its files stay)
+      operationId: deleteBackupDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Done. }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /server/backup-destinations/{id}/test:
+    post:
+      tags: [backups]
+      summary: Connect to a destination again
+      operationId: testBackupDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: It works. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /server/backup-destinations/{id}/files:
+    get:
+      tags: [backups]
+      summary: The backups a destination holds
+      operationId: listBackupDestinationFiles
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: username, in: query, required: false, schema: { type: string }, description: Only this account }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/RemoteBackupFile" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /server/backup-destinations/{id}/fetch:
+    post:
+      tags: [backups]
+      summary: Bring a backup from a destination to this server
+      description: It appears with the backups (those of removed accounts can be restored).
+      operationId: fetchBackupFromDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [username, file], properties: { username: { type: string }, file: { type: string } } }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { type: object, required: [job_id], properties: { job_id: { type: string } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /backups/{id}/upload:
+    post:
+      tags: [backups]
+      summary: Copy a backup to a destination
+      operationId: uploadBackupToDestination
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [destination_id], properties: { destination_id: { type: string } } }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { type: object, required: [job_id], properties: { job_id: { type: string } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /server/backups/schedule:
     get:
       tags: [backups]
@@ -3637,6 +3775,67 @@ components:
         allow: { type: array, items: { type: string }, description: "Senders that are never spam: addresses or patterns like *@example.com" }
         block: { type: array, items: { type: string }, description: Senders that are always spam }
         job_id: { type: string }
+    BackupDestinationInput:
+      type: object
+      additionalProperties: false
+      required: [name, kind]
+      properties:
+        name: { type: string }
+        kind: { type: string, enum: [folder, sftp, s3] }
+        path: { type: string, description: "folder: an absolute folder on this server; sftp: the folder on the server; s3: a key prefix" }
+        host: { type: string }
+        port: { type: integer }
+        user: { type: string }
+        password: { type: string, format: password }
+        private_key: { type: string, description: PEM }
+        host_key: { type: string, description: "SHA256:... fingerprint; empty: trust the server on first use" }
+        endpoint: { type: string, description: "host[:port]; empty: Amazon S3" }
+        region: { type: string }
+        bucket: { type: string }
+        access_key: { type: string }
+        secret_key: { type: string, format: password }
+        use_tls: { type: boolean }
+    BackupDestination:
+      type: object
+      required: [id, name, kind, path, host, port, user, host_key, endpoint, region, bucket, access_key, use_tls, has_password, has_private_key, has_secret_key, created_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [folder, sftp, s3] }
+        path: { type: string }
+        host: { type: string }
+        port: { type: integer }
+        user: { type: string }
+        host_key: { type: string }
+        endpoint: { type: string }
+        region: { type: string }
+        bucket: { type: string }
+        access_key: { type: string }
+        use_tls: { type: boolean }
+        has_password: { type: boolean }
+        has_private_key: { type: boolean }
+        has_secret_key: { type: boolean }
+        created_at: { type: string, format: date-time }
+        host_key_new: { type: boolean, description: "The host key was just learned from the server, so check it" }
+    RemoteBackupFile:
+      type: object
+      required: [username, file, size, modified, on_server]
+      properties:
+        username: { type: string }
+        file: { type: string }
+        size: { type: integer }
+        modified: { type: string, format: date-time }
+        on_server: { type: boolean, description: This server has a record of the backup }
+    RemoteCopy:
+      type: object
+      required: [destination_id, destination, status, detail, size, at]
+      properties:
+        destination_id: { type: string }
+        destination: { type: string }
+        status: { type: string, enum: [running, ok, failed] }
+        detail: { type: string }
+        size: { type: integer }
+        at: { type: string, format: date-time }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]
@@ -3696,8 +3895,9 @@ components:
 
     OrphanBackup:
       type: object
-      required: [id, username, kind, file, size, created_at]
+      required: [id, username, kind, file, size, created_at, remote]
       properties:
+        remote: { type: array, items: { $ref: "#/components/schemas/RemoteCopy" } }
         id: { type: string }
         username: { type: string }
         kind: { type: string }
@@ -3837,12 +4037,15 @@ components:
         created_at: { type: string, format: date-time }
         finished_at: { type: [string, "null"], format: date-time }
         job_id: { type: string }
+        remote: { type: array, items: { $ref: "#/components/schemas/RemoteCopy" }, description: Copies at destinations (admins only) }
 
     BackupSchedule:
       type: object
       additionalProperties: false
-      required: [enabled, frequency, hour, weekday, day, keep]
+      required: [enabled, frequency, hour, weekday, day, keep, destination_id, remote_keep]
       properties:
+        destination_id: { type: string, description: "Copy every scheduled backup to this destination; empty: nowhere" }
+        remote_keep: { type: integer, minimum: 0, maximum: 365, description: "Copies kept per account at the destination; 0: as many as keep" }
         enabled: { type: boolean }
         frequency: { type: string, enum: [daily, weekly, monthly] }
         hour: { type: integer, minimum: 0, maximum: 23, description: Server time }

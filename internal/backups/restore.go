@@ -38,12 +38,13 @@ func (s *Service) SetRestoreDeps(a Applier, z ZoneQueuer) { s.applier, s.zones =
 
 // Orphan is the backup of a removed account, as the admin sees it.
 type Orphan struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Kind      string    `json:"kind"`
-	File      string    `json:"file"`
-	Size      int64     `json:"size"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string       `json:"id"`
+	Username  string       `json:"username"`
+	Kind      string       `json:"kind"`
+	File      string       `json:"file"`
+	Size      int64        `json:"size"`
+	CreatedAt time.Time    `json:"created_at"`
+	Remote    []RemoteCopy `json:"remote"` // copies at destinations
 }
 
 // RestoreInput chooses the package of the restored account; empty: the
@@ -75,8 +76,9 @@ func (s *Service) Orphans(ctx context.Context, p *auth.Principal) ([]Orphan, err
 	}
 	out := make([]Orphan, 0, len(bs))
 	for _, b := range bs {
-		out = append(out, Orphan{ID: b.ID, Username: b.Username, Kind: b.Kind, File: b.File, Size: b.Size, CreatedAt: b.CreatedAt})
+		out = append(out, Orphan{ID: b.ID, Username: b.Username, Kind: b.Kind, File: b.File, Size: b.Size, CreatedAt: b.CreatedAt, Remote: []RemoteCopy{}})
 	}
+	s.attachOrphanRemote(ctx, out)
 	return out, nil
 }
 

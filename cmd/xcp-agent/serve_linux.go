@@ -77,6 +77,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		HomesRoot: cfg.Paths.HomesRoot, Log: log,
 	}
 	go crons.Loop(ctx)
+	backups := &agent.Backups{Run: runner, Dir: agent.BackupDir, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version}
 	agentv1.RegisterAgentServiceServer(gs, &agentrpc.Server{
 		Services: agent.Services{
 			Registry: agent.NewServiceRegistry(agent.UbuntuServices()),
@@ -111,7 +112,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			WebmailTickets: agent.WebmailTicketDir, WebmailUser: agent.WebmailUser,
 		},
 		Cron:    crons,
-		Backups: &agent.Backups{Run: runner, Dir: agent.BackupDir, HomesRoot: cfg.Paths.HomesRoot, Version: version.Version},
+		Backups: backups,
+		Remote:  &agent.Remote{Backups: backups},
 		FTP: &agent.FTP{
 			Binary: agent.FTPBinary, FragmentDir: agent.FTPFragmentDir, ConfFile: agent.FTPConfFile,
 			HomesRoot: cfg.Paths.HomesRoot, HostCert: hc, PanelCert: cfg.API.TLSCert, PanelKey: cfg.API.TLSKey,

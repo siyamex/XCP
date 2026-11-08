@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
+import { DestinationsCard, DestinationSelect, RemoteBadges } from "./BackupDestinations";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
@@ -22,7 +23,7 @@ export function BackupsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("backups.title")}</h1>
-      {me.data?.role === "admin" ? <><ScheduleCard /><RemovedAccounts /></>
+      {me.data?.role === "admin" ? <><ScheduleCard /><DestinationsCard /><RemovedAccounts /></>
         : me.data?.account_id ? <AccountBackups accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -87,6 +88,7 @@ function Row({ b, onChanged }: { b: Backup; onChanged: () => void }) {
         <td className="px-4 py-3">
           <span className={b.status === "failed" ? "text-red-700 dark:text-red-400" : ok ? "text-green-700 dark:text-green-400" : "text-slate-500"}>{t(`backups.${b.status}`)}</span>
           {b.detail && <div className="max-w-md break-words text-xs text-slate-500">{b.detail}</div>}
+          <RemoteBadges copies={b.remote} backupId={ok ? b.id : undefined} onChanged={onChanged} />
         </td>
         <td className="whitespace-nowrap px-4 py-3 text-right">
           {ok && <a className="mr-3 text-blue-700 hover:underline dark:text-blue-400" href={`/api/v1/backups/${b.id}/download`}>{t("backups.download")}</a>}
@@ -139,6 +141,17 @@ function ScheduleForm({ initial }: { initial: Schedule }) {
           <Field id="bk-hour" label={t("backups.hour")}><Input id="bk-hour" type="number" min={0} max={23} value={s.hour} onChange={num("hour")} /></Field>
           <Field id="bk-keep" label={t("backups.keep")}><Input id="bk-keep" type="number" min={1} max={90} value={s.keep} onChange={num("keep")} /></Field>
         </div>
+        <div className="flex flex-wrap items-end gap-4">
+          <Field id="bk-dest" label={t("backups.destination")}>
+            <DestinationSelect id="bk-dest" value={s.destination_id} onChange={(v) => setS({ ...s, destination_id: v })} none={t("backups.nowhere")} />
+          </Field>
+          {s.destination_id && (
+            <Field id="bk-rkeep" label={t("backups.remoteKeep")}>
+              <Input id="bk-rkeep" type="number" min={0} max={365} value={s.remote_keep} onChange={(e) => setS({ ...s, remote_keep: Number(e.target.value) })} />
+            </Field>
+          )}
+        </div>
+        {s.destination_id && <p className="text-sm text-slate-500">{t("backups.remoteHint")}</p>}
         <ErrorAlert error={save.error} />
         {save.isSuccess && <Alert kind="success">{t("common.saved")}</Alert>}
         <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>
@@ -185,7 +198,7 @@ function RemovedRow({ o }: { o: Orphan }) {
   return (
     <>
       <tr className="border-t border-slate-100 align-top dark:border-slate-800">
-        <td className="px-4 py-3 font-medium">{o.username}</td>
+        <td className="px-4 py-3 font-medium">{o.username}<RemoteBadges copies={o.remote} onChanged={done} /></td>
         <td className="whitespace-nowrap px-4 py-3">{new Date(o.created_at).toLocaleString()}</td>
         <td className="px-4 py-3">{formatBytes(o.size)}</td>
         <td className="whitespace-nowrap px-4 py-3 text-right">

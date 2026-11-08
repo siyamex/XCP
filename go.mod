@@ -10,6 +10,8 @@ require (
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/klauspost/compress v1.20.3
 	github.com/miekg/dns v1.1.73
+	github.com/minio/minio-go/v7 v7.0.80
+	github.com/pkg/sftp v1.13.7
 	github.com/robfig/cron/v3 v3.0.1
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.58.0
@@ -28,12 +30,18 @@ require (
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
+	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
+	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect

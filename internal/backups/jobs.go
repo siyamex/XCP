@@ -39,6 +39,8 @@ func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobCreate, 1, s.createJob)
 	w.Register(JobSchedule, 1, s.scheduleJob)
 	w.Register(JobRestore, 1, s.restoreJob)
+	w.Register(JobUpload, 2, s.uploadJob)
+	w.Register(JobFetch, 1, s.fetchJob)
 }
 
 // Schedule adds the hourly check of the backup schedule.
@@ -94,6 +96,12 @@ func (s *Service) createJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (
 	if b.Kind == store.BackupScheduled {
 		if err := s.prune(ctx, a); err != nil {
 			r.Logf("prune old backups: %v", err)
+		}
+		// A copy off the server, if the schedule says where.
+		if sched, err := s.schedule(ctx); err == nil && sched.DestinationID != "" {
+			if _, err := s.queueUpload(ctx, b, sched.DestinationID); err != nil {
+				r.Logf("queue the copy: %v", err)
+			}
 		}
 	}
 	return map[string]any{"file": b.File, "size": b.Size, "skipped": len(res.GetSkipped())}, nil

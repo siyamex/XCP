@@ -204,6 +204,18 @@ service AgentService {
   // INVALID_ARGUMENT: the backup is damaged or not of this account.
   rpc BackupInspect(BackupInspectRequest) returns (BackupInspectResponse);
 
+  // Remote destinations (ADR-0031). The spec (with its secrets) comes with each call; nothing is kept.
+  // BackupRemoteTest connects and writes a test file. For SFTP without a host_key it only reports the server's key.
+  rpc BackupRemoteTest(BackupRemoteTestRequest) returns (BackupRemoteTestResponse);
+  // BackupRemoteUpload copies a local backup to the destination and checks its size there.
+  rpc BackupRemoteUpload(BackupRemoteFileRequest) returns (BackupRemoteSizeResponse);
+  // BackupRemoteList lists the backups at the destination (of one account, or all).
+  rpc BackupRemoteList(BackupRemoteListRequest) returns (BackupRemoteListResponse);
+  // BackupRemoteDelete removes a backup from the destination.
+  rpc BackupRemoteDelete(BackupRemoteFileRequest) returns (BackupRemoteDeleteResponse);
+  // BackupRemoteFetch copies a backup from the destination into the server's backup folder of the account.
+  rpc BackupRemoteFetch(BackupRemoteFileRequest) returns (BackupRemoteSizeResponse);
+
   // BackupRestoreHome unpacks the backup's home folder into the account's
   // home, as the account's user.
   rpc BackupRestoreHome(BackupRestoreRequest) returns (BackupRestoreHomeResponse);
@@ -923,6 +935,59 @@ message ServiceLogResponse {
   string unit = 1;
   string text = 2;
 }
+
+message RemoteSpec {
+  string kind = 1;  // folder, sftp or s3
+  string path = 2;
+  string host = 3;
+  int32 port = 4;
+  string user = 5;
+  string password = 6;
+  string private_key = 7;
+  string host_key = 8;
+  string endpoint = 9;
+  string region = 10;
+  string bucket = 11;
+  string access_key = 12;
+  string secret_key = 13;
+  bool use_tls = 14;
+}
+
+message BackupRemoteTestRequest {
+  RemoteSpec spec = 1;
+}
+
+message BackupRemoteTestResponse {
+  string host_key = 1;
+}
+
+message BackupRemoteFileRequest {
+  RemoteSpec spec = 1;
+  string username = 2;
+  string file = 3;
+}
+
+message BackupRemoteSizeResponse {
+  int64 size = 1;
+}
+
+message BackupRemoteListRequest {
+  RemoteSpec spec = 1;
+  string username = 2;  // empty: every account
+}
+
+message RemoteObject {
+  string username = 1;
+  string file = 2;
+  int64 size = 3;
+  int64 modified_unix = 4;
+}
+
+message BackupRemoteListResponse {
+  repeated RemoteObject objects = 1;
+}
+
+message BackupRemoteDeleteResponse {}
 
 message BackupInspectRequest {
   string username = 1;

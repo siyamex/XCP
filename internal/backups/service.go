@@ -19,6 +19,7 @@ import (
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/plans"
+	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
 )
 
@@ -30,15 +31,16 @@ const MaxManual = 3
 
 // Backup is the API view of a backup.
 type Backup struct {
-	ID         string     `json:"id"`
-	Kind       string     `json:"kind"`   // manual or scheduled
-	Status     string     `json:"status"` // running, ok or failed
-	File       string     `json:"file"`
-	Size       int64      `json:"size"`
-	Detail     string     `json:"detail"`
-	CreatedAt  time.Time  `json:"created_at"`
-	FinishedAt *time.Time `json:"finished_at"`
-	JobID      string     `json:"job_id,omitempty"`
+	ID         string       `json:"id"`
+	Kind       string       `json:"kind"`   // manual or scheduled
+	Status     string       `json:"status"` // running, ok or failed
+	File       string       `json:"file"`
+	Size       int64        `json:"size"`
+	Detail     string       `json:"detail"`
+	CreatedAt  time.Time    `json:"created_at"`
+	FinishedAt *time.Time   `json:"finished_at"`
+	JobID      string       `json:"job_id,omitempty"`
+	Remote     []RemoteCopy `json:"remote,omitempty"` // copies at destinations (admins)
 }
 
 // Overview is everything the backups page shows.
@@ -59,6 +61,7 @@ type Service struct {
 
 	applier Applier
 	zones   ZoneQueuer
+	box     *secretbox.Box
 }
 
 // NewService returns a backups service.
@@ -134,6 +137,7 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 	for _, b := range bs {
 		o.Backups = append(o.Backups, view(b))
 	}
+	s.attachRemote(ctx, p, o.Backups)
 	return o, nil
 }
 

@@ -40,6 +40,7 @@ type Fake struct {
 	host      fakeHost
 	fw        fakeFirewall
 	mq        fakeQueue
+	remote    fakeRemote
 	hostName  string
 	hostCert  string
 }

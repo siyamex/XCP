@@ -183,3 +183,8 @@ func PackageInUse(ctx context.Context, q querier, packageID string) (int, error)
 	err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM accounts WHERE package_id = ?`, packageID).Scan(&n)
 	return n, err
 }
+
+// AccountByUsername returns the account with this name.
+func (db *DB) AccountByUsername(ctx context.Context, username string) (*Account, error) {
+	return scanAccount(db.R.QueryRowContext(ctx, `SELECT `+accountColumns+` FROM accounts WHERE username = ?`, username))
+}
