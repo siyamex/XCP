@@ -66,7 +66,6 @@ func TestTrashRestoreAndEmpty(t *testing.T) {
 	if _, err := f.Trash([]string{"public_html/css"}); err != nil {
 		t.Fatal(err)
 	}
-	list, _ = f.TrashList()
 	if err := os.RemoveAll(filepath.Join(dir, "docs")); err != nil {
 		t.Fatal(err)
 	}

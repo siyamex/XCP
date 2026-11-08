@@ -143,7 +143,7 @@ func Handler(f *FS, touch func()) http.Handler {
 		dir, err := f.Trash(in.Paths)
 		reply(w, map[string]string{"trash": dir}, err)
 	})
-	mux.HandleFunc("GET /v1/trash-list", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /v1/trash-list", func(w http.ResponseWriter, _ *http.Request) {
 		bs, err := f.TrashList()
 		reply(w, map[string]any{"batches": bs}, err)
 	})
