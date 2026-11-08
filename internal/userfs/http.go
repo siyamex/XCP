@@ -143,6 +143,31 @@ func Handler(f *FS, touch func()) http.Handler {
 		dir, err := f.Trash(in.Paths)
 		reply(w, map[string]string{"trash": dir}, err)
 	})
+	mux.HandleFunc("GET /v1/trash-list", func(w http.ResponseWriter, r *http.Request) {
+		bs, err := f.TrashList()
+		reply(w, map[string]any{"batches": bs}, err)
+	})
+	mux.HandleFunc("POST /v1/trash-restore", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			ID    string
+			Names []string
+		}
+		if err := body(r, &in); err != nil {
+			reply(w, nil, err)
+			return
+		}
+		res, err := f.TrashRestore(in.ID, in.Names)
+		reply(w, res, err)
+	})
+	mux.HandleFunc("POST /v1/trash-empty", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ IDs []string }
+		if err := body(r, &in); err != nil {
+			reply(w, nil, err)
+			return
+		}
+		n, err := f.TrashEmpty(in.IDs)
+		reply(w, map[string]int{"emptied": n}, err)
+	})
 	mux.HandleFunc("POST /v1/chmod", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Path      string

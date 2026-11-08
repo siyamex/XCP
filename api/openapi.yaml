@@ -3162,7 +3162,7 @@ paths:
   /accounts/{id}/files/{op}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
-      - { name: op, in: path, required: true, schema: { type: string, enum: [mkdir, rename, copy, trash, chmod, compress, extract] } }
+      - { name: op, in: path, required: true, schema: { type: string, enum: [mkdir, rename, copy, trash, trash-restore, trash-empty, chmod, compress, extract] } }
     post:
       tags: [files]
       summary: Change files
@@ -3171,6 +3171,10 @@ paths:
         them into ~/.trash); chmod {path, mode ("644"), recursive}; compress
         {paths, to, format: zip | tar.gz}; extract {path, to} (zip, tar,
         tar.gz, tgz, tar.zst, 7z, into a new folder). Nothing is ever replaced.
+        trash-restore {id, names?} puts items of one batch of the trash back where
+        they came from (all of them without names; what has something in its place
+        stays and is listed as a conflict); trash-empty {ids?} deletes batches for
+        good (all without ids).
       operationId: fileOp
       security: [{ sessionCookie: [], csrfHeader: [] }]
       requestBody:
@@ -3187,6 +3191,22 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/files/trash:
+    get:
+      tags: [files]
+      summary: What is in the trash (~/.trash), newest deletion first
+      operationId: listFilesTrash
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FilesTrash" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
 
   /accounts/{id}/files/search:
     parameters:
@@ -3836,6 +3856,28 @@ components:
         detail: { type: string }
         size: { type: integer }
         at: { type: string, format: date-time }
+    FilesTrash:
+      type: object
+      required: [batches]
+      properties:
+        batches:
+          type: array
+          items:
+            type: object
+            required: [id, time, items]
+            properties:
+              id: { type: string, description: What was deleted together }
+              time: { type: string, format: date-time }
+              items:
+                type: array
+                items:
+                  type: object
+                  required: [name, origin, type, size]
+                  properties:
+                    name: { type: string }
+                    origin: { type: string, description: "Where it was in the home folder; empty if not known" }
+                    type: { type: string, enum: [file, dir, link, other] }
+                    size: { type: integer }
     SettingItem:
       type: object
       required: [key, group, type, value, default, min, max, options]

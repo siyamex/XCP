@@ -211,9 +211,9 @@ func (s *Service) Stat(ctx context.Context, a *Account, path string) (userfs.Ent
 	return e, err
 }
 
-// Op is a change with a JSON body: mkdir, rename, copy, trash, chmod, compress, extract.
+// Op is a change with a JSON body: mkdir, rename, copy, trash, trash-restore, trash-empty, chmod, compress, extract.
 func (s *Service) Op(ctx context.Context, c auth.Client, a *Account, op string, in map[string]any) (any, error) {
-	if !slices.Contains([]string{"mkdir", "rename", "copy", "trash", "chmod", "compress", "extract"}, op) {
+	if !slices.Contains([]string{"mkdir", "rename", "copy", "trash", "trash-restore", "trash-empty", "chmod", "compress", "extract"}, op) {
 		return nil, store.ErrNotFound
 	}
 	var out any
@@ -222,6 +222,13 @@ func (s *Service) Op(ctx context.Context, c auth.Client, a *Account, op string, 
 	}
 	s.record(ctx, c, a, "files."+op, in)
 	return out, nil
+}
+
+// Trash lists what is in the trash.
+func (s *Service) Trash(ctx context.Context, a *Account) (any, error) {
+	var out any
+	err := s.do(ctx, a, http.MethodGet, "/v1/trash-list", nil, nil, &out)
+	return out, err
 }
 
 // Search finds names below a folder.

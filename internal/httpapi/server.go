@@ -281,6 +281,7 @@ func New(d Deps) *Server {
 		{method: "PUT", path: "/api/v1/accounts/{id}/files/upload", access: authed, roles: adminOrUser, h: s.uploadFile},
 		{method: "POST", path: "/api/v1/accounts/{id}/files/{op}", access: authed, roles: adminOrUser, h: s.fileOp},
 		{method: "GET", path: "/api/v1/accounts/{id}/files/search", access: authed, roles: adminOrUser, h: s.searchFiles},
+		{method: "GET", path: "/api/v1/accounts/{id}/files/trash", access: authed, roles: adminOrUser, h: s.filesTrash},
 		{method: "GET", path: "/api/v1/accounts/{id}/files/usage", access: authed, roles: adminOrUser, h: s.fileUsage},
 		{method: "GET", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.readFileText},
 		{method: "PUT", path: "/api/v1/accounts/{id}/files/text", access: authed, roles: adminOrUser, h: s.writeFileText},

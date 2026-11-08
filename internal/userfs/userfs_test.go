@@ -98,7 +98,7 @@ func TestBasicOperations(t *testing.T) {
 	}
 	u, err := f.DiskUsage("")
 	i := slices.IndexFunc(u.Children, func(e Entry) bool { return e.Name == "public_html" })
-	if err != nil || i < 0 || u.Children[i].Size != 18 || u.Total != 36 || u.Largest[0].Name != "index.php" {
+	if err != nil || i < 0 || u.Children[i].Size != 18 || u.Total != 61 || !slices.ContainsFunc(u.Largest, func(e Entry) bool { return e.Name == "index.php" }) {
 		t.Fatalf("usage: %+v %v", u, err)
 	}
 	if runtime.GOOS == "linux" {

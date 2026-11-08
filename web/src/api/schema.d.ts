@@ -2372,7 +2372,7 @@ export interface paths {
             header?: never;
             path: {
                 id: string;
-                op: "mkdir" | "rename" | "copy" | "trash" | "chmod" | "compress" | "extract";
+                op: "mkdir" | "rename" | "copy" | "trash" | "trash-restore" | "trash-empty" | "chmod" | "compress" | "extract";
             };
             cookie?: never;
         };
@@ -2384,8 +2384,29 @@ export interface paths {
          *     them into ~/.trash); chmod {path, mode ("644"), recursive}; compress
          *     {paths, to, format: zip | tar.gz}; extract {path, to} (zip, tar,
          *     tar.gz, tgz, tar.zst, 7z, into a new folder). Nothing is ever replaced.
+         *     trash-restore {id, names?} puts items of one batch of the trash back where
+         *     they came from (all of them without names; what has something in its place
+         *     stays and is listed as a conflict); trash-empty {ids?} deletes batches for
+         *     good (all without ids).
          */
         post: operations["fileOp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/files/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What is in the trash (~/.trash), newest deletion first */
+        get: operations["listFilesTrash"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2972,6 +2993,22 @@ export interface components {
             size: number;
             /** Format: date-time */
             at: string;
+        };
+        FilesTrash: {
+            batches: {
+                /** @description What was deleted together */
+                id: string;
+                /** Format: date-time */
+                time: string;
+                items: {
+                    name: string;
+                    /** @description Where it was in the home folder; empty if not known */
+                    origin: string;
+                    /** @enum {string} */
+                    type: "file" | "dir" | "link" | "other";
+                    size: number;
+                }[];
+            }[];
         };
         SettingItem: {
             key: string;
@@ -7954,7 +7991,7 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
-                op: "mkdir" | "rename" | "copy" | "trash" | "chmod" | "compress" | "extract";
+                op: "mkdir" | "rename" | "copy" | "trash" | "trash-restore" | "trash-empty" | "chmod" | "compress" | "extract";
             };
             cookie?: never;
         };
@@ -7978,6 +8015,30 @@ export interface operations {
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    listFilesTrash: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilesTrash"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     searchFiles: {

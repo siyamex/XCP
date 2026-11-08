@@ -437,15 +437,24 @@ func (f *FS) Trash(paths []string) (string, error) {
 	if err := f.root.Chmod(TrashDir, 0o700); err != nil {
 		return "", mapErr(err)
 	}
+	origins := map[string]string{}
+	remember := func() {
+		if len(origins) > 0 {
+			_ = f.writeOrigins(dir, origins) // best effort: without it the items just stay in the trash
+		}
+	}
 	for i, c := range clean {
 		name := path.Base(c)
 		if slices.ContainsFunc(clean[:i], func(o string) bool { return path.Base(o) == name }) {
 			name += "." + strconv.Itoa(i)
 		}
 		if err := f.root.Rename(c, dir+"/"+name); err != nil {
+			remember()
 			return dir, mapErr(err)
 		}
+		origins[name] = c
 	}
+	remember()
 	return dir, nil
 }
 

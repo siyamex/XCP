@@ -84,6 +84,19 @@ func (s *Server) uploadFile(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) filesTrash(w http.ResponseWriter, r *http.Request) error {
+	a, err := s.filesAccount(r)
+	if err != nil {
+		return err
+	}
+	out, err := s.Files.Trash(r.Context(), a)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, out)
+	return nil
+}
+
 func (s *Server) fileOp(w http.ResponseWriter, r *http.Request) error {
 	a, err := s.filesAccount(r)
 	if err != nil {

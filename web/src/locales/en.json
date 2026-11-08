@@ -1109,7 +1109,21 @@
     "largest": "Largest files",
     "partial": "The folder has too many files to count them all; sizes are partial.",
     "encoding": "Encoding",
-    "close": "Close"
+    "close": "Close",
+    "openTrash": "Trash",
+    "trashTitle": "Trash",
+    "closeTrash": "Close",
+    "trashHint": "What you delete is kept here until you delete it for good. Put it back and it returns to where it was; if something is there already, it stays in the trash.",
+    "trashEmpty": "The trash is empty.",
+    "emptyAll": "Empty the trash",
+    "confirmEmptyAll": "Delete everything in the trash for good? This cannot be undone.",
+    "confirmEmptyOne": "Delete these for good? This cannot be undone.",
+    "restore": "Put back",
+    "restoreAll": "Put all back",
+    "deleteForGood": "Delete for good",
+    "originUnknown": "Original place not known: goes to your home folder",
+    "folder": "folder",
+    "restoreConflicts": "Not put back, because something is there already: {{names}}"
   },
   "firewall": {
     "title": "Firewall",

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError, getCsrfToken, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
+import { TrashPanel } from "./TrashPanel";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { Alert, Button, Card, CardTitle, Input, Spinner } from "../components/ui";
 import { cn } from "../lib/cn";
@@ -74,6 +75,7 @@ export function FileManager({ accountId }: { accountId: string }) {
   const [editing, setEditing] = useState<string>();
   const [viewing, setViewing] = useState<string>();
   const [usage, setUsage] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [uploads, setUploads] = useState<{ name: string; size: number; done: number; error?: string }[]>([]);
   const [drag, setDrag] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -120,6 +122,7 @@ export function FileManager({ accountId }: { accountId: string }) {
 
   return (
     <div className="space-y-4">
+      {showTrash && <TrashPanel accountId={accountId} onClose={() => setShowTrash(false)} onChanged={refresh} />}
       <Card className="space-y-3">
         <nav aria-label={t("files.location")} className="flex flex-wrap items-center gap-1 text-sm">
           <button type="button" className="font-medium text-brand hover:underline" onClick={() => go("")}>{t("files.home")}</button>
@@ -133,6 +136,7 @@ export function FileManager({ accountId }: { accountId: string }) {
         <div className="flex flex-wrap gap-2">
           {dir && <Button variant="ghost" onClick={() => go(parent(dir))}>{t("files.up")}</Button>}
           <Button variant="secondary" onClick={() => setDialog({ kind: "mkdir" })}>{t("files.newFolder")}</Button>
+          <Button variant="ghost" onClick={() => setShowTrash(!showTrash)}>{t("files.openTrash")}</Button>
           <Button variant="secondary" onClick={() => setDialog({ kind: "newfile" })}>{t("files.newFile")}</Button>
           <Button variant="secondary" onClick={() => fileInput.current?.click()}>{t("files.upload")}</Button>
           <input ref={fileInput} type="file" multiple hidden onChange={(e) => {
