@@ -571,3 +571,29 @@ _dmarc IN TXT "v=DMARC1; p=none; rua=mailto:d@example.com"
 		t.Error("bob imported into alice's zone")
 	}
 }
+
+func TestBulkTTL(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice", "example.com")
+	root := &auth.Principal{Login: &store.Login{ID: "admin", Role: store.RoleAdmin}, Session: &store.Session{}}
+	if _, err := e.svc.SetAllTTL(ctx, client, alice, 300); !errors.Is(err, apperr.ErrForbidden) {
+		t.Fatalf("a customer: %v", err)
+	}
+	for _, bad := range []uint32{0, 59, 700000} {
+		if _, err := e.svc.SetAllTTL(ctx, client, root, bad); !errors.Is(err, validate.ErrValidation) {
+			t.Errorf("%d: %v", bad, err)
+		}
+	}
+	res, err := e.svc.SetAllTTL(ctx, client, root, 300)
+	if err != nil || res.Records == 0 || res.Zones != 1 {
+		t.Fatalf("%+v %v", res, err)
+	}
+	for _, r := range e.zone(t, alice, a.ID).Records {
+		if r.TTL != 300 {
+			t.Errorf("%+v", r)
+		}
+	}
+	if res, _ := e.svc.SetAllTTL(ctx, client, root, 300); res.Records != 0 || res.Zones != 0 {
+		t.Errorf("again: %+v", res)
+	}
+}

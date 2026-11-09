@@ -23,6 +23,13 @@
 - Same access as the record editor (admins for their own accounts' zones,
   users with the DNS editor feature).
 
+## Addendum: bulk TTL
+
+- `POST /server/dns/bulk-ttl {ttl}` (admins) sets the TTL of every record of
+  every zone (60 to 604800), queues the zones that changed and writes one audit
+  event. The zone template and the default TTL for new records are not
+  touched. Nothing else is bulk yet (DKIM/SPF/DMARC, MX routing).
+
 ## Not done
 
 - "Reset to template" (USR-DNS-04), because it removes records.

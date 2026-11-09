@@ -788,6 +788,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/dns/bulk-ttl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give every record of every zone the same TTL (admins)
+         * @description The zone template and the default TTL for new records are not changed.
+         */
+        post: operations["bulkDnsTtl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/dns": {
         parameters: {
             query?: never;
@@ -5211,6 +5231,37 @@ export interface operations {
             };
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+        };
+    };
+    bulkDnsTtl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ttl: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Done; the zones are served again by jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        records: number;
+                        zones: number;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getDNSSettings: {

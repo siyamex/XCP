@@ -402,6 +402,13 @@
   },
   "dns": {
     "title": "DNS zones",
+    "bulk": {
+      "title": "Change all TTLs",
+      "help": "Gives every record of every zone the same TTL, for example before moving the server (a short TTL) or afterwards (a long one). The template and the default for new records stay as they are.",
+      "confirm": "Set the TTL of every record to {{ttl}} seconds?",
+      "apply": "Change all",
+      "done": "Changed {{records}} records in {{zones}} zones."
+    },
     "file": {
       "title": "Zone file",
       "help": "Download the zone as a zone file, or add the records of one (from another provider, say). Records the zone has already are skipped and nothing is replaced or removed. One invalid record refuses the whole file.",

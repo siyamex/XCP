@@ -111,6 +111,21 @@ func (s *Server) getDNSSettings(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) bulkDNSTTL(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		TTL uint32 `json:"ttl"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	res, err := s.Zones.SetAllTTL(r.Context(), client(r), principal(r), in.TTL)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, res)
+	return nil
+}
+
 func (s *Server) saveDNSSettings(w http.ResponseWriter, r *http.Request) error {
 	var in zones.Settings
 	if err := decodeJSON(w, r, &in); err != nil {

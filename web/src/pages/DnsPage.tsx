@@ -275,6 +275,25 @@ function MailRoutingCard({ zone, onSaved }: { zone: Zone; onSaved: () => void })
   );
 }
 
+function BulkTtl() {
+  const { t } = useTranslation();
+  const [ttl, setTtl] = useState(3600);
+  const run = useMutation({ mutationFn: () => unwrap(api.POST("/server/dns/bulk-ttl", { body: { ttl } })) });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.bulk.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.bulk.help")}</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <Field id="bulk-ttl" label={t("dns.ttl")}><Input id="bulk-ttl" type="number" min={60} max={604800} value={ttl} onChange={(e) => setTtl(Number(e.target.value))} /></Field>
+        <Button type="button" variant="secondary" disabled={run.isPending}
+          onClick={() => window.confirm(t("dns.bulk.confirm", { ttl })) && run.mutate()}>{t("dns.bulk.apply")}</Button>
+      </div>
+      <ErrorAlert error={run.error} />
+      {run.data && <Alert kind="success">{t("dns.bulk.done", { records: run.data.records, zones: run.data.zones })}</Alert>}
+    </Card>
+  );
+}
+
 /** Server DNS settings: name servers with a check, addresses, template (ADM-DNS-02/03). */
 export function DnsSettingsPage() {
   const { t } = useTranslation();
@@ -354,6 +373,7 @@ export function DnsSettingsPage() {
         <Button type="button" variant="ghost" onClick={() => setForm({ ...form, template: [...form.template, { name: "", type: "A", content: "" }] })}>{t("dns.settings.addTemplateRecord")}</Button>
       </Card>
       <Button type="submit" disabled={save.isPending}>{t("dns.settings.save")}</Button>
+      <BulkTtl />
     </form>
   );
 }

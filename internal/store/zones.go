@@ -250,6 +250,33 @@ func MoveAddressRecords(ctx context.Context, q querier, typ, from, to string) (i
 	return res.RowsAffected()
 }
 
+// SetAllRecordTTL gives every record in every zone the TTL. It returns the
+// zones that had a record change and how many records changed.
+func SetAllRecordTTL(ctx context.Context, q querier, ttl uint32) ([]string, int64, error) {
+	rows, err := q.QueryContext(ctx, `SELECT DISTINCT zone_id FROM dns_records WHERE ttl <> ?`, ttl)
+	if err != nil {
+		return nil, 0, err
+	}
+	var zones []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, 0, err
+		}
+		zones = append(zones, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, 0, err
+	}
+	res, err := q.ExecContext(ctx, `UPDATE dns_records SET ttl = ? WHERE ttl <> ?`, ttl, ttl)
+	if err != nil {
+		return nil, 0, err
+	}
+	n, err := res.RowsAffected()
+	return zones, n, err
+}
+
 // DeleteRecord removes a record.
 func DeleteRecord(ctx context.Context, q querier, id string) error {
 	return execOne(ctx, q, `DELETE FROM dns_records WHERE id = ?`, id)

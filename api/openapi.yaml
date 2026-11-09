@@ -1144,6 +1144,27 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /server/dns/bulk-ttl:
+    post:
+      tags: [dns]
+      summary: Give every record of every zone the same TTL (admins)
+      description: The zone template and the default TTL for new records are not changed.
+      operationId: bulkDnsTtl
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [ttl], properties: { ttl: { type: integer, minimum: 60, maximum: 604800 } } }
+      responses:
+        "200":
+          description: Done; the zones are served again by jobs.
+          content:
+            application/json:
+              schema: { type: object, required: [records, zones], properties: { records: { type: integer }, zones: { type: integer } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /server/dns:
     get:
       tags: [dns]

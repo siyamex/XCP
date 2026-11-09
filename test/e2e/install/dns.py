@@ -99,6 +99,15 @@ st, res = api("POST", f"/dns/zones/{zid}/import", {"text": "good IN A 192.0.2.99
 check(st == 409 and res.get("code") == "bad_zone_file", "a file with an invalid record is refused whole", f"{st} {res}")
 until("good.dns1.xcp.test", "A", lambda s, ans: s == "NXDOMAIN", "nothing of a refused file is served")
 
+# Bulk: one TTL for every record.
+st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 10})
+check(st == 400, "a TTL below 60 is refused", f"{st} {res}")
+st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 777})
+check(st == 200 and res["records"] > 0 and res["zones"] >= 1, "every record gets the TTL", f"{st} {res}")
+st, z = api("GET", f"/dns/zones/{zid}")
+check(all(r["ttl"] == 777 for r in z["records"]), "the zone's records have it", str([r["ttl"] for r in z["records"]]))
+st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 3600})
+
 st, t = api("POST", f"/accounts/{a['id']}/terminate", {"confirm": "dns1"})
 wait_job(t["job_id"])
 until("dns1.xcp.test", "SOA", lambda s, ans: s == "REFUSED", "a terminated account's zone is gone")
