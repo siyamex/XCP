@@ -126,6 +126,23 @@ func (s *Server) bulkDNSTTL(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) listOrphanZones(w http.ResponseWriter, r *http.Request) error {
+	items, err := s.Zones.OrphanZones(r.Context(), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	return nil
+}
+
+func (s *Server) deleteOrphanZone(w http.ResponseWriter, r *http.Request) error {
+	if err := s.Zones.DeleteOrphanZone(r.Context(), client(r), principal(r), r.PathValue("name")); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
 func (s *Server) saveDNSSettings(w http.ResponseWriter, r *http.Request) error {
 	var in zones.Settings
 	if err := decodeJSON(w, r, &in); err != nil {

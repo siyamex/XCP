@@ -402,6 +402,12 @@
   },
   "dns": {
     "title": "DNS zones",
+    "orphans": {
+      "title": "Zones without an account",
+      "help": "Zones the DNS server has that no account in the panel owns, for example left behind by an earlier setup. Zones of accounts and of the name servers are never listed.",
+      "none": "None.",
+      "confirm": "Remove the zone {{name}} from the DNS server?"
+    },
     "bulk": {
       "title": "Change all TTLs",
       "help": "Gives every record of every zone the same TTL, for example before moving the server (a short TTL) or afterwards (a long one). The template and the default for new records stay as they are.",

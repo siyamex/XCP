@@ -597,3 +597,39 @@ func TestBulkTTL(t *testing.T) {
 		t.Errorf("again: %+v", res)
 	}
 }
+
+func TestOrphanZones(t *testing.T) {
+	e := newEnv(t)
+	e.account(t, "alice", "example.com")
+	root := &auth.Principal{Login: &store.Login{ID: "admin", Role: store.RoleAdmin}, Session: &store.Session{}}
+	e.waitServed(t, "example.com", func([]string) bool { return true })
+	// A zone someone made in the DNS server by hand.
+	if _, err := e.fake.DNSZoneApply(ctx, &agentv1.DNSZoneApplyRequest{Zone: "stray.test", Nameservers: []string{"ns1.stray.test", "ns2.stray.test"}, Hostmaster: "hostmaster.stray.test"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := e.svc.OrphanZones(ctx, root)
+	if err != nil || !slices.Equal(got, []string{"stray.test"}) {
+		t.Fatalf("%v %v", got, err)
+	}
+	if _, err := e.svc.OrphanZones(ctx, &auth.Principal{Login: &store.Login{Role: store.RoleUser}}); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a customer: %v", err)
+	}
+	if err := e.svc.DeleteOrphanZone(ctx, client, root, "example.com"); !conflict(err, "zone_in_use") {
+		t.Errorf("an account's zone: %v", err)
+	}
+	if err := e.svc.DeleteOrphanZone(ctx, client, root, "nope.test"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("an unknown zone: %v", err)
+	}
+	if err := e.svc.DeleteOrphanZone(ctx, client, root, "not a zone"); !errors.Is(err, validate.ErrValidation) {
+		t.Errorf("a bad name: %v", err)
+	}
+	if err := e.svc.DeleteOrphanZone(ctx, client, root, "stray.test."); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := e.fake.Zone("stray.test"); ok {
+		t.Error("still served")
+	}
+	if _, ok := e.fake.Zone("example.com"); !ok {
+		t.Error("the account's zone went too")
+	}
+}

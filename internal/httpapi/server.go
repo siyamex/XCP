@@ -175,6 +175,8 @@ func New(d Deps) *Server {
 		{method: "PUT", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.updateRecord},
 		{method: "DELETE", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.deleteRecord},
 		{method: "GET", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.getDNSSettings},
+		{method: "GET", path: "/api/v1/server/dns/orphans", access: authed, roles: adminOnly, h: s.listOrphanZones},
+		{method: "DELETE", path: "/api/v1/server/dns/orphans/{name}", access: authed, roles: adminOnly, h: s.deleteOrphanZone},
 		{method: "POST", path: "/api/v1/server/dns/bulk-ttl", access: authed, roles: adminOnly, h: s.bulkDNSTTL},
 		{method: "PUT", path: "/api/v1/server/dns", access: authed, roles: adminOnly, h: s.saveDNSSettings},
 		{method: "GET", path: "/api/v1/server/ssl", access: authed, roles: adminOnly, h: s.getSSLSettings},

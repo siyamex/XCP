@@ -2,6 +2,7 @@ package agentrpc
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -39,6 +40,15 @@ func (s *Server) DNSZoneDelete(ctx context.Context, req *agentv1.DNSZoneDeleteRe
 	return &agentv1.DNSZoneDeleteResponse{Deleted: deleted}, nil
 }
 
+// DNSZoneList implements agentv1.AgentServiceServer.
+func (s *Server) DNSZoneList(ctx context.Context, _ *agentv1.DNSZoneListRequest) (*agentv1.DNSZoneListResponse, error) {
+	zs, err := s.DNS.List(ctx)
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.DNSZoneListResponse{Zones: zs}, nil
+}
+
 // fakeZones is the fake agent's view of DNS.
 type fakeZones struct {
 	mu    sync.Mutex
@@ -69,6 +79,18 @@ func (f *Fake) DNSZoneApply(_ context.Context, req *agentv1.DNSZoneApplyRequest,
 	}
 	f.zones.zones[z.Name] = z
 	return &agentv1.DNSZoneApplyResponse{Changed: true}, nil
+}
+
+// DNSZoneList implements Client.
+func (f *Fake) DNSZoneList(context.Context, *agentv1.DNSZoneListRequest, ...grpc.CallOption) (*agentv1.DNSZoneListResponse, error) {
+	f.zones.mu.Lock()
+	defer f.zones.mu.Unlock()
+	out := make([]string, 0, len(f.zones.zones))
+	for n := range f.zones.zones {
+		out = append(out, n)
+	}
+	slices.Sort(out)
+	return &agentv1.DNSZoneListResponse{Zones: out}, nil
 }
 
 // DNSZoneDelete implements Client.

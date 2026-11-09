@@ -275,6 +275,35 @@ function MailRoutingCard({ zone, onSaved }: { zone: Zone; onSaved: () => void })
   );
 }
 
+function Orphans() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["dns-orphans"], queryFn: () => unwrap(api.GET("/server/dns/orphans")), retry: false });
+  const del = useMutation({
+    mutationFn: (name: string) => unwrap(api.DELETE("/server/dns/orphans/{name}", { params: { path: { name } } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dns-orphans"] }),
+  });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.orphans.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.orphans.help")}</p>
+      {q.isPending && <Spinner />}
+      {q.isError && <ErrorAlert error={q.error} />}
+      <ErrorAlert error={del.error} />
+      {q.data && q.data.items.length === 0 && <p className="text-sm text-slate-500">{t("dns.orphans.none")}</p>}
+      <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
+        {q.data?.items.map((n) => (
+          <li key={n} className="flex items-center justify-between gap-2 py-1">
+            <span className="font-mono">{n}</span>
+            <Button type="button" variant="ghost" disabled={del.isPending}
+              onClick={() => window.confirm(t("dns.orphans.confirm", { name: n })) && del.mutate(n)}>{t("common.delete")}</Button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 function BulkTtl() {
   const { t } = useTranslation();
   const [ttl, setTtl] = useState(3600);
@@ -374,6 +403,7 @@ export function DnsSettingsPage() {
       </Card>
       <Button type="submit" disabled={save.isPending}>{t("dns.settings.save")}</Button>
       <BulkTtl />
+      <Orphans />
     </form>
   );
 }

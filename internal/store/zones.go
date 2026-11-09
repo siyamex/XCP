@@ -109,6 +109,11 @@ func ZoneByID(ctx context.Context, q querier, id string) (*Zone, error) {
 	return scanZone(q.QueryRowContext(ctx, `SELECT `+zoneColumns+` FROM dns_zones WHERE id = ?`, id))
 }
 
+// ZoneByName returns one zone by its name.
+func ZoneByName(ctx context.Context, q querier, name string) (*Zone, error) {
+	return scanZone(q.QueryRowContext(ctx, `SELECT `+zoneColumns+` FROM dns_zones WHERE name = ?`, name))
+}
+
 // DomainZones returns the zones made for a domain (zero or one).
 func DomainZones(ctx context.Context, q querier, domainID string) ([]Zone, error) {
 	return queryZones(ctx, q, `SELECT `+zoneColumns+` FROM dns_zones WHERE domain_id = ?`, domainID)

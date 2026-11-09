@@ -63,6 +63,10 @@ service AgentService {
   // DNSZoneDelete removes a zone from PowerDNS.
   rpc DNSZoneDelete(DNSZoneDeleteRequest) returns (DNSZoneDeleteResponse);
 
+  // DNSZoneList names the zones PowerDNS serves, without the final dot.
+  // NOT_FOUND: PowerDNS is not installed.
+  rpc DNSZoneList(DNSZoneListRequest) returns (DNSZoneListResponse);
+
   // HostCertificateInstall installs the certificate of the server's host
   // name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
   // and FTP. It must cover the host name and be valid now; xcp-api picks it
@@ -486,6 +490,12 @@ message DNSZoneDeleteRequest {
 
 message DNSZoneDeleteResponse {
   bool deleted = 1;  // false if PowerDNS did not have the zone
+}
+
+message DNSZoneListRequest {}
+
+message DNSZoneListResponse {
+  repeated string zones = 1;
 }
 
 message HostCertificateInstallRequest {

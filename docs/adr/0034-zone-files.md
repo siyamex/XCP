@@ -30,6 +30,14 @@
   event. The zone template and the default TTL for new records are not
   touched. Nothing else is bulk yet (DKIM/SPF/DMARC, MX routing).
 
+## Addendum: orphan zones
+
+- New agent RPC `DNSZoneList` (names PowerDNS serves). `GET /server/dns/orphans`
+  lists the served zones that no account owns and whose names do not hold the
+  name servers; `DELETE /server/dns/orphans/{name}` removes one after checking
+  again that it is still an orphan (409 `zone_in_use` otherwise). Admins only,
+  audited as `dns.orphan.delete`.
+
 ## Not done
 
 - "Reset to template" (USR-DNS-04), because it removes records.

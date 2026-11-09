@@ -1144,6 +1144,36 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /server/dns/orphans:
+    get:
+      tags: [dns]
+      summary: Zones the DNS server has that belong to no account (admins)
+      operationId: listOrphanZones
+      responses:
+        "200":
+          description: Zone names.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { type: string } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /server/dns/orphans/{name}:
+    delete:
+      tags: [dns]
+      summary: Remove an orphan zone from the DNS server (admins)
+      description: "409 `zone_in_use`: the zone belongs to an account."
+      operationId: deleteOrphanZone
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Removed. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /server/dns/bulk-ttl:
     post:
       tags: [dns]

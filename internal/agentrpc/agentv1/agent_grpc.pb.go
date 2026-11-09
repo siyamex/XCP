@@ -41,6 +41,7 @@ const (
 	AgentService_PHPVersions_FullMethodName            = "/xcp.agent.v1.AgentService/PHPVersions"
 	AgentService_DNSZoneApply_FullMethodName           = "/xcp.agent.v1.AgentService/DNSZoneApply"
 	AgentService_DNSZoneDelete_FullMethodName          = "/xcp.agent.v1.AgentService/DNSZoneDelete"
+	AgentService_DNSZoneList_FullMethodName            = "/xcp.agent.v1.AgentService/DNSZoneList"
 	AgentService_HostCertificateInstall_FullMethodName = "/xcp.agent.v1.AgentService/HostCertificateInstall"
 	AgentService_MySQLStatus_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLStatus"
 	AgentService_MySQLAccountApply_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLAccountApply"
@@ -131,6 +132,9 @@ type AgentServiceClient interface {
 	DNSZoneApply(ctx context.Context, in *DNSZoneApplyRequest, opts ...grpc.CallOption) (*DNSZoneApplyResponse, error)
 	// DNSZoneDelete removes a zone from PowerDNS.
 	DNSZoneDelete(ctx context.Context, in *DNSZoneDeleteRequest, opts ...grpc.CallOption) (*DNSZoneDeleteResponse, error)
+	// DNSZoneList names the zones PowerDNS serves, without the final dot.
+	// NOT_FOUND: PowerDNS is not installed.
+	DNSZoneList(ctx context.Context, in *DNSZoneListRequest, opts ...grpc.CallOption) (*DNSZoneListResponse, error)
 	// HostCertificateInstall installs the certificate of the server's host
 	// name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
 	// and FTP. It must cover the host name and be valid now; xcp-api picks it
@@ -386,6 +390,16 @@ func (c *agentServiceClient) DNSZoneDelete(ctx context.Context, in *DNSZoneDelet
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DNSZoneDeleteResponse)
 	err := c.cc.Invoke(ctx, AgentService_DNSZoneDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) DNSZoneList(ctx context.Context, in *DNSZoneListRequest, opts ...grpc.CallOption) (*DNSZoneListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DNSZoneListResponse)
+	err := c.cc.Invoke(ctx, AgentService_DNSZoneList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -903,6 +917,9 @@ type AgentServiceServer interface {
 	DNSZoneApply(context.Context, *DNSZoneApplyRequest) (*DNSZoneApplyResponse, error)
 	// DNSZoneDelete removes a zone from PowerDNS.
 	DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error)
+	// DNSZoneList names the zones PowerDNS serves, without the final dot.
+	// NOT_FOUND: PowerDNS is not installed.
+	DNSZoneList(context.Context, *DNSZoneListRequest) (*DNSZoneListResponse, error)
 	// HostCertificateInstall installs the certificate of the server's host
 	// name (/etc/xcp/ssl/hostname.crt and .key) for the panel, and later mail
 	// and FTP. It must cover the host name and be valid now; xcp-api picks it
@@ -1072,6 +1089,9 @@ func (UnimplementedAgentServiceServer) DNSZoneApply(context.Context, *DNSZoneApp
 }
 func (UnimplementedAgentServiceServer) DNSZoneDelete(context.Context, *DNSZoneDeleteRequest) (*DNSZoneDeleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DNSZoneDelete not implemented")
+}
+func (UnimplementedAgentServiceServer) DNSZoneList(context.Context, *DNSZoneListRequest) (*DNSZoneListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DNSZoneList not implemented")
 }
 func (UnimplementedAgentServiceServer) HostCertificateInstall(context.Context, *HostCertificateInstallRequest) (*HostCertificateInstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HostCertificateInstall not implemented")
@@ -1465,6 +1485,24 @@ func _AgentService_DNSZoneDelete_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).DNSZoneDelete(ctx, req.(*DNSZoneDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_DNSZoneList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DNSZoneListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).DNSZoneList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_DNSZoneList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).DNSZoneList(ctx, req.(*DNSZoneListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2373,6 +2411,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DNSZoneDelete",
 			Handler:    _AgentService_DNSZoneDelete_Handler,
+		},
+		{
+			MethodName: "DNSZoneList",
+			Handler:    _AgentService_DNSZoneList_Handler,
 		},
 		{
 			MethodName: "HostCertificateInstall",

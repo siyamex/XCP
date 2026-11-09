@@ -223,6 +223,24 @@ func (d *DNS) Delete(ctx context.Context, zone string) (bool, error) {
 	return d.call(ctx, http.MethodDelete, "/zones/"+url.PathEscape(fqdn(zone)), nil, nil)
 }
 
+// List names the zones PowerDNS serves, without the final dot.
+func (d *DNS) List(ctx context.Context) ([]string, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	var zs []struct {
+		Name string `json:"name"`
+	}
+	if _, err := d.call(ctx, http.MethodGet, "/zones", nil, &zs); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(zs))
+	for _, z := range zs {
+		out = append(out, strings.ToLower(strings.TrimSuffix(z.Name, ".")))
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
 // call sends one API request. It reports false for an unknown zone and
 // ErrNotInstalled when PowerDNS has not been set up.
 func (d *DNS) call(ctx context.Context, method, path string, body, out any) (bool, error) {

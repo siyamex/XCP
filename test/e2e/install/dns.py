@@ -108,6 +108,17 @@ st, z = api("GET", f"/dns/zones/{zid}")
 check(all(r["ttl"] == 777 for r in z["records"]), "the zone's records have it", str([r["ttl"] for r in z["records"]]))
 st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 3600})
 
+# Orphan zones: made in the DNS server by hand, not owned by an account.
+import subprocess
+subprocess.run(["pdnsutil", "create-zone", "stray.dns1.test"], capture_output=True)
+st, res = api("GET", "/server/dns/orphans")
+check(st == 200 and "stray.dns1.test" in res["items"] and "dns1.xcp.test" not in res["items"], "a zone no account owns is listed, an account's is not", f"{st} {res}")
+st, res = api("DELETE", "/server/dns/orphans/dns1.xcp.test")
+check(st == 409 and res.get("code") == "zone_in_use", "an account's zone cannot be removed this way", f"{st} {res}")
+st, res = api("DELETE", "/server/dns/orphans/stray.dns1.test")
+check(st == 204, "an orphan zone is removed", f"{st} {res}")
+until("stray.dns1.test", "SOA", lambda s, ans: s == "REFUSED", "it is no longer served")
+
 st, t = api("POST", f"/accounts/{a['id']}/terminate", {"confirm": "dns1"})
 wait_job(t["job_id"])
 until("dns1.xcp.test", "SOA", lambda s, ans: s == "REFUSED", "a terminated account's zone is gone")
