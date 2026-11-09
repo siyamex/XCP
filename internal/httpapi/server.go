@@ -221,6 +221,8 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/server/mail/queue", access: authed, roles: adminOnly, h: s.mailQueueAction},
 		{method: "GET", path: "/api/v1/messages/welcome", access: authed, roles: adminOrReseller, h: s.getWelcome},
 		{method: "PUT", path: "/api/v1/messages/welcome", access: authed, roles: adminOrReseller, h: s.putWelcome},
+		{method: "GET", path: "/api/v1/messages/notices", access: authed, roles: adminOrReseller, h: s.listNotices},
+		{method: "PUT", path: "/api/v1/messages/notices/{kind}", access: authed, roles: adminOrReseller, h: s.putNotice},
 		{method: "POST", path: "/api/v1/messages/broadcast", access: authed, roles: adminOrReseller, h: s.broadcast},
 		{method: "GET", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.listResellers},
 		{method: "POST", path: "/api/v1/resellers", access: authed, roles: adminOnly, h: s.createReseller},

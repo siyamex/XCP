@@ -21,6 +21,7 @@ export function MessagesPage() {
       {q.isPending && <Spinner />}
       {q.isError && <ErrorAlert error={q.error} />}
       {q.data && <Welcome initial={q.data} />}
+      <Notices />
       <Broadcast variables={q.data?.variables ?? []} />
     </div>
   );
@@ -84,5 +85,57 @@ function Broadcast({ variables }: { variables: string[] }) {
         <Button type="submit" disabled={send.isPending}>{t("messages.send")}</Button>
       </form>
     </Card>
+  );
+}
+
+type Notice = components["schemas"]["NoticeTemplate"];
+
+/** The automatic notices (suspension, usage): each with its own text, the default or the sender's. */
+function Notices() {
+  const { t } = useTranslation();
+  const q = useQuery({ queryKey: ["notices"], queryFn: () => unwrap(api.GET("/messages/notices")), retry: false });
+  const [open, setOpen] = useState<string>();
+  return (
+    <Card>
+      <CardTitle>{t("messages.notices")}</CardTitle>
+      <p className="mb-3 text-sm text-slate-500">{t("messages.noticesHint")}</p>
+      {q.isPending && <Spinner />}
+      {q.isError && <ErrorAlert error={q.error} />}
+      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        {q.data?.items.map((n) => (
+          <li key={n.kind} className="py-2">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="font-medium">{t(`messages.notice.${n.kind}`)}{n.custom && <span className="ml-2 text-xs font-normal text-slate-500">{t("messages.welcomeCustomShort")}</span>}</span>
+              <Button variant="ghost" onClick={() => setOpen(open === n.kind ? undefined : n.kind)}>{open === n.kind ? t("messages.close") : t("messages.edit")}</Button>
+            </div>
+            {open === n.kind && <NoticeEditor key={n.kind + n.subject + n.body} notice={n} variables={q.data?.variables ?? []} />}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function NoticeEditor({ notice, variables }: { notice: Notice; variables: string[] }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [subject, setSubject] = useState(notice.subject);
+  const [body, setBody] = useState(notice.body);
+  const save = useMutation({
+    mutationFn: (v: { subject: string; body: string }) => unwrap(api.PUT("/messages/notices/{kind}", { params: { path: { kind: notice.kind } }, body: v })),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["notices"] }); },
+  });
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); save.mutate({ subject, body }); }} className="mt-2 space-y-3">
+      <Field id={`n-sub-${notice.kind}`} label={t("messages.subject")}><Input id={`n-sub-${notice.kind}`} required value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
+      <Field id={`n-body-${notice.kind}`} label={t("messages.body")}><textarea id={`n-body-${notice.kind}`} rows={7} required className={areaClass} value={body} onChange={(e) => setBody(e.target.value)} /></Field>
+      <Variables list={variables} />
+      {save.isError && <ErrorAlert error={save.error} />}
+      {save.isSuccess && <Alert kind="success">{t("messages.saved")}</Alert>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>
+        <Button type="button" variant="ghost" disabled={save.isPending} onClick={() => save.mutate({ subject: "", body: "" })}>{t("messages.reset")}</Button>
+      </div>
+    </form>
   );
 }

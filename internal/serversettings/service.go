@@ -95,6 +95,8 @@ var defs = []def{
 	{Key: "auth.require_2fa", Group: "panel", Type: "enum", Default: "none", Options: []string{"none", "admins", "resellers", "all"}},
 	{Key: "security.password_min_length", Group: "security", Type: "int", Default: 10, Min: 10, Max: 128},
 	{Key: "security.password_classes", Group: "security", Type: "int", Default: 1, Min: 0, Max: 4},
+	{Key: "notices.enabled", Group: "notices", Type: "bool", Default: true},
+	{Key: "notices.percent", Group: "notices", Type: "int", Default: 80, Min: 50, Max: 99},
 	{Key: "ssh.password_auth", Group: "ssh", Type: "bool", Default: true},
 	{Key: "ssh.root_login", Group: "ssh", Type: "enum", Default: "prohibit-password", Options: []string{"yes", "prohibit-password", "no"}},
 	{Key: "updates.channel", Group: "updates", Type: "enum", Default: "stable", Options: []string{"stable", "beta"}},

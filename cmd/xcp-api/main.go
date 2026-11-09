@@ -22,6 +22,7 @@ import (
 	"github.com/siyamex/XCP/internal/accounts"
 	agentpkg "github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/agentrpc"
+	agentv1 "github.com/siyamex/XCP/internal/agentrpc/agentv1"
 	"github.com/siyamex/XCP/internal/app"
 	"github.com/siyamex/XCP/internal/backups"
 	"github.com/siyamex/XCP/internal/config"
@@ -135,6 +136,19 @@ func serve(args []string) error {
 		},
 	}, a.Log)
 	accts.OnActivated(msgs.OnActivated)
+	accts.OnStatus(msgs.AccountEvent)
+	msgs.UsePlans(a.Plans)
+	msgs.UseDisk(func(ctx context.Context) (map[string]int64, error) {
+		st, err := agent.ServerStatus(ctx, &agentv1.ServerStatusRequest{})
+		if err != nil {
+			return nil, err
+		}
+		out := map[string]int64{}
+		for _, x := range st.GetAccounts() {
+			out[x.GetUsername()] = x.GetBytes()
+		}
+		return out, nil
+	})
 	rss := resellers.NewService(a.DB, a.Audit, a.Auth, a.Plans)
 	fws := firewall.NewService(a.DB, a.Audit, queue, agent, listenPort(a.Cfg.API.Listen))
 	setts := serversettings.NewService(a.DB, a.Audit, agent, zs, certs, mails, version.Version)
@@ -216,6 +230,9 @@ func serve(args []string) error {
 		return err
 	}
 	if err := bks.Schedule(sched); err != nil {
+		return err
+	}
+	if err := msgs.Schedule(sched); err != nil {
 		return err
 	}
 	if err := fws.Schedule(sched); err != nil {

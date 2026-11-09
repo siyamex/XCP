@@ -80,6 +80,7 @@ type Service struct {
 	extras  []extra
 
 	onActivated func(ctx context.Context, a *store.Account)
+	onStatus    func(ctx context.Context, a *store.Account, kind, reason string)
 }
 
 // Extra is a service that keeps per-account state on the server beyond the
@@ -106,6 +107,21 @@ func NewService(db *store.DB, rec *audit.Recorder, a *auth.Service, pl *plans.Se
 
 // OnActivated sets a function called once when a new account becomes active.
 func (s *Service) OnActivated(f func(ctx context.Context, a *store.Account)) { s.onActivated = f }
+
+// OnStatus sets a function called after an account was suspended or reactivated
+// (kind "suspended" or "unsuspended", with the reason for the first).
+func (s *Service) OnStatus(f func(ctx context.Context, a *store.Account, kind, reason string)) {
+	s.onStatus = f
+}
+
+func (s *Service) announce(ctx context.Context, id, kind, reason string) {
+	if s.onStatus == nil {
+		return
+	}
+	if a, err := s.db.AccountByID(ctx, id); err == nil {
+		s.onStatus(ctx, a, kind, reason)
+	}
+}
 
 // Attach connects a service whose account state the account jobs apply
 // and remove too, in the order attached.
@@ -446,13 +462,17 @@ func (s *Service) Suspend(ctx context.Context, c auth.Client, p *auth.Principal,
 	if len(reason) > 500 {
 		return Account{}, &validate.Error{Field: "reason", Code: validate.CodeTooLong, Message: "reason must be at most 500 characters"}
 	}
-	return s.change(ctx, p, id, []string{store.AccountActive}, JobApply, func(tx *sql.Tx, a *store.Account) error {
+	acc, err := s.change(ctx, p, id, []string{store.AccountActive}, JobApply, func(tx *sql.Tx, a *store.Account) error {
 		a.Status, a.StatusDetail = store.AccountSuspended, reason
 		if err := s.setLogin(ctx, tx, a.ID, store.LoginSuspended); err != nil {
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "account.suspend", a.ID, map[string]any{"reason": reason}))
 	})
+	if err == nil {
+		s.announce(ctx, id, "suspended", reason)
+	}
+	return acc, err
 }
 
 // Unsuspend restores a suspended account.
@@ -460,13 +480,17 @@ func (s *Service) Unsuspend(ctx context.Context, c auth.Client, p *auth.Principa
 	if err := s.allowed(ctx, p, store.PrivSuspend); err != nil {
 		return Account{}, err
 	}
-	return s.change(ctx, p, id, []string{store.AccountSuspended}, JobApply, func(tx *sql.Tx, a *store.Account) error {
+	acc, err := s.change(ctx, p, id, []string{store.AccountSuspended}, JobApply, func(tx *sql.Tx, a *store.Account) error {
 		a.Status, a.StatusDetail = store.AccountActive, ""
 		if err := s.setLogin(ctx, tx, a.ID, store.LoginActive); err != nil {
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "account.unsuspend", a.ID, nil))
 	})
+	if err == nil {
+		s.announce(ctx, id, "unsuspended", "")
+	}
+	return acc, err
 }
 
 // setLogin changes the account login's status and ends its sessions when blocking.

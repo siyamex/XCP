@@ -43,7 +43,7 @@ docker cp "$OUT/." "$NAME:/opt/xcp/"
 docker exec "$NAME" sh -c 'chmod +x /opt/xcp/* && until systemctl is-system-running --wait >/dev/null 2>&1 || [ "$(systemctl is-system-running)" = degraded ]; do sleep 1; done'
 step "install" docker exec "$NAME" /opt/xcp/xcp-install --hostname panel.test.example
 step "doctor" docker exec "$NAME" xcpctl doctor
-for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py backups.py remotebackups.py serverinfo.py firewall.py websettings.py mailqueue.py spam.py sendlimits.py messages.py resellers.py securitysettings.py acme.py acceptance.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
+for f in xcpe2e.py websites.py dns.py certificates.py databases.py mail.py files.py ftp.py cron.py stats.py backups.py remotebackups.py serverinfo.py firewall.py websettings.py mailqueue.py spam.py sendlimits.py messages.py notices.py resellers.py securitysettings.py acme.py acceptance.py; do docker cp "test/e2e/install/$f" "$NAME:/opt/xcp/$f"; done
 echo "e2e test password 42" | docker exec -i "$NAME" xcpctl admin create --username e2etest
 step "websites (accounts, domains, Apache, PHP-FPM, isolation)" docker exec "$NAME" python3 /opt/xcp/websites.py
 step "DNS (PowerDNS zones, records)" docker exec "$NAME" python3 /opt/xcp/dns.py
@@ -61,6 +61,7 @@ step "security settings (password rules, SSH guard, validation)" docker exec "$N
 step "spam filters (per mailbox: threshold, Junk or delete, allow and block lists; Rspamd header)" docker exec "$NAME" python3 /opt/xcp/spam.py
 step "mail sending limits (xcp-mailpolicy: per account and hour, 450 when used up)" docker exec "$NAME" python3 /opt/xcp/sendlimits.py
 step "messages (welcome message of new accounts and a message to all customers, through Postfix)" docker exec "$NAME" python3 /opt/xcp/messages.py
+step "notices (suspension and reactivation mail, editable texts, master switch)" docker exec "$NAME" python3 /opt/xcp/notices.py
 step "resellers (limits, own packages and accounts, isolation, quota)" docker exec "$NAME" python3 /opt/xcp/resellers.py
 step "mail queue (list, try again, delete; admins only)" docker exec "$NAME" python3 /opt/xcp/mailqueue.py
 step "web settings (error pages, hotlink protection, IP blocker, compression, caching)" docker exec "$NAME" python3 /opt/xcp/websettings.py

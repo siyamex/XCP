@@ -2125,6 +2125,42 @@ paths:
               schema: { $ref: "#/components/schemas/MessageTemplate" }
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
+  /messages/notices:
+    get:
+      tags: [messages]
+      summary: The notices customers get (suspension, usage) with their texts
+      description: Each is the sender's own text, else the admin's, else the built-in one.
+      operationId: listNotices
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [items, variables], properties: { items: { type: array, items: { $ref: "#/components/schemas/NoticeTemplate" } }, variables: { type: array, items: { type: string } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /messages/notices/{kind}:
+    put:
+      tags: [messages]
+      summary: Change the text of a notice
+      description: An empty subject and body go back to the default.
+      operationId: putNotice
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [suspended, unsuspended, disk_warning, disk_full, traffic_warning, traffic_full] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NoticeTemplate" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /messages/broadcast:
     post:
       tags: [messages]
@@ -3770,6 +3806,14 @@ components:
         total: { type: integer }
         percent: { type: integer }
         bytes_per_sec: { type: integer }
+    NoticeTemplate:
+      type: object
+      required: [kind, subject, body, custom]
+      properties:
+        kind: { type: string, enum: [suspended, unsuspended, disk_warning, disk_full, traffic_warning, traffic_full] }
+        subject: { type: string }
+        body: { type: string }
+        custom: { type: boolean, description: "false: the built-in text, or the admin's for a reseller" }
     MessageInput:
       type: object
       additionalProperties: false

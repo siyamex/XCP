@@ -658,7 +658,9 @@
       "ssh_password_auth": "SSH password login",
       "ssh_root_login": "SSH login as root",
       "security_password_min_length": "Minimum password length",
-      "security_password_classes": "Character types a password must mix"
+      "security_password_classes": "Character types a password must mix",
+      "notices_enabled": "Email customers about their account",
+      "notices_percent": "Warn customers at (% of a limit)"
     },
     "hints": {
       "php_default_version": "Used by accounts that did not choose a PHP version. Empty: the newest installed.",
@@ -672,14 +674,17 @@
       "ssh_password_auth": "Off allows keys only. Refused while no login has an authorized SSH key, because that would lock everyone out.",
       "ssh_root_login": "yes; prohibit-password (keys only); no. Checked with sshd -t before it is applied.",
       "security_password_min_length": "For every password made or changed in the panel (logins, mailboxes, FTP, databases). Not below 10.",
-      "security_password_classes": "0 to 4 of: lower case, upper case, digits, other characters. Existing passwords stay until changed."
+      "security_password_classes": "0 to 4 of: lower case, upper case, digits, other characters. Existing passwords stay until changed.",
+      "notices_enabled": "Suspension and reactivation notices, and warnings when disk space or monthly traffic runs low. Off sends none of them.",
+      "notices_percent": "From 50 to 99. Each warning goes out once; a notice follows when the limit is reached."
     },
     "groups": {
       "php": "PHP",
       "panel": "Panel",
       "updates": "Updates",
       "ssh": "SSH",
-      "security": "Security"
+      "security": "Security",
+      "notices": "Customer notices"
     },
     "updates": "Updates",
     "updatesHint": "Looks for a newer XCP release on GitHub, in the channel set above. Installing updates from the panel is not available yet.",
@@ -1219,6 +1224,19 @@
     "broadcast": "Message to all customers",
     "broadcastHint": "Emails every customer that has an address. Customers who share an address get one. You can send one every ten minutes.",
     "confirmBroadcast": "Send this message to all your customers?",
-    "send": "Send to all"
+    "send": "Send to all",
+    "notices": "Automatic notices",
+    "noticesHint": "Sent to customers with an email address when their account is suspended or reactivated, and when their disk space or monthly traffic is almost or all used up. They can be switched off in the server settings.",
+    "notice": {
+      "suspended": "Account suspended",
+      "unsuspended": "Account reactivated",
+      "disk_warning": "Disk space almost used up",
+      "disk_full": "Disk space full",
+      "traffic_warning": "Traffic almost used up",
+      "traffic_full": "Traffic used up"
+    },
+    "welcomeCustomShort": "(your own text)",
+    "edit": "Edit",
+    "close": "Close"
   }
 }

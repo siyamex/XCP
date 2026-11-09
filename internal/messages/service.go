@@ -17,6 +17,7 @@ import (
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/jobs"
+	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/store"
 	"github.com/siyamex/XCP/internal/validate"
 )
@@ -37,7 +38,7 @@ const (
 )
 
 // Variables a message may use, written {{name}}.
-var Variables = []string{"username", "domain", "panel_url", "owner"}
+var Variables = []string{"username", "domain", "panel_url", "owner", "reason", "used", "limit", "percent"}
 
 var varRe = regexp.MustCompile(`\{\{\s*([A-Za-z_]+)\s*\}\}`)
 
@@ -62,6 +63,8 @@ type Service struct {
 	log    *slog.Logger
 	Now    func() time.Time
 	Pause  time.Duration // between two messages of a broadcast
+	plans  *plans.Service
+	disk   func(ctx context.Context) (map[string]int64, error)
 }
 
 // NewService returns a messages service.
@@ -73,6 +76,8 @@ func NewService(db *store.DB, rec *audit.Recorder, q *jobs.Queue, m Mailer, info
 func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobWelcome, 2, s.welcomeJob)
 	w.Register(JobBroadcast, 1, s.broadcastJob)
+	w.Register(JobNotice, 2, s.noticeJob)
+	w.Register(JobUsage, 1, s.usageJob)
 }
 
 // Template is a message the sender wrote or the default.
