@@ -169,6 +169,8 @@ func New(d Deps) *Server {
 		{method: "GET", path: "/api/v1/dns/zones", access: authed, roles: adminOrUser, h: s.listZones},
 		{method: "GET", path: "/api/v1/dns/zones/{id}", access: authed, roles: adminOrUser, h: s.getZone},
 		{method: "PUT", path: "/api/v1/dns/zones/{id}", access: authed, roles: adminOrUser, h: s.updateZone},
+		{method: "GET", path: "/api/v1/dns/zones/{id}/export", access: authed, roles: adminOrUser, h: s.exportZone},
+		{method: "POST", path: "/api/v1/dns/zones/{id}/import", access: authed, roles: adminOrUser, h: s.importZone},
 		{method: "POST", path: "/api/v1/dns/zones/{id}/records", access: authed, roles: adminOrUser, h: s.addRecord},
 		{method: "PUT", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.updateRecord},
 		{method: "DELETE", path: "/api/v1/dns/records/{id}", access: authed, roles: adminOrUser, h: s.deleteRecord},

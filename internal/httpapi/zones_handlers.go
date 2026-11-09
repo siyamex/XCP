@@ -40,6 +40,33 @@ func (s *Server) updateZone(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) exportZone(w http.ResponseWriter, r *http.Request) error {
+	name, text, err := s.Zones.Export(r.Context(), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write([]byte(text)) //nolint:gosec // plain text attachment with nosniff, never HTML
+	return nil
+}
+
+func (s *Server) importZone(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Text string `json:"text"`
+	}
+	if err := decodeJSONLimit(w, r, &in, zones.MaxZoneFile+4096); err != nil {
+		return err
+	}
+	res, err := s.Zones.Import(r.Context(), client(r), principal(r), r.PathValue("id"), in.Text)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, res)
+	return nil
+}
+
 func (s *Server) addRecord(w http.ResponseWriter, r *http.Request) error {
 	var in zones.RecordInput
 	if err := decodeJSON(w, r, &in); err != nil {

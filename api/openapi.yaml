@@ -1030,6 +1030,58 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /dns/zones/{id}/export:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [dns]
+      summary: Download the zone as a zone file
+      description: RFC 1035 master format. The SOA record is left out, the DNS server keeps it.
+      operationId: exportZone
+      responses:
+        "200":
+          description: The zone file.
+          content:
+            text/plain:
+              schema: { type: string }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /dns/zones/{id}/import:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [dns]
+      summary: Add the records of a zone file
+      description: |
+        Adds records; nothing is replaced or removed. Records the zone has already and the SOA are skipped,
+        types the panel does not manage are listed. One invalid record refuses the whole file.
+        409 codes: `bad_zone_file`, `record_conflict`, `too_many_records`, `too_large`.
+      operationId: importZone
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [text], properties: { text: { type: string, maxLength: 1048576 } } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [added, existing, unsupported]
+                properties:
+                  added: { type: integer }
+                  existing: { type: integer }
+                  unsupported: { type: array, items: { type: string } }
+                  job_id: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /dns/zones/{id}/records:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }

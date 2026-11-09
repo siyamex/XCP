@@ -402,6 +402,16 @@
   },
   "dns": {
     "title": "DNS zones",
+    "file": {
+      "title": "Zone file",
+      "help": "Download the zone as a zone file, or add the records of one (from another provider, say). Records the zone has already are skipped and nothing is replaced or removed. One invalid record refuses the whole file.",
+      "export": "Download zone file",
+      "choose": "Open a file",
+      "text": "Zone file",
+      "import": "Add the records",
+      "done": "Added {{added}} records; {{existing}} were there already.",
+      "unsupported": "Not managed here and skipped: {{types}}."
+    },
     "search": "Search zones",
     "zone": "Zone",
     "account": "Account",

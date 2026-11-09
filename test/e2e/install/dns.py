@@ -83,6 +83,22 @@ st, ref = api("DELETE", f"/dns/records/{api_rec}")
 wait_job(ref["job_id"])
 until("api.dns1.xcp.test", "A", lambda s, ans: s == "NXDOMAIN", "a removed record is gone")
 
+# Zone file: export, then import into the same zone.
+import urllib.request
+from xcpe2e import API
+with admin_session.opener.open(urllib.request.Request(API + f"/dns/zones/{zid}/export")) as r:
+    exported = r.read().decode()
+    check(r.status == 200 and "$ORIGIN dns1.xcp.test." in exported and "	SOA	" not in exported and "192.0.2.10" in exported, "the zone is exported as a zone file", exported[:200])
+st, res = api("POST", f"/dns/zones/{zid}/import", {"text": exported})
+check(st == 200 and res["added"] == 0 and res["existing"] > 0, "importing the export adds nothing", f"{st} {res}")
+st, res = api("POST", f"/dns/zones/{zid}/import", {"text": "$TTL 600\nimp IN A 192.0.2.88\nimptxt IN TXT \"v=spf1 -all\"\n@ IN SOA a.b. c.d. 1 2 3 4 5\n"})
+check(st == 200 and res["added"] == 2 and res["job_id"], "a zone file adds its records", f"{st} {res}")
+wait_job(res["job_id"])
+until("imp.dns1.xcp.test", "A", lambda s, ans: ans == ["192.0.2.88"], "an imported record is served")
+st, res = api("POST", f"/dns/zones/{zid}/import", {"text": "good IN A 192.0.2.99\nbad IN A 999.0.0.1\n"})
+check(st == 409 and res.get("code") == "bad_zone_file", "a file with an invalid record is refused whole", f"{st} {res}")
+until("good.dns1.xcp.test", "A", lambda s, ans: s == "NXDOMAIN", "nothing of a refused file is served")
+
 st, t = api("POST", f"/accounts/{a['id']}/terminate", {"confirm": "dns1"})
 wait_job(t["job_id"])
 until("dns1.xcp.test", "SOA", lambda s, ans: s == "REFUSED", "a terminated account's zone is gone")

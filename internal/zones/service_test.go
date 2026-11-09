@@ -499,3 +499,75 @@ func TestSyncAppliesZonesTheServerLacks(t *testing.T) {
 		t.Fatalf("nothing left to sync, got %s", j.Result)
 	}
 }
+
+func TestZoneFileExportImport(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice", "example.com")
+	z := e.zone(t, alice, a.ID)
+	name, text, err := e.svc.Export(ctx, alice, z.ID)
+	if err != nil || name != "example.com.zone" || !strings.Contains(text, "$ORIGIN example.com.") || strings.Contains(text, "\tSOA\t") {
+		t.Fatalf("export: %q %q %v", name, text, err)
+	}
+	// What was exported is in the zone already.
+	res, err := e.svc.Import(ctx, client, alice, z.ID, text)
+	if err != nil || res.Added != 0 || res.Existing == 0 || res.JobID != "" {
+		t.Fatalf("re-import: %+v %v", res, err)
+	}
+
+	file := `$TTL 600
+@ IN SOA ns1.old.example. hostmaster.old.example. 1 2 3 4 5
+@ IN MX 5 mail.example.com.
+blog IN A 192.0.2.77
+shop 300 IN CNAME blog
+_dmarc IN TXT "v=DMARC1; p=none; rua=mailto:d@example.com"
+@ IN DNSKEY 257 3 13 AAAA
+`
+	res, err = e.svc.Import(ctx, client, alice, z.ID, file)
+	if err != nil || res.Added != 4 || res.JobID == "" || !slices.Equal(res.Unsupported, []string{"DNSKEY"}) {
+		t.Fatalf("import: %+v %v", res, err)
+	}
+	e.waitServed(t, "example.com", has("blog A 192.0.2.77", "shop CNAME blog.example.com.", `_dmarc TXT "v=DMARC1; p=none; rua=mailto:d@example.com"`))
+	for _, r := range e.zone(t, alice, a.ID).Records {
+		if r.Name == "blog" && r.TTL != 600 {
+			t.Errorf("the $TTL was not used: %+v", r)
+		}
+		if r.Name == "shop" && r.TTL != 300 {
+			t.Errorf("own TTL: %+v", r)
+		}
+	}
+	// A second import adds nothing.
+	if res, err = e.svc.Import(ctx, client, alice, z.ID, file); err != nil || res.Added != 0 {
+		t.Errorf("again: %+v %v", res, err)
+	}
+
+	// All or nothing.
+	for name, bad := range map[string]string{
+		"another zone": "x.other.org. 300 IN A 192.0.2.1\nok 300 IN A 192.0.2.2\n",
+		"bad address":  "ok2 300 IN A 192.0.2.2\nbad IN A 999.1.1.1\n",
+		"syntax":       "this is not a zone file\n",
+		"conflict":     "blog IN CNAME other.net.\n",
+		"CNAME at top": "@ IN CNAME other.net.\n",
+		"low TTL":      "low 5 IN A 192.0.2.3\n",
+	} {
+		_, err := e.svc.Import(ctx, client, alice, z.ID, bad)
+		if err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	for _, r := range e.zone(t, alice, a.ID).Records {
+		if r.Name == "ok" || r.Name == "ok2" {
+			t.Errorf("a refused file left %s behind", r.Name)
+		}
+	}
+	if _, err := e.svc.Import(ctx, client, alice, z.ID, strings.Repeat("#", zones.MaxZoneFile+1)); !conflict(err, "too_large") {
+		t.Errorf("large: %v", err)
+	}
+	// Someone else's zone.
+	_, bob := e.account(t, "bob", "example.org")
+	if _, _, err := e.svc.Export(ctx, bob, z.ID); err == nil {
+		t.Error("bob exported alice's zone")
+	}
+	if _, err := e.svc.Import(ctx, client, bob, z.ID, file); err == nil {
+		t.Error("bob imported into alice's zone")
+	}
+}

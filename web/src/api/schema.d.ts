@@ -700,6 +700,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dns/zones/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Download the zone as a zone file
+         * @description RFC 1035 master format. The SOA record is left out, the DNS server keeps it.
+         */
+        get: operations["exportZone"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/zones/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add the records of a zone file
+         * @description Adds records; nothing is replaced or removed. Records the zone has already and the SOA are skipped,
+         *     types the panel does not manage are listed. One invalid record refuses the whole file.
+         *     409 codes: `bad_zone_file`, `record_conflict`, `too_many_records`, `too_large`.
+         */
+        post: operations["importZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dns/zones/{id}/records": {
         parameters: {
             query?: never;
@@ -5020,6 +5066,67 @@ export interface operations {
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+        };
+    };
+    exportZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The zone file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    importZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    text: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        added: number;
+                        existing: number;
+                        unsupported: string[];
+                        job_id?: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     addRecord: {

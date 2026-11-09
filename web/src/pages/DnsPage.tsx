@@ -126,6 +126,7 @@ export function ZonePage() {
       </Card>
       <RecordForm key={editing?.id ?? `new-${saves}`} zone={z} record={editing} onStarted={started} onCancel={() => setEditing(undefined)} />
       <MailRoutingCard zone={z} onSaved={refresh} />
+      <ZoneFileCard zone={z} onStarted={started} />
     </div>
   );
 }
@@ -208,6 +209,41 @@ function RecordForm({ zone, record, onStarted, onCancel }: { zone: Zone; record?
           <Button type="submit" disabled={save.isPending}>{record ? t("common.save") : t("dns.addRecord")}</Button>
           {record && <Button type="button" variant="secondary" onClick={onCancel}>{t("common.cancel")}</Button>}
         </div>
+      </form>
+    </Card>
+  );
+}
+
+/** Download the zone as a zone file, or add the records of one. */
+function ZoneFileCard({ zone, onStarted }: { zone: Zone; onStarted: (r: { job_id?: string }) => void }) {
+  const { t } = useTranslation();
+  const [text, setText] = useState("");
+  const imp = useMutation({
+    mutationFn: () => unwrap(api.POST("/dns/zones/{id}/import", { params: { path: { id: zone.id } }, body: { text } })),
+    onSuccess: (r) => { setText(""); onStarted(r); },
+  });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.file.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.file.help")}</p>
+      <a className="inline-block text-sm text-blue-700 hover:underline dark:text-blue-400" href={`/api/v1/dns/zones/${zone.id}/export`}>{t("dns.file.export")}</a>
+      <form onSubmit={(e) => { e.preventDefault(); imp.mutate(); }} className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm text-slate-600 dark:text-slate-300">{t("dns.file.choose")}{" "}
+            <input type="file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void f.text().then(setText); }} />
+          </label>
+        </div>
+        <Field id="zone-file" label={t("dns.file.text")}>
+          <textarea id="zone-file" rows={8} className={`${selectClass} font-mono text-xs`} value={text} onChange={(e) => setText(e.target.value)} />
+        </Field>
+        <ErrorAlert error={imp.error} />
+        {imp.data && (
+          <Alert kind="success">
+            {t("dns.file.done", { added: imp.data.added, existing: imp.data.existing })}
+            {imp.data.unsupported.length > 0 && <> {t("dns.file.unsupported", { types: imp.data.unsupported.join(", ") })}</>}
+          </Alert>
+        )}
+        <Button type="submit" variant="secondary" disabled={imp.isPending || text.trim() === ""}>{t("dns.file.import")}</Button>
       </form>
     </Card>
   );
