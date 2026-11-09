@@ -1455,6 +1455,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/mail/repair-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write the expected SPF, DKIM and DMARC records for every domain with mail (admins)
+         * @description Like the repair of one domain, for every domain of the active accounts the admin owns. Domains whose DNS is elsewhere are listed, not an error.
+         */
+        post: operations["repairAllMailDNS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/mail": {
         parameters: {
             query?: never;
@@ -6463,6 +6483,32 @@ export interface operations {
             };
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    repairAllMailDNS: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What was done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        domains: number;
+                        changed: number;
+                        no_zone: string[];
+                        failed: string[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
         };
     };
     getMailSettings: {

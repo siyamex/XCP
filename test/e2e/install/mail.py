@@ -142,6 +142,10 @@ check(isinstance(err, smtplib.SMTPException) and "switched off" in str(err), "se
 st, r = user.call("PUT", f"/mailboxes/{info['id']}", {"quota_mb": 0, "login": True, "receive": True, "send": True})
 user.wait_job(r["job_id"])
 
+def mail_domain_ok(r):
+    return not r["failed"]
+
+
 # DNS: the DKIM key is in the zone; the check runs; repair has nothing to add.
 key = subprocess.run(["dig", "@127.0.0.1", "+short", "TXT", f"xcp._domainkey.{DOMAIN}"], capture_output=True, text=True).stdout
 check("v=DKIM1" in key, "the DKIM key is published in the domain's zone", key[:120])
@@ -149,6 +153,12 @@ st, d = user.call("GET", f"/domains/{dom}/mail/deliverability")
 check(st == 200 and [c["name"] for c in d["checks"]] == ["mx", "spf", "dkim", "dmarc", "ptr"] and d["repairable"], "the deliverability check runs", str(d)[:300])
 st, r = user.call("POST", f"/domains/{dom}/mail/repair")
 check(st == 200 and r["changed"] is False, "repair finds the zone complete", f"{st} {r}")
+st, r = user.call("POST", "/server/mail/repair-all")
+check(st == 403, "a customer cannot repair every domain", f"{st}")
+st, r = api("POST", "/server/mail/repair-all")
+check(st == 200 and r["domains"] >= 1 and mail_domain_ok(r), "repair of all domains runs", f"{st} {r}")
+st, r = api("POST", "/server/mail/repair-all")
+check(st == 200 and r["changed"] == 0, "a second repair of all domains has nothing to add", f"{st} {r}")
 
 # Suspension: no login, mail still arrives.
 st, r = api("POST", f"/accounts/{acct}/suspend", {"reason": "e2e"})

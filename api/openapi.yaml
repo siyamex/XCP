@@ -2057,6 +2057,28 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /server/mail/repair-all:
+    post:
+      tags: [mail]
+      summary: Write the expected SPF, DKIM and DMARC records for every domain with mail (admins)
+      description: Like the repair of one domain, for every domain of the active accounts the admin owns. Domains whose DNS is elsewhere are listed, not an error.
+      operationId: repairAllMailDNS
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: What was done.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [domains, changed, no_zone, failed]
+                properties:
+                  domains: { type: integer }
+                  changed: { type: integer }
+                  no_zone: { type: array, items: { type: string } }
+                  failed: { type: array, items: { type: string } }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /server/mail:
     get:
       tags: [mail]

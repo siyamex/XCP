@@ -119,6 +119,15 @@ func (s *Server) repairMailDNS(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) repairAllMailDNS(w http.ResponseWriter, r *http.Request) error {
+	res, err := s.Mail.RepairAll(r.Context(), client(r), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, res)
+	return nil
+}
+
 func (s *Server) getMailSettings(w http.ResponseWriter, r *http.Request) error {
 	set, err := s.Mail.Settings(r.Context(), principal(r))
 	if err != nil {

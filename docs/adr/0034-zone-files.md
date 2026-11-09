@@ -38,6 +38,14 @@
   again that it is still an orphan (409 `zone_in_use` otherwise). Admins only,
   audited as `dns.orphan.delete`.
 
+## Addendum: repair email DNS for all domains
+
+- `POST /server/mail/repair-all` (admins) runs the existing per-domain repair
+  (ADR on deliverability: DKIM key always, SPF and DMARC only where the zone
+  has none) for every domain with email of the active accounts the admin owns.
+  The result counts the domains looked at and changed and lists those whose DNS
+  is elsewhere (`no_zone`) or that were refused.
+
 ## Not done
 
 - "Reset to template" (USR-DNS-04), because it removes records.

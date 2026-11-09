@@ -33,7 +33,7 @@ export function EmailPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("email.title")}</h1>
-      {me.data?.role === "admin" ? <><SettingsCard /><MailQueueCard /></>
+      {me.data?.role === "admin" ? <><SettingsCard /><RepairAllCard /><MailQueueCard /></>
         : me.data?.account_id ? <AccountMail accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -422,6 +422,27 @@ function ClientSettings({ server }: { server: string }) {
       <dl className="grid gap-2 font-mono text-sm sm:grid-cols-[6rem_1fr]">
         {rows.map(([k, v]) => <Fragment key={k}><dt className="text-slate-500">{k}</dt><dd>{v}</dd></Fragment>)}
       </dl>
+    </Card>
+  );
+}
+
+/** SPF, DKIM and DMARC records for every domain with mail, in one step (ADM-DNS-04). */
+function RepairAllCard() {
+  const { t } = useTranslation();
+  const run = useMutation({ mutationFn: () => unwrap(api.POST("/server/mail/repair-all")) });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("email.repairAll.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("email.repairAll.help")}</p>
+      <Button type="button" variant="secondary" disabled={run.isPending} onClick={() => window.confirm(t("email.repairAll.confirm")) && run.mutate()}>{t("email.repairAll.run")}</Button>
+      <ErrorAlert error={run.error} />
+      {run.data && (
+        <Alert kind="success">
+          {t("email.repairAll.done", { domains: run.data.domains, changed: run.data.changed })}
+          {run.data.no_zone.length > 0 && <> {t("email.repairAll.noZone", { names: run.data.no_zone.join(", ") })}</>}
+          {run.data.failed.length > 0 && <> {t("email.repairAll.failed", { names: run.data.failed.join(", ") })}</>}
+        </Alert>
+      )}
     </Card>
   );
 }

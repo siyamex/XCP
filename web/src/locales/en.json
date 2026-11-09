@@ -969,6 +969,15 @@
     "setRoot": "Set root password"
   },
   "email": {
+    "repairAll": {
+      "title": "Email DNS records for all domains",
+      "help": "Writes the expected DKIM key, and SPF and DMARC where a zone has none, into the zone of every domain with email on this server. Records that are set are kept.",
+      "confirm": "Write the email records for every domain?",
+      "run": "Check and repair all",
+      "done": "Looked at {{domains}} domains; {{changed}} got records.",
+      "noZone": "DNS is elsewhere for: {{names}}.",
+      "failed": "Not possible for: {{names}}."
+    },
     "title": "Email",
     "mailboxes": "Mailboxes",
     "forwarders": "Forwarders",

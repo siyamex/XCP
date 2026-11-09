@@ -506,3 +506,24 @@ func TestMailQueueAdminOnly(t *testing.T) {
 		t.Errorf("delete_all: %v %v", err, e.fake.QueuedIDs())
 	}
 }
+
+func TestRepairAll(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	m, err := e.svc.CreateMailbox(ctx, client, user, a.ID, mail.MailboxInput{DomainID: o.Domains[0].ID, Local: "info", Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, m.JobID)
+	if _, err := e.svc.RepairAll(ctx, client, user); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a customer: %v", err)
+	}
+	res, err := e.svc.RepairAll(ctx, client, e.admin)
+	if err != nil || res.Domains != 1 || len(res.Failed) != 0 || len(res.NoZone) != 0 {
+		t.Fatalf("%+v %v", res, err)
+	}
+	if res, err = e.svc.RepairAll(ctx, client, e.admin); err != nil || res.Changed != 0 {
+		t.Errorf("again: %+v %v", res, err)
+	}
+}

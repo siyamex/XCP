@@ -216,6 +216,7 @@ func New(d Deps) *Server {
 		{method: "PUT", path: "/api/v1/domains/{id}/mail/catch-all", access: authed, roles: adminOrUser, h: s.setCatchAll},
 		{method: "GET", path: "/api/v1/domains/{id}/mail/deliverability", access: authed, roles: adminOrUser, h: s.mailDeliverability},
 		{method: "POST", path: "/api/v1/domains/{id}/mail/repair", access: authed, roles: adminOrUser, h: s.repairMailDNS},
+		{method: "POST", path: "/api/v1/server/mail/repair-all", access: authed, roles: adminOnly, h: s.repairAllMailDNS},
 		{method: "GET", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.getMailSettings},
 		{method: "PUT", path: "/api/v1/server/mail", access: authed, roles: adminOnly, h: s.putMailSettings},
 		{method: "GET", path: "/api/v1/server/firewall", access: authed, roles: adminOnly, h: s.getFirewall},
