@@ -1,6 +1,9 @@
 package logd
 
 import (
+	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -102,5 +105,31 @@ func TestMail(t *testing.T) {
 	})
 	if _, ok := m.q["66FC5FA99"]; ok {
 		t.Error("a removed message is still followed")
+	}
+
+	// Track delivery: one entry for each recipient and result.
+	for _, l := range []string{
+		"NOQUEUE: reject: RCPT from unknown[203.0.113.9]: 554 5.7.1 Service unavailable; Client host [203.0.113.9] blocked using zen.spamhaus.org; from=<spam@bad.example> to=<info@a.example> proto=ESMTP helo=<bad.example>",
+		"C1D2E3F4A5: milter-reject: END-OF-MESSAGE from mx.example.net[192.0.2.1]: 5.7.1 Spam message rejected; from=<x@example.org> to=<sales@b.example> proto=ESMTP helo=<mx.example.net>",
+		"80F78FA95: to=<y@slow.example>, relay=none, delay=30, dsn=4.4.1, status=deferred (connect to slow.example[192.0.2.9]:25: Connection timed out)",
+	} {
+		m.Line(s, l, at)
+	}
+	var got []string
+	for _, d := range m.Deliveries {
+		got = append(got, d.QueueID+" "+d.Sender+" > "+d.Recipient+" "+d.OrigTo+" "+d.Status+" "+strconv.FormatInt(d.Size, 10)+" ["+d.Detail+"]")
+	}
+	want := []string{
+		"66FC5FA99 someone@example.org > info@a.example  sent 513 [250 2.0.0 Saved]",
+		"66FC5FA99 someone@example.org > sales@b.example  sent 513 [250 2.0.0 Saved]",
+		"D9C3AFB8D sender@a.example > x@example.net  sent 1000 [250 ok]",
+		"AA2E9FB75 someone@example.org > boss@example.net fwd@c.example sent 300 [250 ok]",
+		"80F78FA95 sender@a.example > x@nowhere.example  bounced 999 [Host not found]",
+		" spam@bad.example > info@a.example  rejected 0 [554 5.7.1 Service unavailable; Client host [203.0.113.9] blocked using zen.spamhaus.org]",
+		"C1D2E3F4A5 x@example.org > sales@b.example  rejected 0 [5.7.1 Spam message rejected]",
+		"80F78FA95 sender@a.example > y@slow.example  deferred 999 [connect to slow.example[192.0.2.9]:25: Connection timed out]",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("deliveries =\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }

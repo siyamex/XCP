@@ -1561,6 +1561,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/mail/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the mail server did with each message, for the whole server (admins)
+         * @description Recorded from Postfix's log once a minute and kept for two weeks.
+         */
+        get: operations["allMailDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accounts/{id}/mail/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Track delivery of mail sent from or to the account's domains
+         * @description Recorded from Postfix's log once a minute and kept for two weeks.
+         */
+        get: operations["mailDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/mail/repair-all": {
         parameters: {
             query?: never;
@@ -3647,6 +3687,22 @@ export interface components {
             expected?: string;
             detail: string;
         };
+        MailDelivery: {
+            /** Format: date-time */
+            at: string;
+            /** @description Empty for mail refused before it was queued */
+            queue_id: string;
+            sender: string;
+            recipient: string;
+            /** @description The address written to, if the mail was forwarded */
+            orig_to?: string;
+            /** @enum {string} */
+            status: "sent" | "deferred" | "bounced" | "expired" | "rejected";
+            relay: string;
+            /** @description The other server's answer */
+            detail: string;
+            size: number;
+        };
         AccountNote: {
             note: string;
             tags: string[];
@@ -3672,6 +3728,7 @@ export interface components {
             rbls: string[];
             helo_checks: boolean;
             greylisting: boolean;
+            plus_addressing?: boolean;
             /** @description Rspamd refuses mail scoring this much */
             spam_reject: number;
             spam_allow: string[];
@@ -6822,6 +6879,65 @@ export interface operations {
             403: components["responses"]["Problem"];
         };
     };
+    allMailDeliveries: {
+        parameters: {
+            query?: {
+                /** @description Part of an address */
+                search?: string;
+                status?: "sent" | "deferred" | "bounced" | "expired" | "rejected";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The newest deliveries, at most 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["MailDelivery"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    mailDeliveries: {
+        parameters: {
+            query?: {
+                /** @description Part of an address */
+                search?: string;
+                status?: "sent" | "deferred" | "bounced" | "expired" | "rejected";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The newest deliveries, at most 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["MailDelivery"][];
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
     repairAllMailDNS: {
         parameters: {
             query?: never;
@@ -6892,6 +7008,8 @@ export interface operations {
                     rbls?: string[];
                     helo_checks?: boolean;
                     greylisting?: boolean;
+                    /** @description name+tag@domain reaches name@domain */
+                    plus_addressing?: boolean;
                     /** @description Rspamd refuses mail scoring this much; 0: 15 */
                     spam_reject?: number;
                     /** @description Domains whose mail is trusted when it is signed or passes SPF */

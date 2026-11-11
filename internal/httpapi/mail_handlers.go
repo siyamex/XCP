@@ -128,6 +128,26 @@ func (s *Server) mailDeliverabilityAll(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
+func (s *Server) mailDeliveries(w http.ResponseWriter, r *http.Request) error {
+	q := r.URL.Query()
+	items, err := s.Mail.Deliveries(r.Context(), principal(r), r.PathValue("id"), q.Get("search"), q.Get("status"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	return nil
+}
+
+func (s *Server) allMailDeliveries(w http.ResponseWriter, r *http.Request) error {
+	q := r.URL.Query()
+	items, err := s.Mail.AllDeliveries(r.Context(), principal(r), q.Get("search"), q.Get("status"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	return nil
+}
+
 func (s *Server) repairAllMailDNS(w http.ResponseWriter, r *http.Request) error {
 	res, err := s.Mail.RepairAll(r.Context(), client(r), principal(r))
 	if err != nil {

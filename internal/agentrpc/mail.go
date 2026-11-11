@@ -49,6 +49,7 @@ func mailSettingsFrom(req *agentv1.MailSettingsApplyRequest) agent.MailSettings 
 		RelayUser: req.GetRelayUser(), RelayPassword: req.GetRelayPassword(), RBLs: req.GetRbls(),
 		HeloChecks: req.GetHeloChecks(), Greylisting: req.GetGreylisting(),
 		SpamReject: int(req.GetSpamReject()), SpamAllow: req.GetSpamAllow(), SpamBlock: req.GetSpamBlock(),
+		PlusAddressing: req.GetPlusAddressing(),
 	}
 }
 

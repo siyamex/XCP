@@ -1002,6 +1002,27 @@
     "setRoot": "Set root password"
   },
   "email": {
+    "track": {
+      "title": "Track delivery",
+      "help": "What the mail server did with each message of the last two weeks: delivered, still trying, returned or refused. New mail shows up within a minute or two.",
+      "search": "Part of an address",
+      "status": "Result",
+      "any": "Any result",
+      "run": "Search",
+      "none": "Nothing found.",
+      "time": "Time",
+      "from": "From",
+      "to": "To",
+      "detail": "Answer",
+      "via": "sent to {{address}}",
+      "statuses": {
+        "sent": "Delivered",
+        "deferred": "Still trying",
+        "bounced": "Returned",
+        "expired": "Given up",
+        "rejected": "Refused"
+      }
+    },
     "report": {
       "title": "Deliverability of all domains",
       "help": "Looks up the MX, SPF, DKIM and DMARC records of every domain with email in public DNS, as other mail servers see them. With many domains this takes a minute.",
@@ -1074,6 +1095,7 @@
     "rbls": "Block lists (one per line)",
     "heloChecks": "Refuse senders without a valid HELO name",
     "greylisting": "Greylisting (delays mail from unknown senders)",
+    "plusAddressing": "Plus addressing (name+anything@domain reaches name@domain)",
     "modes": {
       "forward": "Forward",
       "reject": "Reject",

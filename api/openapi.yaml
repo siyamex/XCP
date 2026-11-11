@@ -2232,6 +2232,44 @@ paths:
                         repairable: { type: boolean }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/mail/deliveries:
+    get:
+      tags: [mail]
+      summary: What the mail server did with each message, for the whole server (admins)
+      description: Recorded from Postfix's log once a minute and kept for two weeks.
+      operationId: allMailDeliveries
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 200 }, description: Part of an address, or a queue ID }
+        - { name: status, in: query, schema: { type: string, enum: [sent, deferred, bounced, expired, rejected] } }
+      responses:
+        "200":
+          description: The newest deliveries, at most 200.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/MailDelivery" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/mail/deliveries:
+    get:
+      tags: [mail]
+      summary: Track delivery of mail sent from or to the account's domains
+      description: Recorded from Postfix's log once a minute and kept for two weeks.
+      operationId: mailDeliveries
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 }, description: Part of an address, or a queue ID }
+        - { name: status, in: query, schema: { type: string, enum: [sent, deferred, bounced, expired, rejected] } }
+      responses:
+        "200":
+          description: The newest deliveries, at most 200.
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/MailDelivery" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /server/mail/repair-all:
     post:
       tags: [mail]
@@ -2288,6 +2326,7 @@ paths:
                 rbls: { type: array, items: { type: string } }
                 helo_checks: { type: boolean }
                 greylisting: { type: boolean }
+                plus_addressing: { type: boolean, description: "name+tag@domain reaches name@domain" }
                 spam_reject: { type: integer, minimum: 0, maximum: 100, description: "Rspamd refuses mail scoring this much; 0: 15" }
                 spam_allow: { type: array, items: { type: string }, description: Domains whose mail is trusted when it is signed or passes SPF }
                 spam_block: { type: array, items: { type: string }, description: Addresses and domains whose mail is spam }
@@ -4620,6 +4659,20 @@ components:
         expected: { type: string }
         detail: { type: string }
 
+    MailDelivery:
+      type: object
+      required: [at, queue_id, sender, recipient, status, relay, detail, size]
+      properties:
+        at: { type: string, format: date-time }
+        queue_id: { type: string, description: Empty for mail refused before it was queued }
+        sender: { type: string }
+        recipient: { type: string }
+        orig_to: { type: string, description: "The address written to, if the mail was forwarded" }
+        status: { type: string, enum: [sent, deferred, bounced, expired, rejected] }
+        relay: { type: string }
+        detail: { type: string, description: The other server's answer, shortened }
+        size: { type: integer }
+
     AccountNote:
       type: object
       required: [note, tags]
@@ -4651,6 +4704,7 @@ components:
         rbls: { type: array, items: { type: string } }
         helo_checks: { type: boolean }
         greylisting: { type: boolean }
+        plus_addressing: { type: boolean }
         spam_reject: { type: integer, description: Rspamd refuses mail scoring this much }
         spam_allow: { type: array, items: { type: string } }
         spam_block: { type: array, items: { type: string } }

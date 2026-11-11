@@ -28,6 +28,9 @@ const (
 	maxJournal     = 32 << 20
 )
 
+// DeliveryRetention is how long "track delivery" keeps what happened to a message.
+const DeliveryRetention = 14 * 24 * time.Hour
+
 // Ingester reads the logs and adds their bytes to the database, once per Tick.
 type Ingester struct {
 	DB      *store.DB
@@ -84,6 +87,7 @@ func (in *Ingester) Tick(ctx context.Context) error {
 		read(in.FTPLog, func(l []byte) { sums.AddFTP(l, time.Local) })
 	}
 	var fails []Failure
+	in.mail.Deliveries = nil // of a tick that could not be stored: its lines are read again
 	if in.Run != nil {
 		cursor, jf, err := in.journal(ctx, offs[sourceJournal].Cursor, ran, sums)
 		if err != nil {
@@ -131,7 +135,10 @@ func (in *Ingester) Tick(ctx context.Context) error {
 				return err
 			}
 		}
-		return nil
+		if err := store.AddMailDeliveries(ctx, tx, in.mail.Deliveries); err != nil {
+			return err
+		}
+		return store.PruneMailDeliveries(ctx, tx, time.Now().Add(-DeliveryRetention))
 	})
 	if err == nil && stored > 0 {
 		in.Log.Info("counted", "domains", stored, "sources", len(next))

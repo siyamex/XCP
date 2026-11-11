@@ -33,7 +33,7 @@ export function EmailPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("email.title")}</h1>
-      {me.data?.role === "admin" ? <><SettingsCard /><DeliverabilityAllCard /><RepairAllCard /><MailQueueCard /></>
+      {me.data?.role === "admin" ? <><SettingsCard /><DeliverabilityAllCard /><RepairAllCard /><MailQueueCard /><DeliveriesCard /></>
         : me.data?.account_id ? <AccountMail accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -69,6 +69,7 @@ export function AccountMail({ accountId }: { accountId: string }) {
         <CardTitle>{t("email.domains")}</CardTitle>
         {o.domains.map((d) => <DomainMail key={d.id} d={d} onStarted={started} />)}
       </Card>
+      <DeliveriesCard accountId={accountId} />
       <ClientSettings server={o.server} />
     </div>
   );
@@ -426,6 +427,67 @@ function ClientSettings({ server }: { server: string }) {
   );
 }
 
+const deliveryStyle: Record<string, string> = {
+  sent: "text-green-700 dark:text-green-400",
+  deferred: "text-amber-700 dark:text-amber-400",
+  bounced: "text-red-700 dark:text-red-400",
+  expired: "text-red-700 dark:text-red-400",
+  rejected: "text-red-700 dark:text-red-400",
+};
+
+/** Track delivery: what the mail server did with each message (USR-MAIL-10, ADM-MAIL-03). */
+function DeliveriesCard({ accountId }: { accountId?: string }) {
+  const { t } = useTranslation();
+  const [form, setForm] = useState({ search: "", status: "" });
+  const [asked, setAsked] = useState(form);
+  type St = "sent" | "deferred" | "bounced" | "expired" | "rejected";
+  const query = { search: asked.search || undefined, status: (asked.status || undefined) as St | undefined };
+  const q = useQuery({
+    queryKey: ["deliveries", accountId ?? "all", asked],
+    queryFn: () => accountId
+      ? unwrap(api.GET("/accounts/{id}/mail/deliveries", { params: { path: { id: accountId }, query } }))
+      : unwrap(api.GET("/server/mail/deliveries", { params: { query } })),
+    retry: false,
+  });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("email.track.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("email.track.help")}</p>
+      <form onSubmit={(e) => { e.preventDefault(); setAsked(form); void q.refetch(); }} className="flex flex-wrap items-center gap-2">
+        <Input className="max-w-xs" placeholder={t("email.track.search")} value={form.search} onChange={(e) => setForm({ ...form, search: e.target.value })} />
+        <select aria-label={t("email.track.status")} className={selectClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+          <option value="">{t("email.track.any")}</option>
+          {Object.keys(deliveryStyle).map((s) => <option key={s} value={s}>{t(`email.track.statuses.${s}`)}</option>)}
+        </select>
+        <Button type="submit" variant="secondary" disabled={q.isFetching}>{t("email.track.run")}</Button>
+      </form>
+      {q.isPending && <Spinner />}
+      <ErrorAlert error={q.error} />
+      {q.data && q.data.items.length === 0 && <p className="text-sm text-slate-500">{t("email.track.none")}</p>}
+      {q.data && q.data.items.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase text-slate-500">
+              <tr><th className="py-1 pr-3">{t("email.track.time")}</th><th className="pr-3">{t("email.track.from")}</th><th className="pr-3">{t("email.track.to")}</th><th className="pr-3">{t("email.track.status")}</th><th>{t("email.track.detail")}</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {q.data.items.map((d, i) => (
+                <tr key={i} className="align-top">
+                  <td className="whitespace-nowrap py-1 pr-3">{new Date(d.at).toLocaleString()}</td>
+                  <td className="break-all pr-3">{d.sender || "<>"}</td>
+                  <td className="break-all pr-3">{d.recipient}{d.orig_to && d.orig_to !== d.recipient && <span className="text-slate-500"> ({t("email.track.via", { address: d.orig_to })})</span>}</td>
+                  <td className={`whitespace-nowrap pr-3 font-medium ${deliveryStyle[d.status] ?? ""}`}>{t(`email.track.statuses.${d.status}`)}</td>
+                  <td className="break-words text-xs text-slate-500">{d.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /** The deliverability check for every domain with mail (ADM-MAIL-07). */
 function DeliverabilityAllCard() {
   const { t } = useTranslation();
@@ -548,6 +610,7 @@ function SettingsCard() {
         <div className="flex flex-wrap gap-6 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.helo_checks} onChange={(e) => setForm({ ...form, helo_checks: e.target.checked })} /> {t("email.heloChecks")}</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={form.greylisting} onChange={(e) => setForm({ ...form, greylisting: e.target.checked })} /> {t("email.greylisting")}</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={form.plus_addressing ?? false} onChange={(e) => setForm({ ...form, plus_addressing: e.target.checked })} /> {t("email.plusAddressing")}</label>
         </div>
         <fieldset className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
           <legend className="text-sm font-semibold">{t("email.serverSpam.title")}</legend>

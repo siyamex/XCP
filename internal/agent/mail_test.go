@@ -121,6 +121,14 @@ func TestMailSettings(t *testing.T) {
 			t.Errorf("main.cf lacks %q", want)
 		}
 	}
+	if strings.Contains(cf, "recipient_delimiter") {
+		t.Error("plus addressing is on without being asked for")
+	}
+	s.PlusAddressing = true
+	if cf := renderMainCF(s, "/c.crt", "/c.key"); !strings.Contains(cf, "recipient_delimiter = +\n") {
+		t.Error("main.cf lacks the recipient delimiter")
+	}
+	s.PlusAddressing = false
 	for _, bad := range []MailSettings{
 		{Hostname: "x y", MaxMessageMB: 50},
 		{Hostname: "mail.example.com", MaxMessageMB: 0},

@@ -4264,20 +4264,21 @@ func (*MailQueueActionResponse) Descriptor() ([]byte, []int) {
 }
 
 type MailSettingsApplyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hostname      string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	MaxMessageMb  int64                  `protobuf:"varint,2,opt,name=max_message_mb,json=maxMessageMb,proto3" json:"max_message_mb,omitempty"`
-	RelayHost     string                 `protobuf:"bytes,3,opt,name=relay_host,json=relayHost,proto3" json:"relay_host,omitempty"`
-	RelayUser     string                 `protobuf:"bytes,4,opt,name=relay_user,json=relayUser,proto3" json:"relay_user,omitempty"`
-	RelayPassword string                 `protobuf:"bytes,5,opt,name=relay_password,json=relayPassword,proto3" json:"relay_password,omitempty"`
-	Rbls          []string               `protobuf:"bytes,6,rep,name=rbls,proto3" json:"rbls,omitempty"`
-	HeloChecks    bool                   `protobuf:"varint,7,opt,name=helo_checks,json=heloChecks,proto3" json:"helo_checks,omitempty"`
-	Greylisting   bool                   `protobuf:"varint,8,opt,name=greylisting,proto3" json:"greylisting,omitempty"`
-	SpamReject    int32                  `protobuf:"varint,9,opt,name=spam_reject,json=spamReject,proto3" json:"spam_reject,omitempty"`
-	SpamAllow     []string               `protobuf:"bytes,10,rep,name=spam_allow,json=spamAllow,proto3" json:"spam_allow,omitempty"`
-	SpamBlock     []string               `protobuf:"bytes,11,rep,name=spam_block,json=spamBlock,proto3" json:"spam_block,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Hostname       string                 `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	MaxMessageMb   int64                  `protobuf:"varint,2,opt,name=max_message_mb,json=maxMessageMb,proto3" json:"max_message_mb,omitempty"`
+	RelayHost      string                 `protobuf:"bytes,3,opt,name=relay_host,json=relayHost,proto3" json:"relay_host,omitempty"`
+	RelayUser      string                 `protobuf:"bytes,4,opt,name=relay_user,json=relayUser,proto3" json:"relay_user,omitempty"`
+	RelayPassword  string                 `protobuf:"bytes,5,opt,name=relay_password,json=relayPassword,proto3" json:"relay_password,omitempty"`
+	Rbls           []string               `protobuf:"bytes,6,rep,name=rbls,proto3" json:"rbls,omitempty"`
+	HeloChecks     bool                   `protobuf:"varint,7,opt,name=helo_checks,json=heloChecks,proto3" json:"helo_checks,omitempty"`
+	Greylisting    bool                   `protobuf:"varint,8,opt,name=greylisting,proto3" json:"greylisting,omitempty"`
+	SpamReject     int32                  `protobuf:"varint,9,opt,name=spam_reject,json=spamReject,proto3" json:"spam_reject,omitempty"`
+	SpamAllow      []string               `protobuf:"bytes,10,rep,name=spam_allow,json=spamAllow,proto3" json:"spam_allow,omitempty"`
+	SpamBlock      []string               `protobuf:"bytes,11,rep,name=spam_block,json=spamBlock,proto3" json:"spam_block,omitempty"`
+	PlusAddressing bool                   `protobuf:"varint,12,opt,name=plus_addressing,json=plusAddressing,proto3" json:"plus_addressing,omitempty"` // name+tag@domain reaches name@domain
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MailSettingsApplyRequest) Reset() {
@@ -4385,6 +4386,13 @@ func (x *MailSettingsApplyRequest) GetSpamBlock() []string {
 		return x.SpamBlock
 	}
 	return nil
+}
+
+func (x *MailSettingsApplyRequest) GetPlusAddressing() bool {
+	if x != nil {
+		return x.PlusAddressing
+	}
+	return false
 }
 
 type MailSettingsApplyResponse struct {
@@ -8818,7 +8826,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x16MailQueueActionRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x10\n" +
 	"\x03ids\x18\x02 \x03(\tR\x03ids\"\x19\n" +
-	"\x17MailQueueActionResponse\"\xf7\x02\n" +
+	"\x17MailQueueActionResponse\"\xa0\x03\n" +
 	"\x18MailSettingsApplyRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12$\n" +
 	"\x0emax_message_mb\x18\x02 \x01(\x03R\fmaxMessageMb\x12\x1d\n" +
@@ -8837,7 +8845,8 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"spam_allow\x18\n" +
 	" \x03(\tR\tspamAllow\x12\x1d\n" +
 	"\n" +
-	"spam_block\x18\v \x03(\tR\tspamBlock\"5\n" +
+	"spam_block\x18\v \x03(\tR\tspamBlock\x12'\n" +
+	"\x0fplus_addressing\x18\f \x01(\bR\x0eplusAddressing\"5\n" +
 	"\x19MailSettingsApplyResponse\x12\x18\n" +
 	"\achanged\x18\x01 \x01(\bR\achanged\"P\n" +
 	"\x18MailWebmailSignonRequest\x12\x1a\n" +

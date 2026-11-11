@@ -165,6 +165,22 @@ check(st == 200 and r["domains"] >= 1 and mail_domain_ok(r), "repair of all doma
 st, r = api("POST", "/server/mail/repair-all")
 check(st == 200 and r["changed"] == 0, "a second repair of all domains has nothing to add", f"{st} {r}")
 
+# Track delivery: xcp-logd records what Postfix did, within a minute or two.
+def tracked(session, path, want):
+    for _ in range(150):
+        st, r = session.call("GET", path)
+        hit = [d for d in r.get("items", []) if want(d)] if st == 200 else []
+        if hit:
+            return hit[0]
+        time.sleep(1)
+    return None
+d = tracked(user, f"/accounts/{acct}/mail/deliveries?status=sent", lambda d: d["recipient"] == f"info@{DOMAIN}")
+check(d is not None and d["size"] > 0 and d["queue_id"], "a delivered message is in the account's track delivery", str(d))
+d = tracked(admin_session, f"/server/mail/deliveries?search=info@{DOMAIN}", lambda d: d["status"] == "sent")
+check(d is not None, "and in the admin's, found by address", str(d))
+st, r = user.call("GET", "/server/mail/deliveries")
+check(st == 403, "a customer cannot search the whole server", f"{st}")
+
 # Suspension: no login, mail still arrives.
 st, r = api("POST", f"/accounts/{acct}/suspend", {"reason": "e2e"})
 wait_job(r["job_id"])
@@ -181,6 +197,15 @@ st, r = api("PUT", "/server/mail", dict(body, max_message_mb=1))
 wait_job(r["job_id"])
 limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=True, text=True).stdout.strip()
 check(limit == "1048576", "the largest message size reaches Postfix", limit)
+# Plus addressing (USR-MAIL-18): off, a tagged address is unknown; on, it reaches the mailbox.
+st, r = api("PUT", f"/domains/{dom}/mail/catch-all", {"to": []})  # or every address is accepted
+wait_job(r["job_id"])
+check(send(f"info+shop@{DOMAIN}", "tagged while off") is not None, "without plus addressing a tagged address is refused")
+st, r = api("PUT", "/server/mail", dict(body, plus_addressing=True))
+wait_job(r["job_id"])
+check(send(f"info+shop@{DOMAIN}", "tagged while on") is None and wait_for(*INFO, "tagged while on") is not None, "with plus addressing it reaches the mailbox")
+st, r = api("PUT", f"/domains/{dom}/mail/catch-all", {"to": [f"info@{DOMAIN}"]})
+wait_job(r["job_id"])
 st, r = api("PUT", "/server/mail", body)
 wait_job(r["job_id"])
 

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/siyamex/XCP/internal/store"
 )
 
 // Key is one domain on one UTC day.
@@ -117,11 +119,48 @@ func (s Sums) AddFTP(line []byte, loc *time.Location) bool {
 // the message's size to a domain on each delivery.
 type Mail struct {
 	q map[string]*message
+	// Deliveries collects what happened to each message for each recipient
+	// ("track delivery"); the caller takes them and empties the list.
+	Deliveries []store.MailDelivery
 }
 
 type message struct {
 	size       int64
 	from, auth string // domains
+	sender     string // the envelope sender
+}
+
+// maxDetail bounds the other server's answer kept with a delivery.
+const maxDetail = 300
+
+func short(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) > maxDetail {
+		s = strings.ToValidUTF8(s[:maxDetail], "") + "..."
+	}
+	return s
+}
+
+// refusal reads Postfix's line about mail it refused when it came in:
+// "reject: RCPT from host[ip]: 554 5.7.1 why; from=<a> to=<b> proto=..."
+// and the milter's "milter-reject: END-OF-MESSAGE from host[ip]: 5.7.1 why; from=...".
+func refusal(qid, rest string, at time.Time) (store.MailDelivery, bool) {
+	why, addrs, ok := strings.Cut(rest, "; from=<")
+	if !ok {
+		return store.MailDelivery{}, false
+	}
+	addrs = " from=<" + addrs
+	to := field(addrs, "to")
+	if to == "" {
+		return store.MailDelivery{}, false
+	}
+	if _, after, ok := strings.Cut(why, "]: "); ok {
+		why = after
+	}
+	if qid == "NOQUEUE" {
+		qid = ""
+	}
+	return store.MailDelivery{At: at, QueueID: qid, Sender: field(addrs, "from"), Recipient: to, Status: store.DeliveryRejected, Detail: short(why)}, true
 }
 
 func domainOf(addr string) string {
@@ -171,17 +210,33 @@ func (m *Mail) Line(s Sums, msg string, at time.Time) {
 		return e
 	}
 	switch {
+	case strings.HasPrefix(rest, " reject: "), strings.HasPrefix(rest, " milter-reject: "):
+		if d, ok := refusal(qid, rest, at); ok {
+			m.Deliveries = append(m.Deliveries, d)
+		}
 	case strings.HasPrefix(rest, " removed"):
 		delete(m.q, qid)
 	case strings.Contains(rest, " sasl_username="):
 		get().auth = domainOf(field(rest, "sasl_username"))
 	case strings.HasPrefix(rest, " from=") && strings.Contains(rest, " size="):
 		e := get()
-		e.from = domainOf(field(rest, "from"))
+		e.sender = field(rest, "from")
+		e.from = domainOf(e.sender)
 		e.size, _ = strconv.ParseInt(field(rest, "size"), 10, 64)
-	case strings.HasPrefix(rest, " to=") && field(rest, "status") == "sent":
+	case strings.HasPrefix(rest, " to=") && field(rest, "status") != "":
 		e := m.q[qid]
-		if e == nil || e.size <= 0 {
+		d := store.MailDelivery{
+			At: at, QueueID: qid, Recipient: field(rest, "to"), OrigTo: field(rest, "orig_to"),
+			Status: field(rest, "status"), Relay: field(rest, "relay"),
+		}
+		if i := strings.Index(rest, " status="+d.Status+" ("); i >= 0 {
+			d.Detail = short(strings.TrimSuffix(rest[i+len(" status="+d.Status+" ("):], ")"))
+		}
+		if e != nil {
+			d.Sender, d.Size = e.sender, e.size
+		}
+		m.Deliveries = append(m.Deliveries, d)
+		if d.Status != "sent" || e == nil || e.size <= 0 {
 			return
 		}
 		if strings.Contains(field(rest, "relay"), "dovecot-lmtp") {

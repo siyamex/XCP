@@ -378,6 +378,8 @@ type MailSettings struct {
 	SpamReject    int      `json:"spam_reject"`    // Rspamd refuses mail scoring this much; 0: 15
 	SpamAllow     []string `json:"spam_allow"`     // domains whose signed mail is trusted
 	SpamBlock     []string `json:"spam_block"`     // addresses and domains whose mail is spam
+	// PlusAddressing delivers name+tag@domain to name@domain (USR-MAIL-18).
+	PlusAddressing bool `json:"plus_addressing"`
 }
 
 var relayRe = regexp.MustCompile(`^[a-z0-9.-]+(:[0-9]{1,5})?$`)
@@ -460,6 +462,10 @@ func renderMainCF(s MailSettings, cert, key string) string {
 	w("smtpd_sasl_path", dovecotAuthSocket)
 	w("smtpd_sasl_auth_enable", "no")
 	w("smtpd_sender_login_maps", m("sender_logins"))
+	if s.PlusAddressing {
+		// Dovecot splits the tag off at the same character (its default).
+		w("recipient_delimiter", "+")
+	}
 	w("smtpd_helo_required", "yes")
 	if s.HeloChecks {
 		w("smtpd_helo_restrictions", "permit_mynetworks, permit_sasl_authenticated, reject_invalid_helo_hostname, reject_non_fqdn_helo_hostname")

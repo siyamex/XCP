@@ -355,14 +355,14 @@ func TestSettings(t *testing.T) {
 	}
 	in := mail.SettingsInput{
 		Hostname: "mx.host.example", MaxMessageMB: 25, RelayHost: "smtp.relay.example", RelayUser: "u",
-		RelayPassword: "secret", RBLs: []string{"zen.spamhaus.org"}, Greylisting: true,
+		RelayPassword: "secret", RBLs: []string{"zen.spamhaus.org"}, Greylisting: true, PlusAddressing: true,
 	}
 	got, jobID, err := e.svc.SaveSettings(ctx, client, e.admin, in)
 	if err != nil || !got.HasRelayPass {
 		t.Fatalf("save: %+v %v", got, err)
 	}
 	e.waitJob(t, jobID)
-	if s := e.fake.MailSettings(); s == nil || s.RelayPassword != "secret" || s.Hostname != "mx.host.example" || !s.Greylisting {
+	if s := e.fake.MailSettings(); s == nil || s.RelayPassword != "secret" || s.Hostname != "mx.host.example" || !s.Greylisting || !s.PlusAddressing {
 		t.Fatalf("agent got %+v", s)
 	}
 	// The stored password stays when the form leaves it empty.
@@ -504,6 +504,68 @@ func TestMailQueueAdminOnly(t *testing.T) {
 	}
 	if err := e.svc.QueueAction(ctx, client, e.admin, "delete_all", nil); err != nil || len(e.fake.QueuedIDs()) != 0 {
 		t.Errorf("delete_all: %v %v", err, e.fake.QueuedIDs())
+	}
+}
+
+func TestDeliveries(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice")
+	b, bob := e.account(t, "bob")
+	oa, _ := e.svc.Overview(ctx, alice, a.ID)
+	ob, _ := e.svc.Overview(ctx, bob, b.ID)
+	da, db := oa.Domains[0].Name, ob.Domains[0].Name
+	now := time.Now().UTC().Truncate(time.Second)
+	if err := store.AddMailDeliveries(ctx, e.db.W, []store.MailDelivery{
+		{At: now.Add(-3 * time.Minute), QueueID: "A1", Sender: "x@example.org", Recipient: "info@" + da, Status: store.DeliverySent, Detail: "250 Saved", Size: 500},
+		{At: now.Add(-2 * time.Minute), QueueID: "B2", Sender: "Info@" + strings.ToUpper(da), Recipient: "y@example.net", Status: store.DeliveryBounced, Detail: "550 no such user"},
+		{At: now.Add(-1 * time.Minute), QueueID: "C3", Sender: "x@example.org", Recipient: "z@example.net", OrigTo: "fwd@" + db, Status: store.DeliverySent},
+		{At: now, QueueID: "", Sender: "spam@bad.example", Recipient: "sales@" + db, Status: store.DeliveryRejected, Detail: "554 blocked"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ids := func(l []mail.Delivery, err error) string {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, d := range l {
+			out = append(out, d.QueueID+":"+d.Status)
+		}
+		return strings.Join(out, " ")
+	}
+	if got := ids(e.svc.Deliveries(ctx, alice, a.ID, "", "")); got != "B2:bounced A1:sent" {
+		t.Errorf("alice sees %q", got)
+	}
+	if got := ids(e.svc.Deliveries(ctx, bob, b.ID, "", "")); got != ":rejected C3:sent" {
+		t.Errorf("bob sees %q", got)
+	}
+	if got := ids(e.svc.Deliveries(ctx, alice, a.ID, "EXAMPLE.net", "")); got != "B2:bounced" {
+		t.Errorf("search: %q", got)
+	}
+	if got := ids(e.svc.Deliveries(ctx, alice, a.ID, "", store.DeliverySent)); got != "A1:sent" {
+		t.Errorf("status: %q", got)
+	}
+	if got := ids(e.svc.Deliveries(ctx, alice, a.ID, "c3", "")); got != "" {
+		t.Errorf("another account's queue ID: %q", got)
+	}
+	if got := ids(e.svc.AllDeliveries(ctx, e.admin, "", "")); got != ":rejected C3:sent B2:bounced A1:sent" {
+		t.Errorf("the admin sees %q", got)
+	}
+	if _, err := e.svc.Deliveries(ctx, alice, b.ID, "", ""); err == nil {
+		t.Error("alice read bob's deliveries")
+	}
+	if _, err := e.svc.AllDeliveries(ctx, alice, "", ""); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a customer, the whole server: %v", err)
+	}
+	if _, err := e.svc.Deliveries(ctx, alice, a.ID, "", "lost"); !errors.Is(err, validate.ErrValidation) {
+		t.Errorf("a bad status: %v", err)
+	}
+	if err := store.PruneMailDeliveries(ctx, e.db.W, now.Add(-90*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if got := ids(e.svc.AllDeliveries(ctx, e.admin, "", "")); got != ":rejected C3:sent" {
+		t.Errorf("after pruning: %q", got)
 	}
 }
 
