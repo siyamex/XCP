@@ -18,6 +18,7 @@ func mailAccountFrom(req *agentv1.MailAccountApplyRequest) agent.MailAccount {
 	for _, d := range req.GetDomains() {
 		md := agent.MailDomain{
 			Name: d.GetName(), Routing: d.GetRouting(), AliasOf: d.GetAliasOf(), CatchAll: d.GetCatchAll(), DKIMKey: d.GetDkimKey(),
+			ForwardTo: d.GetForwardTo(),
 		}
 		for _, m := range d.GetMailboxes() {
 			md.Mailboxes = append(md.Mailboxes, agent.Mailbox{

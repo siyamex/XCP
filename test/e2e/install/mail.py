@@ -197,6 +197,23 @@ st, r = api("PUT", "/server/mail", dict(body, max_message_mb=1))
 wait_job(r["job_id"])
 limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=True, text=True).stdout.strip()
 check(limit == "1048576", "the largest message size reaches Postfix", limit)
+# Domain forwarder (USR-MAIL-04): unknown addresses go to the same name at another domain.
+st, r = api("PUT", f"/domains/{dom}/mail/forward", {"to": "elsewhere.example"})
+check(st == 409 and r.get("code") == "has_catch_all", "a domain forwarder is refused beside a default address", f"{st} {r}")
+st, r = api("PUT", f"/domains/{dom}/mail/catch-all", {"to": []})
+wait_job(r["job_id"])
+st, r = api("PUT", f"/domains/{dom}/mail/forward", {"to": "elsewhere.example"})
+check(st == 202, "set a domain forwarder", f"{st} {r}")
+wait_job(r["job_id"])
+out = subprocess.run(["postmap", "-q", f"@{DOMAIN}", "texthash:/etc/postfix/xcp/aliases"], capture_output=True, text=True).stdout.strip()
+check(out == "@elsewhere.example", "Postfix sends unknown addresses to the same name there", out)
+out = subprocess.run(["postmap", "-q", f"info@{DOMAIN}", "texthash:/etc/postfix/xcp/aliases"], capture_output=True, text=True).stdout.strip()
+check(out.startswith(f"info@{DOMAIN}"), "a mailbox keeps its own mail", out)
+st, r = api("PUT", f"/domains/{dom}/mail/forward", {"to": ""})
+wait_job(r["job_id"])
+st, r = api("PUT", f"/domains/{dom}/mail/catch-all", {"to": [f"info@{DOMAIN}"]})
+wait_job(r["job_id"])
+
 # Plus addressing (USR-MAIL-18): off, a tagged address is unknown; on, it reaches the mailbox.
 st, r = api("PUT", f"/domains/{dom}/mail/catch-all", {"to": []})  # or every address is accepted
 wait_job(r["job_id"])

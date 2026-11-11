@@ -82,6 +82,10 @@ func (l *Limiter) Allow(key string, n int64, limit int64, now time.Time) (ok boo
 	return true, used
 }
 
+// LimitText is in every refusal for the limit; the panel finds held mail by
+// it in Postfix's log ("track delivery").
+const LimitText = "hourly sending limit"
+
 // Decider tells how much an authenticated sender may send.
 type Decider interface {
 	// Limit returns the account's key and its recipients-per-hour limit
@@ -176,5 +180,5 @@ func (s *Server) Decide(ctx context.Context, attrs map[string]string) string {
 	if s.Log != nil {
 		s.Log("sending limit reached", "user", attrs["sasl_username"], "limit", limit, "used", used, "wanted", n)
 	}
-	return fmt.Sprintf("450 4.7.1 The hourly sending limit of %d recipients of this account is reached: try again later", limit)
+	return fmt.Sprintf("450 4.7.1 The "+LimitText+" of %d recipients of this account is reached: try again later", limit)
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/siyamex/XCP/internal/auth"
 	"github.com/siyamex/XCP/internal/ids"
 	"github.com/siyamex/XCP/internal/jobs"
+	"github.com/siyamex/XCP/internal/mailpolicy"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/pwhash"
 	"github.com/siyamex/XCP/internal/secretbox"
@@ -45,6 +46,7 @@ type Domain struct {
 	Routing     string   `json:"routing"`            // local, remote or backup (the zone's email routing)
 	AliasOf     string   `json:"alias_of,omitempty"` // an alias domain's mail goes to the same address there
 	CatchAll    []string `json:"catch_all"`          // where unknown addresses go; empty rejects them
+	ForwardTo   string   `json:"forward_to"`         // a domain: unknown addresses go to the same name there
 	DKIM        bool     `json:"dkim"`               // has a signing key
 }
 
@@ -82,7 +84,12 @@ type Overview struct {
 	MaxMailboxes  *int64      `json:"max_mailboxes"`
 	MaxForwarders *int64      `json:"max_forwarders"`
 	MaxQuotaMB    *int64      `json:"max_quota_mb"`
-	Server        string      `json:"server"` // the host name mail clients connect to
+	// MaxMailPerHour is how many recipients the account may send to in an
+	// hour (null: no limit); SendHeld counts the recipients held back for it
+	// in the last hour (USR-MAIL-17).
+	MaxMailPerHour *int64 `json:"max_mail_per_hour"`
+	SendHeld       int    `json:"send_held"`
+	Server         string `json:"server"` // the host name mail clients connect to
 }
 
 // MailboxInput creates a mailbox.
@@ -228,7 +235,7 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 	if err != nil {
 		return Overview{}, err
 	}
-	o := Overview{MaxMailboxes: lim.Mailboxes, MaxForwarders: lim.Forwarders, MaxQuotaMB: lim.MailboxMB, Server: s.server(ctx)}
+	o := Overview{MaxMailboxes: lim.Mailboxes, MaxForwarders: lim.Forwarders, MaxQuotaMB: lim.MailboxMB, Server: s.server(ctx), MaxMailPerHour: lim.MailPerHour}
 	ds, err := s.db.ListDomains(ctx, a.ID)
 	if err != nil {
 		return o, err
@@ -253,7 +260,7 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 		md := mds[d.ID]
 		v := Domain{
 			ID: d.ID, Name: d.Name, DisplayName: validate.DomainUnicode(d.Name), Kind: d.Kind, Routing: routing,
-			CatchAll: md.CatchAll, DKIM: len(md.DKIMKeyEnc) > 0,
+			CatchAll: md.CatchAll, ForwardTo: md.ForwardTo, DKIM: len(md.DKIMKeyEnc) > 0,
 		}
 		if v.CatchAll == nil {
 			v.CatchAll = []string{}
@@ -286,6 +293,15 @@ func (s *Service) Overview(ctx context.Context, p *auth.Principal, accountID str
 	o.Forwarders = make([]Forwarder, 0, len(fws))
 	for _, f := range fws {
 		o.Forwarders = append(o.Forwarders, forwarderView(f, byID[f.DomainID].Name))
+	}
+	if lim.MailPerHour != nil {
+		names := make([]string, 0, len(byID))
+		for _, d := range byID {
+			names = append(names, d.Name)
+		}
+		if o.SendHeld, err = s.db.CountRefused(ctx, names, mailpolicy.LimitText, time.Now().Add(-time.Hour)); err != nil {
+			return o, err
+		}
 	}
 	return o, nil
 }
@@ -672,6 +688,9 @@ func (s *Service) SetCatchAll(ctx context.Context, c auth.Client, p *auth.Princi
 			return err
 		}
 		md := mds[d.ID]
+		if len(list) > 0 && md.ForwardTo != "" {
+			return apperr.NewConflict("has_domain_forward", "the domain forwards unknown addresses to "+md.ForwardTo+"; remove that first")
+		}
 		md.CatchAll = list
 		if err := store.SetMailDomain(ctx, tx, md); err != nil {
 			return err
@@ -680,6 +699,67 @@ func (s *Service) SetCatchAll(ctx context.Context, c auth.Client, p *auth.Princi
 			return err
 		}
 		return s.audit.RecordTx(ctx, tx, event(c, p, "mail.catch_all", a.ID, "domain", d.ID, map[string]any{"domain": d.Name, "to": list}))
+	})
+	return jobID, err
+}
+
+// SetDomainForward makes a domain's mail to addresses that are neither a
+// mailbox nor a forwarder go to the same name at another domain (anywhere),
+// or stops that with an empty target (USR-MAIL-04).
+func (s *Service) SetDomainForward(ctx context.Context, c auth.Client, p *auth.Principal, domainID, to string) (string, error) {
+	d, err := s.db.DomainByID(ctx, domainID)
+	if err != nil {
+		return "", err
+	}
+	a, _, err := s.forChange(ctx, p, d.AccountID)
+	if err != nil {
+		return "", err
+	}
+	if d, err = s.mailDomain(ctx, a, domainID); err != nil {
+		return "", err
+	}
+	target := ""
+	if strings.TrimSpace(to) != "" {
+		if target, err = validate.Domain(strings.TrimPrefix(strings.TrimSpace(to), "@")); err != nil {
+			return "", validate.WithField(err, "to")
+		}
+		if target == d.Name {
+			return "", badField("to", validate.CodeFormat, "a domain cannot forward to itself")
+		}
+	}
+	var jobID string
+	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
+		if err := s.ensureMailDomain(ctx, tx, p.Login.ID, d); err != nil {
+			return err
+		}
+		mds, err := store.AccountMailDomains(ctx, tx, a.ID)
+		if err != nil {
+			return err
+		}
+		md := mds[d.ID]
+		if target != "" {
+			if len(md.CatchAll) > 0 {
+				return apperr.NewConflict("has_catch_all", "the domain has a default address for unknown addresses; remove that first")
+			}
+			// Two of the account's domains forwarding to each other would loop.
+			doms, err := s.db.ListDomains(ctx, a.ID)
+			if err != nil {
+				return err
+			}
+			for _, o := range doms {
+				if o.Name == target && mds[o.ID].ForwardTo == d.Name {
+					return apperr.NewConflict("forward_loop", target+" forwards to "+d.Name+" already")
+				}
+			}
+		}
+		md.DomainID, md.ForwardTo = d.ID, target
+		if err := store.SetMailDomain(ctx, tx, md); err != nil {
+			return err
+		}
+		if jobID, err = s.EnqueueApply(ctx, tx, p.Login.ID, a.ID); err != nil {
+			return err
+		}
+		return s.audit.RecordTx(ctx, tx, event(c, p, "mail.domain_forward", a.ID, "domain", d.ID, map[string]any{"domain": d.Name, "to": target}))
 	})
 	return jobID, err
 }

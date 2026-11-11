@@ -605,6 +605,7 @@ message MailDomain {
   repeated MailForwarder forwarders = 5;
   repeated string catch_all = 6;  // where unknown addresses go; empty rejects
   string dkim_key = 7;            // PEM; empty: no signing
+  string forward_to = 8;          // a domain: unknown addresses go to the same name there
 }
 
 message Mailbox {

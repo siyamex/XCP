@@ -107,3 +107,17 @@ func (db *DB) MailDeliveries(ctx context.Context, f DeliveryFilter) ([]MailDeliv
 	}
 	return out, rows.Err()
 }
+
+// CountRefused counts the deliveries refused since a time whose sender is
+// at one of the domains and whose answer contains text.
+func (db *DB) CountRefused(ctx context.Context, domains []string, text string, since time.Time) (int, error) {
+	js, err := json.Marshal(domains)
+	if err != nil {
+		return 0, err
+	}
+	var n int
+	err = db.R.QueryRowContext(ctx, `SELECT COUNT(*) FROM mail_deliveries
+		WHERE status = ? AND at >= ? AND instr(detail, ?) > 0 AND sender_domain IN (SELECT value FROM json_each(?))`,
+		DeliveryRejected, FormatTime(since), text, string(js)).Scan(&n)
+	return n, err
+}

@@ -47,14 +47,19 @@ func TestCheckMailAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, mutate := range map[string]func(*MailAccount){
-		"bad local":        func(a *MailAccount) { a.Domains[0].Mailboxes[0].Local = "Info" },
-		"plain password":   func(a *MailAccount) { a.Domains[0].Mailboxes[0].PasswordHash = "secret" },
-		"fail on mailbox":  func(a *MailAccount) { a.Domains[0].Forwarders[2].Local = "info" },
-		"newline message":  func(a *MailAccount) { a.Domains[0].Forwarders[2].Fail = "a\nREJECT x" },
-		"bad target":       func(a *MailAccount) { a.Domains[0].Forwarders[1].To = []string{"not an address"} },
-		"alias with boxes": func(a *MailAccount) { a.Domains[1].Mailboxes = a.Domains[0].Mailboxes },
-		"bad routing":      func(a *MailAccount) { a.Domains[2].Routing = "remote" },
-		"low uid":          func(a *MailAccount) { a.UID = 0 },
+		"bad local":           func(a *MailAccount) { a.Domains[0].Mailboxes[0].Local = "Info" },
+		"plain password":      func(a *MailAccount) { a.Domains[0].Mailboxes[0].PasswordHash = "secret" },
+		"fail on mailbox":     func(a *MailAccount) { a.Domains[0].Forwarders[2].Local = "info" },
+		"newline message":     func(a *MailAccount) { a.Domains[0].Forwarders[2].Fail = "a\nREJECT x" },
+		"bad target":          func(a *MailAccount) { a.Domains[0].Forwarders[1].To = []string{"not an address"} },
+		"alias with boxes":    func(a *MailAccount) { a.Domains[1].Mailboxes = a.Domains[0].Mailboxes },
+		"bad routing":         func(a *MailAccount) { a.Domains[2].Routing = "remote" },
+		"forward and default": func(a *MailAccount) { a.Domains[0].ForwardTo = "other.example" },
+		"forward to itself": func(a *MailAccount) {
+			a.Domains[0].CatchAll, a.Domains[0].ForwardTo = nil, "alice.example"
+		},
+		"alias that forwards": func(a *MailAccount) { a.Domains[1].ForwardTo = "other.example" },
+		"low uid":             func(a *MailAccount) { a.UID = 0 },
 		"short DKIM key": func(a *MailAccount) {
 			a.Domains[0].DKIMKey = "-----BEGIN PRIVATE KEY-----\nAA==\n-----END PRIVATE KEY-----\n"
 		},
@@ -90,6 +95,16 @@ func TestRenderMail(t *testing.T) {
 				t.Errorf("%s lacks %q:\n%s", name, l, f.maps[name])
 			}
 		}
+	}
+	// A domain forwarder takes the unknown addresses instead of a default address.
+	fw := testMailAccount(t)
+	fw.Domains[0].CatchAll, fw.Domains[0].ForwardTo = nil, "other.example"
+	if err := CheckMailAccount(fw); err != nil {
+		t.Fatal(err)
+	}
+	if al := renderMail([]MailAccount{fw}, "/home").maps["aliases"]; !strings.Contains(al, "@alice.example @other.example\n") ||
+		!strings.Contains(al, "info@alice.example info@alice.example, boss@other.example\n") {
+		t.Errorf("aliases with a domain forwarder:\n%s", al)
 	}
 	if strings.Contains(f.maps["mailboxes"], "quiet@") || strings.Contains(f.maps["domains"], "backup.example") {
 		t.Error("a mailbox that does not receive, or a backup domain, is local")

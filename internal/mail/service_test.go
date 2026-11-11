@@ -21,6 +21,7 @@ import (
 	"github.com/siyamex/XCP/internal/domains"
 	"github.com/siyamex/XCP/internal/jobs"
 	"github.com/siyamex/XCP/internal/mail"
+	"github.com/siyamex/XCP/internal/mailpolicy"
 	"github.com/siyamex/XCP/internal/plans"
 	"github.com/siyamex/XCP/internal/secretbox"
 	"github.com/siyamex/XCP/internal/store"
@@ -505,6 +506,87 @@ func TestMailQueueAdminOnly(t *testing.T) {
 	if err := e.svc.QueueAction(ctx, client, e.admin, "delete_all", nil); err != nil || len(e.fake.QueuedIDs()) != 0 {
 		t.Errorf("delete_all: %v %v", err, e.fake.QueuedIDs())
 	}
+}
+
+func TestSendLimitShown(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	o, err := e.svc.Overview(ctx, user, a.ID)
+	if err != nil || o.MaxMailPerHour == nil || *o.MaxMailPerHour != 200 || o.SendHeld != 0 {
+		t.Fatalf("%+v %v", o.MaxMailPerHour, err)
+	}
+	name := o.Domains[0].Name
+	now := time.Now().UTC()
+	held := "450 4.7.1 The " + mailpolicy.LimitText + " of 200 recipients of this account is reached: try again later"
+	if err := store.AddMailDeliveries(ctx, e.db.W, []store.MailDelivery{
+		{At: now.Add(-10 * time.Minute), Sender: "info@" + name, Recipient: "x@example.net", Status: store.DeliveryRejected, Detail: held},
+		{At: now.Add(-2 * time.Hour), Sender: "info@" + name, Recipient: "y@example.net", Status: store.DeliveryRejected, Detail: held},
+		{At: now.Add(-5 * time.Minute), Sender: "info@" + name, Recipient: "z@example.net", Status: store.DeliveryRejected, Detail: "554 blocked"},
+		{At: now.Add(-5 * time.Minute), Sender: "x@other.example", Recipient: "info@" + name, Status: store.DeliveryRejected, Detail: held},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if o, _ := e.svc.Overview(ctx, user, a.ID); o.SendHeld != 1 {
+		t.Fatalf("held = %d", o.SendHeld)
+	}
+}
+
+func TestDomainForward(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	dom, name := o.Domains[0].ID, o.Domains[0].Name
+	if _, err := e.svc.SetDomainForward(ctx, client, user, dom, "not a domain"); !errors.Is(err, validate.ErrValidation) {
+		t.Fatalf("a bad domain: %v", err)
+	}
+	if _, err := e.svc.SetDomainForward(ctx, client, user, dom, name); !errors.Is(err, validate.ErrValidation) {
+		t.Fatalf("itself: %v", err)
+	}
+	if _, err := e.svc.SetDomainForward(ctx, client, bob, dom, "other.example"); err == nil {
+		t.Fatal("bob set alice's domain forwarder")
+	}
+	jobID, err := e.svc.SetDomainForward(ctx, client, user, dom, " @Other.Example ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, jobID)
+	if o, _ := e.svc.Overview(ctx, user, a.ID); o.Domains[0].ForwardTo != "other.example" {
+		t.Fatalf("overview: %+v", o.Domains[0])
+	}
+	req, err := e.svc.AccountRequest(ctx, mustAccount(t, e, a.ID))
+	if err != nil || req.GetDomains()[0].GetForwardTo() != "other.example" {
+		t.Fatalf("the agent gets %+v, %v", req.GetDomains(), err)
+	}
+	// Only one of the two can take unknown addresses.
+	if _, err := e.svc.SetCatchAll(ctx, client, user, dom, []string{"info@" + name}); !conflictCode(err, "has_domain_forward") {
+		t.Fatalf("a default address beside it: %v", err)
+	}
+	jobID, err = e.svc.SetDomainForward(ctx, client, user, dom, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, jobID)
+	if _, err := e.svc.SetCatchAll(ctx, client, user, dom, []string{"someone@example.org"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svc.SetDomainForward(ctx, client, user, dom, "other.example"); !conflictCode(err, "has_catch_all") {
+		t.Fatalf("beside a default address: %v", err)
+	}
+}
+
+func conflictCode(err error, code string) bool {
+	var c *apperr.Conflict
+	return errors.As(err, &c) && c.Code == code
+}
+
+func mustAccount(t *testing.T, e *env, id string) *store.Account {
+	t.Helper()
+	a, err := e.db.AccountByID(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return a
 }
 
 func TestDeliveries(t *testing.T) {

@@ -1479,6 +1479,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/domains/{id}/mail/forward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Forward a domain's mail to the same names at another domain
+         * @description Mail to addresses of the domain that are neither a mailbox nor a forwarder goes to the same name at `to`.
+         *     409 codes: `has_catch_all` (the domain has a default address), `forward_loop`.
+         */
+        put: operations["setDomainForward"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/domains/{id}/mail/catch-all": {
         parameters: {
             query?: never;
@@ -3045,6 +3068,8 @@ export interface components {
             alias_of?: string;
             /** @description Where unknown addresses go; empty rejects them */
             catch_all: string[];
+            /** @description A domain: unknown addresses go to the same name there */
+            forward_to?: string;
             dkim: boolean;
         };
         FirewallPort: {
@@ -3675,6 +3700,10 @@ export interface components {
             max_mailboxes: number | null;
             max_forwarders: number | null;
             max_quota_mb: number | null;
+            /** @description Recipients the account may send to in an hour; null: no limit */
+            max_mail_per_hour: number | null;
+            /** @description Recipients held back for the limit in the last hour */
+            send_held: number;
             /** @description The host name mail clients connect to */
             server: string;
         };
@@ -6757,6 +6786,39 @@ export interface operations {
                     "application/json": components["schemas"]["JobRef"];
                 };
             };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    setDomainForward: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description A domain name; empty stops the forwarding */
+                    to: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Set. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };

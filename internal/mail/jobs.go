@@ -98,7 +98,7 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 				md.AliasOf = byID[d.ParentID].Name
 			} else {
 				m := mds[d.ID]
-				md.CatchAll = m.CatchAll
+				md.CatchAll, md.ForwardTo = m.CatchAll, m.ForwardTo
 				if len(m.DKIMKeyEnc) > 0 {
 					key, err := s.box.Open(m.DKIMKeyEnc, []byte("dkim:"+d.ID))
 					if err != nil {

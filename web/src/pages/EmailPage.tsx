@@ -62,6 +62,12 @@ export function AccountMail({ accountId }: { accountId: string }) {
   return (
     <div className="space-y-6">
       <JobNotice jobId={jobId} onDone={refresh} />
+      {o.max_mail_per_hour != null && (
+        <Alert kind={o.send_held > 0 ? "error" : "info"}>
+          {t("email.sendLimit", { count: o.max_mail_per_hour })}
+          {o.send_held > 0 && <> {t("email.sendHeld", { count: o.send_held })}</>}
+        </Alert>
+      )}
       <Mailboxes accountId={accountId} o={o} domains={own} onStarted={started} />
       <Forwarders accountId={accountId} o={o} domains={own} onStarted={started} />
       {o.mailboxes.length > 0 && <SpamCard mailboxes={o.mailboxes.map((m) => ({ id: m.id, address: m.address }))} onStarted={started} />}
@@ -345,7 +351,12 @@ function DomainMail({ d, onStarted }: { d: MailDomain; onStarted: (r: { job_id?:
   const { t } = useTranslation();
   const [catchAll, setCatchAll] = useState(d.catch_all.join(", "));
   const [checking, setChecking] = useState(false);
+  const [forwardTo, setForwardTo] = useState(d.forward_to ?? "");
   const path = { params: { path: { id: d.id } } };
+  const forward = useMutation({
+    mutationFn: () => unwrap(api.PUT("/domains/{id}/mail/forward", { ...path, body: { to: forwardTo.trim() } })),
+    onSuccess: onStarted,
+  });
   const save = useMutation({
     mutationFn: () => unwrap(api.PUT("/domains/{id}/mail/catch-all", { ...path, body: { to: catchAll.split(/[\s,;]+/).filter(Boolean) } })),
     onSuccess: onStarted,
@@ -373,6 +384,15 @@ function DomainMail({ d, onStarted }: { d: MailDomain; onStarted: (r: { job_id?:
           </Field>
           <Button type="submit" variant="secondary" disabled={save.isPending}>{t("common.save")}</Button>
           <div className="w-full"><ErrorAlert error={save.error} /></div>
+        </form>
+      )}
+      {!d.alias_of && d.routing === "local" && (
+        <form onSubmit={(e) => { e.preventDefault(); forward.mutate(); }} className="flex flex-wrap items-end gap-2">
+          <Field id={`fw-${d.id}`} label={t("email.domainForward")}>
+            <Input id={`fw-${d.id}`} className="min-w-[18rem]" placeholder={t("email.domainForwardNone")} value={forwardTo} onChange={(e) => setForwardTo(e.target.value)} />
+          </Field>
+          <Button type="submit" variant="secondary" disabled={forward.isPending}>{t("common.save")}</Button>
+          <div className="w-full"><ErrorAlert error={forward.error} /></div>
         </form>
       )}
       {!d.alias_of && (

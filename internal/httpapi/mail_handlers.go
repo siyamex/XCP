@@ -101,6 +101,21 @@ func (s *Server) setCatchAll(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) setDomainForward(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		To string `json:"to"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	jobID, err := s.Mail.SetDomainForward(r.Context(), client(r), principal(r), r.PathValue("id"), in.To)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
 func (s *Server) mailDeliverability(w http.ResponseWriter, r *http.Request) error {
 	d, err := s.Mail.Deliverability(r.Context(), principal(r), r.PathValue("id"))
 	if err != nil {

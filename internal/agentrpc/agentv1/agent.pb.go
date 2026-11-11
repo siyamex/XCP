@@ -3422,8 +3422,9 @@ type MailDomain struct {
 	AliasOf       string                 `protobuf:"bytes,3,opt,name=alias_of,json=aliasOf,proto3" json:"alias_of,omitempty"` // set: an alias domain of this one
 	Mailboxes     []*Mailbox             `protobuf:"bytes,4,rep,name=mailboxes,proto3" json:"mailboxes,omitempty"`
 	Forwarders    []*MailForwarder       `protobuf:"bytes,5,rep,name=forwarders,proto3" json:"forwarders,omitempty"`
-	CatchAll      []string               `protobuf:"bytes,6,rep,name=catch_all,json=catchAll,proto3" json:"catch_all,omitempty"` // where unknown addresses go; empty rejects
-	DkimKey       string                 `protobuf:"bytes,7,opt,name=dkim_key,json=dkimKey,proto3" json:"dkim_key,omitempty"`    // PEM; empty: no signing
+	CatchAll      []string               `protobuf:"bytes,6,rep,name=catch_all,json=catchAll,proto3" json:"catch_all,omitempty"`    // where unknown addresses go; empty rejects
+	DkimKey       string                 `protobuf:"bytes,7,opt,name=dkim_key,json=dkimKey,proto3" json:"dkim_key,omitempty"`       // PEM; empty: no signing
+	ForwardTo     string                 `protobuf:"bytes,8,opt,name=forward_to,json=forwardTo,proto3" json:"forward_to,omitempty"` // a domain: unknown addresses go to the same name there
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3503,6 +3504,13 @@ func (x *MailDomain) GetCatchAll() []string {
 func (x *MailDomain) GetDkimKey() string {
 	if x != nil {
 		return x.DkimKey
+	}
+	return ""
+}
+
+func (x *MailDomain) GetForwardTo() string {
+	if x != nil {
+		return x.ForwardTo
 	}
 	return ""
 }
@@ -8763,7 +8771,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x19MySQLRootPasswordResponse\"i\n" +
 	"\x17MailAccountApplyRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x122\n" +
-	"\adomains\x18\x02 \x03(\v2\x18.xcp.agent.v1.MailDomainR\adomains\"\xff\x01\n" +
+	"\adomains\x18\x02 \x03(\v2\x18.xcp.agent.v1.MailDomainR\adomains\"\x9e\x02\n" +
 	"\n" +
 	"MailDomain\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
@@ -8774,7 +8782,9 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"forwarders\x18\x05 \x03(\v2\x1b.xcp.agent.v1.MailForwarderR\n" +
 	"forwarders\x12\x1b\n" +
 	"\tcatch_all\x18\x06 \x03(\tR\bcatchAll\x12\x19\n" +
-	"\bdkim_key\x18\a \x01(\tR\adkimKey\"\x9c\x02\n" +
+	"\bdkim_key\x18\a \x01(\tR\adkimKey\x12\x1d\n" +
+	"\n" +
+	"forward_to\x18\b \x01(\tR\tforwardTo\"\x9c\x02\n" +
 	"\aMailbox\x12\x14\n" +
 	"\x05local\x18\x01 \x01(\tR\x05local\x12#\n" +
 	"\rpassword_hash\x18\x02 \x01(\tR\fpasswordHash\x12\x19\n" +

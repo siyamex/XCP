@@ -91,6 +91,9 @@ type MailDomain struct {
 	Forwarders []Forwarder
 	CatchAll   []string // where mail to unknown addresses goes; empty rejects it
 	DKIMKey    string   // PKCS #8 PEM private key; empty: no signing
+	// ForwardTo is a domain: mail to addresses that are neither a mailbox
+	// nor a forwarder goes to the same name there (USR-MAIL-04).
+	ForwardTo string
 }
 
 // Mailbox is one mailbox.
@@ -170,8 +173,16 @@ func CheckMailAccount(a MailAccount) error {
 			if n, err := validate.Domain(d.AliasOf); err != nil || n != d.AliasOf || d.AliasOf == d.Name {
 				return invalid("domain %s: bad alias target %q", d.Name, d.AliasOf)
 			}
-			if len(d.Mailboxes)+len(d.Forwarders)+len(d.CatchAll) > 0 {
+			if len(d.Mailboxes)+len(d.Forwarders)+len(d.CatchAll) > 0 || d.ForwardTo != "" {
 				return invalid("alias domain %s has its own addresses", d.Name)
+			}
+		}
+		if d.ForwardTo != "" {
+			if n, err := validate.Domain(d.ForwardTo); err != nil || n != d.ForwardTo || d.ForwardTo == d.Name {
+				return invalid("domain %s: bad forwarding domain %q", d.Name, d.ForwardTo)
+			}
+			if len(d.CatchAll) > 0 {
+				return invalid("domain %s forwards to a domain and has a default address: only one can take unknown addresses", d.Name)
 			}
 		}
 		if d.DKIMKey != "" {
@@ -349,6 +360,9 @@ func renderMail(accounts []MailAccount, homesRoot string) mailFiles {
 			}
 			if len(d.CatchAll) > 0 {
 				fmt.Fprintf(&aliases, "@%s %s\n", d.Name, strings.Join(d.CatchAll, ", "))
+			}
+			if d.ForwardTo != "" {
+				fmt.Fprintf(&aliases, "@%s @%s\n", d.Name, d.ForwardTo)
 			}
 		}
 	}

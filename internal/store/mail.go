@@ -15,6 +15,7 @@ type MailDomain struct {
 	DomainID   string
 	DKIMKeyEnc []byte
 	CatchAll   []string
+	ForwardTo  string // a domain: unknown addresses go to the same name there
 	UpdatedAt  time.Time
 }
 
@@ -56,7 +57,7 @@ type Autoresponder struct {
 
 // AccountMailDomains returns the mail settings of an account's domains, by domain ID.
 func AccountMailDomains(ctx context.Context, q querier, accountID string) (map[string]MailDomain, error) {
-	rows, err := q.QueryContext(ctx, `SELECT m.domain_id, m.dkim_key_enc, m.catch_all, m.updated_at FROM mail_domains m
+	rows, err := q.QueryContext(ctx, `SELECT m.domain_id, m.dkim_key_enc, m.catch_all, m.forward_to, m.updated_at FROM mail_domains m
 		JOIN domains d ON d.id = m.domain_id WHERE d.account_id = ?`, accountID)
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func AccountMailDomains(ctx context.Context, q querier, accountID string) (map[s
 	for rows.Next() {
 		var m MailDomain
 		var catchAll, updated string
-		if err := rows.Scan(&m.DomainID, &m.DKIMKeyEnc, &catchAll, &updated); err != nil {
+		if err := rows.Scan(&m.DomainID, &m.DKIMKeyEnc, &catchAll, &m.ForwardTo, &updated); err != nil {
 			return nil, err
 		}
 		var errs [2]error
@@ -89,9 +90,9 @@ func SetMailDomain(ctx context.Context, q querier, m MailDomain) error {
 	if err != nil {
 		return err
 	}
-	_, err = q.ExecContext(ctx, `INSERT INTO mail_domains (domain_id, dkim_key_enc, catch_all, updated_at) VALUES (?, ?, ?, ?)
+	_, err = q.ExecContext(ctx, `INSERT INTO mail_domains (domain_id, dkim_key_enc, catch_all, forward_to, updated_at) VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT (domain_id) DO UPDATE SET dkim_key_enc = excluded.dkim_key_enc, catch_all = excluded.catch_all,
-		updated_at = excluded.updated_at`, m.DomainID, m.DKIMKeyEnc, string(ca), FormatTime(time.Now()))
+		forward_to = excluded.forward_to, updated_at = excluded.updated_at`, m.DomainID, m.DKIMKeyEnc, string(ca), m.ForwardTo, FormatTime(time.Now()))
 	return err
 }
 

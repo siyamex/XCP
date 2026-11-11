@@ -2131,6 +2131,38 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /domains/{id}/mail/forward:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [mail]
+      summary: Forward a domain's mail to the same names at another domain
+      description: |
+        Mail to addresses of the domain that are neither a mailbox nor a forwarder goes to the same name at `to`.
+        409 codes: `has_catch_all` (the domain has a default address), `forward_loop`.
+      operationId: setDomainForward
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [to]
+              properties:
+                to: { type: string, description: A domain name; empty stops the forwarding }
+      responses:
+        "202":
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /domains/{id}/mail/catch-all:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -3973,6 +4005,7 @@ components:
         routing: { type: string, enum: [local, remote, backup], description: The zone's email routing }
         alias_of: { type: string }
         catch_all: { type: array, items: { type: string }, description: Where unknown addresses go; empty rejects them }
+        forward_to: { type: string, description: "A domain: unknown addresses go to the same name there" }
         dkim: { type: boolean }
 
     FirewallPort:
@@ -4639,7 +4672,7 @@ components:
 
     MailOverview:
       type: object
-      required: [domains, mailboxes, forwarders, max_mailboxes, max_forwarders, max_quota_mb, server]
+      required: [domains, mailboxes, forwarders, max_mailboxes, max_forwarders, max_quota_mb, max_mail_per_hour, send_held, server]
       properties:
         domains: { type: array, items: { $ref: "#/components/schemas/MailDomain" } }
         mailboxes: { type: array, items: { $ref: "#/components/schemas/Mailbox" } }
@@ -4647,6 +4680,8 @@ components:
         max_mailboxes: { type: [integer, "null"] }
         max_forwarders: { type: [integer, "null"] }
         max_quota_mb: { type: [integer, "null"] }
+        max_mail_per_hour: { type: [integer, "null"], description: "Recipients the account may send to in an hour; null: no limit" }
+        send_held: { type: integer, description: Recipients held back for the limit in the last hour }
         server: { type: string, description: The host name mail clients connect to }
 
     DeliverabilityCheck:

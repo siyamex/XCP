@@ -4,7 +4,7 @@ server where XCP and Postfix are installed: an account whose package allows
 4 recipients per hour can send up to that through submission, the next message
 is deferred with a 450 reply, and another account is not affected. Outgoing
 delivery is held back so nothing leaves the machine."""
-import smtplib, ssl, subprocess
+import smtplib, ssl, subprocess, time
 from email.message import EmailMessage
 
 from xcpe2e import Session, admin, check, finish
@@ -55,7 +55,7 @@ limits["mail_per_hour"] = 4
 st, pkg = api("POST", "/packages", {"name": "Mail limited", "feature_list_id": base["feature_list_id"], "limits": limits})
 check(st in (200, 201), "a package with 4 recipients per hour is made", f"{st} {pkg}")
 
-users = {}
+users, ids = {}, {}
 for name in ("lim1", "lim2"):
     st, a = api("POST", "/accounts", {"username": name, "domain": f"{name}.xcp.test", "package_id": pkg["id"], "password": PW})
     wait_job(a["job_id"])
@@ -66,6 +66,7 @@ for name in ("lim1", "lim2"):
     check(st == 202, f"{name} has a mailbox", f"{st} {r}")
     s.wait_job(r["job_id"])
     users[name] = f"info@{name}.xcp.test"
+    ids[name] = a["id"]
 
 sh("postconf", "-e", "defer_transports = smtp")
 sh("postfix", "reload")
@@ -93,6 +94,17 @@ try:
         check(True, "inbound mail is not limited")
     except smtplib.SMTPException as ex:
         check(False, "inbound mail is not limited", str(ex))
+    # The mail page tells the customer (USR-MAIL-17); xcp-logd reads the log once a minute.
+    held = 0
+    for _ in range(150):
+        st, o = api("GET", f"/accounts/{ids['lim1']}/mail")
+        held = o.get("send_held", 0)
+        if held:
+            break
+        time.sleep(1)
+    check(o.get("max_mail_per_hour") == 4 and held >= 1, "the mail page shows the limit and that mail was held back", f"{o.get('max_mail_per_hour')} {held}")
+    st, o = api("GET", f"/accounts/{ids['lim2']}/mail")
+    check(o.get("send_held") == 0, "and nothing for the other account", str(o.get("send_held")))
 finally:
     sh("postconf", "-X", "defer_transports")
     sh("postfix", "reload")
