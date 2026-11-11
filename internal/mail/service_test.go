@@ -507,6 +507,44 @@ func TestMailQueueAdminOnly(t *testing.T) {
 	}
 }
 
+func TestDeliverabilityAll(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	m, err := e.svc.CreateMailbox(ctx, client, user, a.ID, mail.MailboxInput{DomainID: o.Domains[0].ID, Local: "info", Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, m.JobID)
+	if _, err := e.svc.DeliverabilityAll(ctx, user); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a customer: %v", err)
+	}
+	// Nothing in public DNS yet: every check of the domain fails.
+	rep, err := e.svc.DeliverabilityAll(ctx, e.admin)
+	if err != nil || len(rep.Items) != 1 || rep.OK != 0 {
+		t.Fatalf("%+v %v", rep, err)
+	}
+	it := rep.Items[0]
+	if it.Domain != o.Domains[0].Name || it.Account != "alice" || it.Status != mail.CheckError || !it.Repairable ||
+		!slices.Contains(it.Problems, "mx") || slices.Contains(it.Problems, "ptr") || rep.PTR.Name != "ptr" {
+		t.Fatalf("%+v ptr %+v", it, rep.PTR)
+	}
+	// One domain's own check agrees with its line.
+	one, err := e.svc.Deliverability(ctx, e.admin, it.DomainID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want []string
+	for _, c := range one.Checks {
+		if c.Name != "ptr" && c.Status != mail.CheckOK {
+			want = append(want, c.Name)
+		}
+	}
+	if !slices.Equal(it.Problems, want) {
+		t.Errorf("problems %v, the domain's check says %v", it.Problems, want)
+	}
+}
+
 func TestRepairAll(t *testing.T) {
 	e := newEnv(t)
 	a, user := e.account(t, "alice")

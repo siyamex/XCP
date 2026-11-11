@@ -33,7 +33,7 @@ export function EmailPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("email.title")}</h1>
-      {me.data?.role === "admin" ? <><SettingsCard /><RepairAllCard /><MailQueueCard /></>
+      {me.data?.role === "admin" ? <><SettingsCard /><DeliverabilityAllCard /><RepairAllCard /><MailQueueCard /></>
         : me.data?.account_id ? <AccountMail accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -422,6 +422,47 @@ function ClientSettings({ server }: { server: string }) {
       <dl className="grid gap-2 font-mono text-sm sm:grid-cols-[6rem_1fr]">
         {rows.map(([k, v]) => <Fragment key={k}><dt className="text-slate-500">{k}</dt><dd>{v}</dd></Fragment>)}
       </dl>
+    </Card>
+  );
+}
+
+/** The deliverability check for every domain with mail (ADM-MAIL-07). */
+function DeliverabilityAllCard() {
+  const { t } = useTranslation();
+  const q = useQuery({ queryKey: ["deliverability-all"], queryFn: () => unwrap(api.GET("/server/mail/deliverability")), enabled: false, retry: false });
+  const bad = q.data?.items.filter((i) => i.status !== "ok") ?? [];
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("email.report.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("email.report.help")}</p>
+      <Button type="button" variant="secondary" disabled={q.isFetching} onClick={() => void q.refetch()}>{t("email.report.run")}</Button>
+      {q.isFetching && <Spinner />}
+      {q.isError && <ErrorAlert error={q.error} />}
+      {q.data && !q.isFetching && (
+        <>
+          <Alert kind={bad.length === 0 ? "success" : "info"}>{t("email.report.summary", { ok: q.data.ok, total: q.data.items.length })}</Alert>
+          {q.data.ptr.status !== "ok" && <Alert kind="info">{t("email.report.ptr")}: {q.data.ptr.detail}</Alert>}
+          {bad.length > 0 && (
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500">
+                <tr><th className="py-1">{t("email.report.domain")}</th><th>{t("email.report.account")}</th><th>{t("email.report.problems")}</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {bad.map((i) => (
+                  <tr key={i.domain_id}>
+                    <td className="py-1 font-mono">{i.domain}</td>
+                    <td>{i.account}</td>
+                    <td>
+                      {i.status === "unchecked" ? t("email.report.unchecked") : i.problems.map((n) => n.toUpperCase()).join(", ")}
+                      {i.status !== "unchecked" && !i.repairable && <span className="text-slate-500"> ({t("email.report.dnsElsewhere")})</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
     </Card>
   );
 }

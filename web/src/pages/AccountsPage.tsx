@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { api, setCsrfToken, unwrap } from "../api/client";
 import type { components } from "../api/schema";
+import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { JobNotice } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
@@ -33,9 +34,10 @@ export function AccountsPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [tag, setTag] = useState("");
   const list = useQuery({
-    queryKey: ["accounts", search, status],
-    queryFn: () => unwrap(api.GET("/accounts", { params: { query: { search: search || undefined, status: (status || undefined) as Status | undefined } } })),
+    queryKey: ["accounts", search, status, tag],
+    queryFn: () => unwrap(api.GET("/accounts", { params: { query: { search: search || undefined, status: (status || undefined) as Status | undefined, tag: tag || undefined } } })),
     refetchInterval: (q) => (q.state.data?.items.some((a) => a.status === "creating" || a.status === "terminating") ? 2000 : false),
   });
 
@@ -52,6 +54,7 @@ export function AccountsPage() {
           <option value="">{t("accounts.allStatuses")}</option>
           {(Object.keys(statusStyle) as Status[]).map((s) => <option key={s} value={s}>{t(`accounts.statuses.${s}`)}</option>)}
         </select>
+        {tag && <Button type="button" variant="secondary" onClick={() => setTag("")}>{t("accounts.note.tagFilter", { tag })} ×</Button>}
       </div>
       <ErrorAlert error={list.error} />
       {list.isPending ? <Spinner /> : (
@@ -66,6 +69,10 @@ export function AccountsPage() {
                 <tr key={a.id} className="border-t border-slate-100 dark:border-slate-800">
                   <td className="px-4 py-3">
                     <Link to="/accounts/$accountId" params={{ accountId: a.id }} className="font-medium text-brand hover:underline">{a.username}</Link>
+                    {a.tags?.map((g) => (
+                      <button key={g} type="button" onClick={() => setTag(g)}
+                        className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300">{g}</button>
+                    ))}
                   </td>
                   <td className="px-4 py-3">{a.primary_domain}</td>
                   <td className="px-4 py-3">{a.package_name}</td>
@@ -303,6 +310,7 @@ export function AccountDetailPage() {
       </Card>
 
       {a.status === "active" && <Impersonate id={a.id} username={a.username} />}
+      <NoteCard id={a.id} onSaved={refresh} />
 
       <Card className="border-red-200 dark:border-red-900">
         <CardTitle>{t("accounts.terminate")}</CardTitle>
@@ -321,6 +329,48 @@ export function AccountDetailPage() {
 }
 
 /** Sign in as the account's user, after confirming the password (RSL-ACC-05). */
+/** The admins' internal note and tags on an account (ADM-ACC-18). */
+function NoteCard({ id, onSaved }: { id: string; onSaved: () => void }) {
+  const { t } = useTranslation();
+  const me = useMe();
+  const isAdmin = me.data?.role === "admin";
+  const path = { params: { path: { id } } };
+  const q = useQuery({ queryKey: ["account-note", id], queryFn: () => unwrap(api.GET("/accounts/{id}/note", path)), enabled: isAdmin, retry: false });
+  const [note, setNote] = useState("");
+  const [tags, setTags] = useState("");
+  useEffect(() => {
+    if (q.data) {
+      setNote(q.data.note);
+      setTags(q.data.tags.join(", "));
+    }
+  }, [q.data]);
+  const qc = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => unwrap(api.PUT("/accounts/{id}/note", { ...path, body: { note, tags: tags.split(/[\s,]+/).filter(Boolean) } })),
+    onSuccess: (n) => { qc.setQueryData(["account-note", id], n); onSaved(); },
+  });
+  if (!isAdmin) return null;
+  return (
+    <Card>
+      <CardTitle>{t("accounts.note.title")}</CardTitle>
+      <p className="mb-3 text-sm text-slate-500">{t("accounts.note.help")}</p>
+      <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="max-w-2xl space-y-3">
+        <Field id="acc-note" label={t("accounts.note.note")}>
+          <textarea id="acc-note" rows={4} maxLength={5000} value={note} onChange={(e) => setNote(e.target.value)}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        </Field>
+        <Field id="acc-tags" label={t("accounts.note.tags")}>
+          <Input id="acc-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="vip, late-payer" />
+        </Field>
+        <ErrorAlert error={q.error ?? save.error} />
+        {save.isSuccess && <Alert kind="success">{t("common.saved")}</Alert>}
+        {q.data?.updated_at && <p className="text-xs text-slate-500">{t("accounts.note.updated", { who: q.data.updated_by, when: new Date(q.data.updated_at).toLocaleString() })}</p>}
+        <Button type="submit" variant="secondary" disabled={save.isPending}>{t("common.save")}</Button>
+      </form>
+    </Card>
+  );
+}
+
 function Impersonate({ id, username }: { id: string; username: string }) {
   const { t } = useTranslation();
   const qc = useQueryClient();

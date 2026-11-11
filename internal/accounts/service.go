@@ -41,6 +41,7 @@ type Account struct {
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	OwnerID       string    `json:"owner_id,omitempty"` // the reseller who owns it; empty: the admins
+	Tags          []string  `json:"tags,omitempty"`     // internal, for admins only
 	JobID         string    `json:"job_id,omitempty"`   // the job started by the last change, if any
 }
 
@@ -201,7 +202,26 @@ func (s *Service) List(ctx context.Context, p *auth.Principal, search, status st
 	for i := range list {
 		out = append(out, s.view(ctx, &list[i]))
 	}
+	if adminOnly(p) == nil {
+		tags, err := s.db.AccountTags(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for i := range out {
+			out[i].Tags = tags[out[i].ID]
+		}
+	}
 	return out, nil
+}
+
+// WithTag keeps the accounts that have the tag ("" keeps all). Only admins
+// get tags, so for others a tag matches nothing.
+func WithTag(list []Account, tag string) []Account {
+	tag = strings.ToLower(strings.TrimSpace(tag))
+	if tag == "" {
+		return list
+	}
+	return slices.DeleteFunc(list, func(a Account) bool { return !slices.Contains(a.Tags, tag) })
 }
 
 // Impersonate signs the caller in as the account's user (admins, and
@@ -231,7 +251,15 @@ func (s *Service) Get(ctx context.Context, p *auth.Principal, id string) (Accoun
 	if err != nil {
 		return Account{}, err
 	}
-	return s.view(ctx, a), nil
+	v := s.view(ctx, a)
+	if adminOnly(p) == nil {
+		n, err := s.db.AccountNoteByID(ctx, a.ID)
+		if err != nil {
+			return Account{}, err
+		}
+		v.Tags = n.Tags
+	}
+	return v, nil
 }
 
 func fieldErr(err error, name string) error { return validate.WithField(err, name) }

@@ -17,7 +17,7 @@ func (s *Server) listAccounts(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	writeJSON(w, http.StatusOK, map[string]any{"items": accounts.WithTag(items, q.Get("tag"))})
 	return nil
 }
 
@@ -27,6 +27,31 @@ func (s *Server) getAccount(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeJSON(w, http.StatusOK, a)
+	return nil
+}
+
+func (s *Server) getAccountNote(w http.ResponseWriter, r *http.Request) error {
+	n, err := s.Accounts.Note(r.Context(), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, n)
+	return nil
+}
+
+func (s *Server) putAccountNote(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Note string   `json:"note"`
+		Tags []string `json:"tags"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	n, err := s.Accounts.SetNote(r.Context(), client(r), principal(r), r.PathValue("id"), in.Note, in.Tags)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, n)
 	return nil
 }
 

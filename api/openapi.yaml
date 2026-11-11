@@ -541,6 +541,7 @@ paths:
       parameters:
         - { name: search, in: query, schema: { type: string }, description: Part of a username or domain }
         - { name: status, in: query, schema: { type: string, enum: [creating, active, suspended, terminating, error] } }
+        - { name: tag, in: query, schema: { type: string }, description: Only accounts with this internal tag (admins) }
       responses:
         "200":
           description: Accounts, newest first.
@@ -574,6 +575,47 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
+
+  /accounts/{id}/note:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [accounts]
+      summary: An account's internal note and tags (admins)
+      description: Resellers and customers never see it.
+      operationId: getAccountNote
+      responses:
+        "200":
+          description: The note; empty if none was written.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountNote" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [accounts]
+      summary: Save an account's internal note and tags (admins)
+      operationId: putAccountNote
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note, tags]
+              properties:
+                note: { type: string, maxLength: 5000 }
+                tags: { type: array, maxItems: 10, items: { type: string, maxLength: 30, pattern: "^[a-z0-9][a-z0-9-]*$" } }
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountNote" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
 
   /accounts/{id}:
     parameters:
@@ -2153,6 +2195,42 @@ paths:
                   changed: { type: boolean }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
+
+  /server/mail/deliverability:
+    get:
+      tags: [mail]
+      summary: Deliverability of every domain with mail (admins)
+      description: |
+        Runs the per-domain check (MX, SPF, DKIM, DMARC in public DNS) for every domain of the active accounts,
+        a few at a time, for at most 90 seconds; domains it had no time for are `unchecked`. Domains whose mail
+        is handled elsewhere are left out. The server's reverse name is checked once (`ptr`).
+      operationId: mailDeliverabilityAll
+      responses:
+        "200":
+          description: Domains with problems first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, ok, ptr]
+                properties:
+                  ok: { type: integer, description: Domains without problems }
+                  ptr: { $ref: "#/components/schemas/DeliverabilityCheck" }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [domain_id, domain, account_id, account, routing, status, problems, repairable]
+                      properties:
+                        domain_id: { type: string }
+                        domain: { type: string }
+                        account_id: { type: string }
+                        account: { type: string }
+                        routing: { type: string }
+                        status: { type: string, enum: [ok, warning, error, unchecked] }
+                        problems: { type: array, items: { type: string, enum: [mx, spf, dkim, dmarc] } }
+                        repairable: { type: boolean }
+        "403": { $ref: "#/components/responses/Problem" }
 
   /server/mail/repair-all:
     post:
@@ -3747,6 +3825,7 @@ components:
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         job_id: { type: string, description: Job started by this change }
+        tags: { type: array, items: { type: string }, description: Internal tags; only admins get them }
 
     AccountCreate:
       type: object
@@ -4540,6 +4619,15 @@ components:
         found: { type: array, items: { type: string } }
         expected: { type: string }
         detail: { type: string }
+
+    AccountNote:
+      type: object
+      required: [note, tags]
+      properties:
+        note: { type: string }
+        tags: { type: array, items: { type: string } }
+        updated_by: { type: string, description: Username of the admin who wrote it last }
+        updated_at: { type: string, format: date-time }
 
     Deliverability:
       type: object

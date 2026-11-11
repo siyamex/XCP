@@ -378,6 +378,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * An account's internal note and tags (admins)
+         * @description Resellers and customers never see it.
+         */
+        get: operations["getAccountNote"];
+        /** Save an account's internal note and tags (admins) */
+        put: operations["putAccountNote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}": {
         parameters: {
             query?: never;
@@ -1510,6 +1533,28 @@ export interface paths {
          * @description SPF and DMARC only when the zone has none; the DKIM key always. 409 no_zone when the domain's DNS is elsewhere.
          */
         post: operations["repairMailDNS"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mail/deliverability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Deliverability of every domain with mail (admins)
+         * @description Runs the per-domain check (MX, SPF, DKIM, DMARC in public DNS) for every domain of the active accounts,
+         *     a few at a time, for at most 90 seconds; domains it had no time for are `unchecked`. Domains whose mail
+         *     is handled elsewhere are left out. The server's reverse name is checked once (`ptr`).
+         */
+        get: operations["mailDeliverabilityAll"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2863,6 +2908,8 @@ export interface components {
             updated_at: string;
             /** @description Job started by this change */
             job_id?: string;
+            /** @description Internal tags; only admins get them */
+            tags?: string[];
         };
         AccountCreate: {
             username: string;
@@ -3599,6 +3646,14 @@ export interface components {
             found: string[];
             expected?: string;
             detail: string;
+        };
+        AccountNote: {
+            note: string;
+            tags: string[];
+            /** @description Username of the admin who wrote it last */
+            updated_by?: string;
+            /** Format: date-time */
+            updated_at?: string;
         };
         Deliverability: {
             domain_id: string;
@@ -4568,6 +4623,8 @@ export interface operations {
                 /** @description Part of a username or domain */
                 search?: string;
                 status?: "creating" | "active" | "suspended" | "terminating" | "error";
+                /** @description Only accounts with this internal tag (admins) */
+                tag?: string;
             };
             header?: never;
             path?: never;
@@ -4614,6 +4671,62 @@ export interface operations {
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    getAccountNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The note; empty if none was written. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountNote"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    putAccountNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note: string;
+                    tags: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountNote"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     getAccount: {
@@ -6671,6 +6784,42 @@ export interface operations {
             };
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    mailDeliverabilityAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domains with problems first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Domains without problems */
+                        ok: number;
+                        ptr: components["schemas"]["DeliverabilityCheck"];
+                        items: {
+                            domain_id: string;
+                            domain: string;
+                            account_id: string;
+                            account: string;
+                            routing: string;
+                            /** @enum {string} */
+                            status: "ok" | "warning" | "error" | "unchecked";
+                            problems: ("mx" | "spf" | "dkim" | "dmarc")[];
+                            repairable: boolean;
+                        }[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
         };
     };
     repairAllMailDNS: {

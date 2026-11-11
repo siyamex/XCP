@@ -264,6 +264,14 @@
     "logs": "Logs"
   },
   "accounts": {
+    "note": {
+      "title": "Internal note",
+      "help": "Only admins see this. The customer and their reseller never do.",
+      "note": "Note",
+      "tags": "Tags (lower-case words, separated by commas)",
+      "updated": "Last changed by {{who}}, {{when}}.",
+      "tagFilter": "Tag: {{tag}}"
+    },
     "title": "Accounts",
     "new": "New account",
     "search": "Search username or domain",
@@ -994,6 +1002,18 @@
     "setRoot": "Set root password"
   },
   "email": {
+    "report": {
+      "title": "Deliverability of all domains",
+      "help": "Looks up the MX, SPF, DKIM and DMARC records of every domain with email in public DNS, as other mail servers see them. With many domains this takes a minute.",
+      "run": "Check all domains",
+      "summary": "{{ok}} of {{total}} domains are in order.",
+      "ptr": "The server's reverse name",
+      "domain": "Domain",
+      "account": "Account",
+      "problems": "Not in order",
+      "unchecked": "not checked",
+      "dnsElsewhere": "DNS is elsewhere"
+    },
     "repairAll": {
       "title": "Email DNS records for all domains",
       "help": "Writes the expected DKIM key, and SPF and DMARC where a zone has none, into the zone of every domain with email on this server. Records that are set are kept.",

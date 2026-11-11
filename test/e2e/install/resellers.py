@@ -147,6 +147,20 @@ if st == 200:
     st, _ = imp.call("GET", "/reseller/overview")
     check(st == 403, "and is not a reseller any more", f"{st}")
 
+# Internal notes and tags: for admins only (ADM-ACC-18).
+st, n = api("PUT", f"/accounts/{c1['id']}/note", {"note": "Pays by invoice.", "tags": ["VIP", "e2e-note"]})
+check(st == 200 and n["tags"] == ["e2e-note", "vip"] and n.get("updated_by"), "an admin writes a note with tags", f"{st} {n}")
+st, n = api("PUT", f"/accounts/{c1['id']}/note", {"note": "", "tags": ["two words"]})
+check(st == 400, "a tag with a space is refused", f"{st} {n}")
+st, la = api("GET", "/accounts?tag=e2e-note")
+check(st == 200 and [a["username"] for a in la["items"]] == ["rsc1"], "the admin's list filters by tag", f"{st} {[a['username'] for a in la.get('items', [])]}")
+st, n = a1.call("GET", f"/accounts/{c1['id']}/note")
+check(st == 403, "the reseller cannot read the note", f"{st}")
+st, one = a1.call("GET", f"/accounts/{c1['id']}")
+check(st == 200 and "tags" not in one, "and gets no tags with the account", f"{st} {one.get('tags')}")
+st, n = cust.call("GET", f"/accounts/{c1['id']}/note")
+check(st == 403, "nor can the customer", f"{st}")
+
 # Privileges: without them the action is refused.
 privs = ["create", "modify", "suspend", "password", "impersonate"]
 st, r = api("PUT", f"/resellers/{r1['id']}/limits", {"max_accounts": 2, "disk_mb": 300, "bandwidth_mb": None, "oversell_disk": False, "oversell_bandwidth": False, "privileges": privs})

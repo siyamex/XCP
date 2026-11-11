@@ -75,6 +75,16 @@
   orphans. `POST /server/dns/sync` checks again and queues `dns.apply` for
   those zones; orphans are not touched (they have their own list).
 
+## Addendum: deliverability report for all domains
+
+- `GET /server/mail/deliverability` (admins) runs the existing per-domain
+  check for every domain with mail. Public DNS lookups are slow, so it works
+  on 8 domains at a time and stops after 90 seconds (below the API's write
+  timeout); what it did not reach is reported as `unchecked`, not as fine.
+  It is a request, not a job: nothing is stored, and the admin looks at it
+  at once. A server with thousands of domains will need a stored, scheduled
+  report instead.
+
 ## Not done
 
 - Replacing import (a zone file that becomes the zone).
