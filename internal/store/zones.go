@@ -93,6 +93,11 @@ func (db *DB) AllZones(ctx context.Context) ([]Zone, error) {
 	return queryZones(ctx, db.R, `SELECT `+zoneColumns+` FROM dns_zones ORDER BY name`)
 }
 
+// ListAllZones returns every zone, read through q (a transaction).
+func ListAllZones(ctx context.Context, q Querier) ([]Zone, error) {
+	return queryZones(ctx, q, `SELECT `+zoneColumns+` FROM dns_zones ORDER BY name`)
+}
+
 // ZonesNotServing returns the zones the DNS server does not have yet.
 func (db *DB) ZonesNotServing(ctx context.Context) ([]Zone, error) {
 	return queryZones(ctx, db.R, `SELECT `+zoneColumns+` FROM dns_zones WHERE serving = 0 ORDER BY name`)

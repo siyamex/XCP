@@ -304,6 +304,30 @@ function Orphans() {
   );
 }
 
+function BulkMailRouting() {
+  const { t } = useTranslation();
+  const [routing, setRouting] = useState<MailRouting>("auto");
+  const run = useMutation({ mutationFn: () => unwrap(api.POST("/server/dns/bulk-mail-routing", { body: { mail_routing: routing } })) });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.bulkMail.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.bulkMail.help")}</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <Field id="bulk-mail" label={t("dns.mail.title")}>
+          <select id="bulk-mail" className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+            value={routing} onChange={(e) => setRouting(e.target.value as MailRouting)}>
+            {(["auto", "local", "backup", "remote"] as const).map((r) => <option key={r} value={r}>{t(`dns.mail.${r}`)}</option>)}
+          </select>
+        </Field>
+        <Button type="button" variant="secondary" disabled={run.isPending}
+          onClick={() => window.confirm(t("dns.bulkMail.confirm", { routing: t(`dns.mail.${routing}`) })) && run.mutate()}>{t("dns.bulk.apply")}</Button>
+      </div>
+      <ErrorAlert error={run.error} />
+      {run.data && <Alert kind="success">{t("dns.bulkMail.done", { zones: run.data.zones })}</Alert>}
+    </Card>
+  );
+}
+
 function BulkTtl() {
   const { t } = useTranslation();
   const [ttl, setTtl] = useState(3600);
@@ -403,6 +427,7 @@ export function DnsSettingsPage() {
       </Card>
       <Button type="submit" disabled={save.isPending}>{t("dns.settings.save")}</Button>
       <BulkTtl />
+      <BulkMailRouting />
       <Orphans />
     </form>
   );

@@ -126,6 +126,21 @@ func (s *Server) bulkDNSTTL(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) bulkMailRouting(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		MailRouting string `json:"mail_routing"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	res, err := s.Zones.SetAllMailRouting(r.Context(), client(r), principal(r), in.MailRouting)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, res)
+	return nil
+}
+
 func (s *Server) listOrphanZones(w http.ResponseWriter, r *http.Request) error {
 	items, err := s.Zones.OrphanZones(r.Context(), principal(r))
 	if err != nil {

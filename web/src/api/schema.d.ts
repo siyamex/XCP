@@ -825,6 +825,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/dns/bulk-mail-routing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give every zone the same email routing (admins)
+         * @description Zones that have the routing already are not touched. The mail server is set up again for the accounts whose zones changed.
+         */
+        post: operations["bulkMailRouting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/dns/bulk-ttl": {
         parameters: {
             query?: never;
@@ -5336,6 +5356,37 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    bulkMailRouting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mail_routing: "auto" | "local" | "remote" | "backup";
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        zones: number;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     bulkDnsTtl: {

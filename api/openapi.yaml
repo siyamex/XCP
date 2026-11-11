@@ -1174,6 +1174,27 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /server/dns/bulk-mail-routing:
+    post:
+      tags: [dns]
+      summary: Give every zone the same email routing (admins)
+      description: Zones that have the routing already are not touched. The mail server is set up again for the accounts whose zones changed.
+      operationId: bulkMailRouting
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [mail_routing], properties: { mail_routing: { type: string, enum: [auto, local, remote, backup] } } }
+      responses:
+        "200":
+          description: Done.
+          content:
+            application/json:
+              schema: { type: object, required: [zones], properties: { zones: { type: integer } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /server/dns/bulk-ttl:
     post:
       tags: [dns]

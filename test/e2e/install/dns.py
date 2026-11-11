@@ -108,6 +108,25 @@ st, z = api("GET", f"/dns/zones/{zid}")
 check(all(r["ttl"] == 777 for r in z["records"]), "the zone's records have it", str([r["ttl"] for r in z["records"]]))
 st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 3600})
 
+# Bulk: one email routing for every zone; the mail server follows.
+import time
+def local_mail(want):
+    for _ in range(60):
+        if ("dns1.xcp.test" in open("/etc/postfix/xcp/domains").read().split()) == want:
+            return True
+        time.sleep(1)
+    return False
+st, res = api("POST", "/server/dns/bulk-mail-routing", {"mail_routing": "elsewhere"})
+check(st == 400, "an unknown routing is refused", f"{st} {res}")
+st, res = api("POST", "/server/dns/bulk-mail-routing", {"mail_routing": "remote"})
+check(st == 200 and res["zones"] >= 1, "every zone gets the routing", f"{st} {res}")
+st, z = api("GET", f"/dns/zones/{zid}")
+check(z["mail_routing"] == "remote" and z["mail_routing_effective"] == "remote", "the zone has it", f"{z['mail_routing']}/{z.get('mail_routing_effective')}")
+check(local_mail(False), "Postfix no longer takes the domain's mail")
+st, res = api("POST", "/server/dns/bulk-mail-routing", {"mail_routing": "auto"})
+check(st == 200 and res["zones"] >= 1, "back to automatic", f"{st} {res}")
+check(local_mail(True), "Postfix takes the domain's mail again")
+
 # Orphan zones: made in the DNS server by hand, not owned by an account.
 import subprocess
 subprocess.run(["pdnsutil", "create-zone", "stray.dns1.test"], capture_output=True)

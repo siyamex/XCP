@@ -2,6 +2,7 @@ package zones_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"log/slog"
@@ -594,6 +595,45 @@ func TestBulkTTL(t *testing.T) {
 		}
 	}
 	if res, _ := e.svc.SetAllTTL(ctx, client, root, 300); res.Records != 0 || res.Zones != 0 {
+		t.Errorf("again: %+v", res)
+	}
+}
+
+func TestBulkMailRouting(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice", "example.com")
+	b, bob := e.account(t, "bob", "example.net")
+	root := &auth.Principal{Login: &store.Login{ID: "admin", Role: store.RoleAdmin}, Session: &store.Session{}}
+	if _, err := e.svc.SetAllMailRouting(ctx, client, alice, store.MailRemote); !errors.Is(err, apperr.ErrForbidden) {
+		t.Fatalf("a customer: %v", err)
+	}
+	if _, err := e.svc.SetAllMailRouting(ctx, client, root, "elsewhere"); !errors.Is(err, validate.ErrValidation) {
+		t.Fatalf("bad routing: %v", err)
+	}
+	var heard []string
+	e.svc.SetMailHook(func(_ context.Context, _ *sql.Tx, _, accountID string) error {
+		heard = append(heard, accountID)
+		return nil
+	})
+	res, err := e.svc.SetAllMailRouting(ctx, client, root, store.MailRemote)
+	if err != nil || res.Zones != 2 {
+		t.Fatalf("%+v %v", res, err)
+	}
+	for _, c := range []struct {
+		id string
+		p  *auth.Principal
+	}{{a.ID, alice}, {b.ID, bob}} {
+		if z := e.zone(t, c.p, c.id); z.MailRouting != store.MailRemote || z.MailRoutingEffective != store.MailRemote {
+			t.Errorf("%s: %q/%q", z.Name, z.MailRouting, z.MailRoutingEffective)
+		}
+	}
+	slices.Sort(heard)
+	want := []string{a.ID, b.ID}
+	slices.Sort(want)
+	if !slices.Equal(heard, want) {
+		t.Errorf("mail heard %v", heard)
+	}
+	if res, _ := e.svc.SetAllMailRouting(ctx, client, root, store.MailRemote); res.Zones != 0 {
 		t.Errorf("again: %+v", res)
 	}
 }

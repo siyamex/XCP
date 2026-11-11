@@ -408,6 +408,12 @@
       "none": "None.",
       "confirm": "Remove the zone {{name}} from the DNS server?"
     },
+    "bulkMail": {
+      "title": "Email routing for all zones",
+      "help": "Gives every zone on this server the same email routing, replacing what was chosen for each zone. Automatic follows each zone's MX records.",
+      "confirm": "Set the email routing of every zone to “{{routing}}”?",
+      "done": "{{zones}} zones changed."
+    },
     "bulk": {
       "title": "Change all TTLs",
       "help": "Gives every record of every zone the same TTL, for example before moving the server (a short TTL) or afterwards (a long one). The template and the default for new records stay as they are.",

@@ -28,7 +28,7 @@
 - `POST /server/dns/bulk-ttl {ttl}` (admins) sets the TTL of every record of
   every zone (60 to 604800), queues the zones that changed and writes one audit
   event. The zone template and the default TTL for new records are not
-  touched. Nothing else is bulk yet (DKIM/SPF/DMARC, MX routing).
+  touched. DKIM/SPF/DMARC and the email routing have their own bulk actions (below).
 
 ## Addendum: orphan zones
 
@@ -45,6 +45,15 @@
   has none) for every domain with email of the active accounts the admin owns.
   The result counts the domains looked at and changed and lists those whose DNS
   is elsewhere (`no_zone`) or that were refused.
+
+## Addendum: email routing for all zones
+
+- `POST /server/dns/bulk-mail-routing {mail_routing}` (admins) sets the email
+  routing (`auto`, `local`, `remote`, `backup`) of every zone that does not
+  have it already, in one transaction, calls the mail hook once for each
+  account whose zones changed, and writes one audit event
+  (`dns.bulk.mail_routing`). The MX records are not touched: `auto` keeps
+  following them, the other values override them as for one zone.
 
 ## Not done
 
