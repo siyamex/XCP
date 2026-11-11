@@ -2,6 +2,7 @@ package databases_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -119,6 +120,48 @@ func (e *env) waitJob(t *testing.T, id string) *jobs.Job {
 			t.Fatalf("job %s did not finish", id)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestMaintain(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	good, err := e.svc.CreateDatabase(ctx, client, alice, a.ID, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, good.JobID)
+	bad, err := e.svc.CreateDatabase(ctx, client, alice, a.ID, "old_broken")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, bad.JobID)
+	if _, err := e.svc.Maintain(ctx, client, alice, good.ID, "drop"); !field(err, "action") {
+		t.Fatalf("a bad action: %v", err)
+	}
+	if _, err := e.svc.Maintain(ctx, client, bob, good.ID, "check"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("bob checks alice's database: %v", err)
+	}
+	result := func(id, action string) map[string]any {
+		t.Helper()
+		jobID, err := e.svc.Maintain(ctx, client, alice, id, action)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out map[string]any
+		if err := json.Unmarshal(e.waitJob(t, jobID).Result, &out); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	if r := result(good.ID, "optimize"); r["tables"] != float64(1) || r["errors"] != float64(0) || len(r["problems"].([]any)) != 0 || r["action"] != "optimize" {
+		t.Fatalf("a healthy database: %v", r)
+	}
+	r := result(bad.ID, "check")
+	problems := r["problems"].([]any)
+	if r["tables"] != float64(2) || r["errors"] != float64(1) || len(problems) != 1 || problems[0].(map[string]any)["table"] != "bad" {
+		t.Fatalf("a broken table: %v", r)
 	}
 }
 

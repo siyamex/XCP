@@ -5,7 +5,7 @@ import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
-import { JobNotice } from "../components/JobNotice";
+import { JobNotice, useJob } from "../components/JobNotice";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
 import { generatePassword } from "../lib/password";
 
@@ -185,6 +185,10 @@ function DatabaseRow({ d, prefix, onStarted }: { d: Database; prefix: string; on
     onSuccess: (r) => { setRenaming(false); onStarted(r); },
   });
   const remove = useMutation({ mutationFn: () => unwrap(api.DELETE("/databases/{id}", path)), onSuccess: onStarted });
+  const [action, setAction] = useState<"check" | "repair" | "optimize">("check");
+  const maintain = useMutation({ mutationFn: () => unwrap(api.POST("/databases/{id}/maintain", { ...path, body: { action } })) });
+  const job = useJob(maintain.data?.job_id, () => undefined);
+  const result = job?.status === "succeeded" ? (job.result as { tables?: number; errors?: number; problems?: { table: string; type: string; text: string }[] } | undefined) : undefined;
   return (
     <tr className="border-t border-slate-100 align-top dark:border-slate-800">
       <td className="px-4 py-3 font-medium">
@@ -195,11 +199,28 @@ function DatabaseRow({ d, prefix, onStarted }: { d: Database; prefix: string; on
             <Button type="submit" variant="secondary" disabled={rename.isPending}>{t("common.save")}</Button>
           </form>
         ) : d.name}
-        <ErrorAlert error={rename.error ?? remove.error} />
+        <ErrorAlert error={rename.error ?? remove.error ?? maintain.error} />
+        {job && job.status !== "succeeded" && job.status !== "failed" && <p className="text-xs font-normal text-slate-500">{t("job.running")}</p>}
+        {job?.status === "failed" && <p className="text-xs font-normal text-red-700 dark:text-red-400">{t("job.failed", { error: job.error ?? "" })}</p>}
+        {result && (
+          <div className="mt-1 text-xs font-normal">
+            <p className={result.errors ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}>
+              {t("databases.maintain.done", { tables: result.tables ?? 0, errors: result.errors ?? 0 })}
+            </p>
+            <ul className="text-slate-500">
+              {result.problems?.map((p) => <li key={p.table}><span className="font-mono">{p.table}</span>: {p.type}: {p.text}</li>)}
+            </ul>
+          </div>
+        )}
       </td>
       <td className="px-4 py-3">{formatSize(d.size_bytes)}</td>
       <td className="px-4 py-3">{d.users.length ? d.users.map((u) => u.name).join(", ") : <span className="text-slate-500">{t("common.none")}</span>}</td>
       <td className="whitespace-nowrap px-4 py-3 text-right">
+        <select aria-label={t("databases.maintain.action")} value={action} onChange={(e) => setAction(e.target.value as typeof action)}
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900">
+          {(["check", "repair", "optimize"] as const).map((a) => <option key={a} value={a}>{t(`databases.maintain.${a}`)}</option>)}
+        </select>
+        <Button variant="ghost" disabled={maintain.isPending || (!!job && job.status !== "succeeded" && job.status !== "failed")} onClick={() => maintain.mutate()}>{t("databases.maintain.run")}</Button>
         <Button variant="ghost" onClick={() => setRenaming(!renaming)}>{renaming ? t("common.cancel") : t("databases.rename")}</Button>
         <Button variant="ghost" disabled={remove.isPending}
           onClick={() => window.confirm(t("databases.confirmDelete", { name: d.name })) && remove.mutate()}>{t("common.delete")}</Button>

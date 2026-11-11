@@ -1694,6 +1694,36 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /databases/{id}/maintain:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Check, repair or optimize every table of a database
+      description: |
+        Runs as a job. Its `result` has `tables` (how many were looked at), `errors`, and `problems`:
+        the tables MariaDB had a note, a warning or an error about (`table`, `type`, `text`; at most 100).
+      operationId: maintainDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { type: string, enum: [check, repair, optimize] }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /accounts/{id}/database-users:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }

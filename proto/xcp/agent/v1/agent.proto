@@ -99,6 +99,10 @@ service AgentService {
   // old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
   rpc MySQLDatabaseRename(MySQLDatabaseRenameRequest) returns (MySQLDatabaseRenameResponse);
 
+  // MySQLDatabaseMaintain checks, repairs or optimizes every table of one
+  // of the account's databases and returns MariaDB's verdict for each.
+  rpc MySQLDatabaseMaintain(MySQLDatabaseMaintainRequest) returns (MySQLDatabaseMaintainResponse);
+
   // MySQLSignon creates a temporary user for phpMyAdmin with all privileges
   // on the given databases and a one-time ticket to sign in with it.
   rpc MySQLSignon(MySQLSignonRequest) returns (MySQLSignonResponse);
@@ -561,6 +565,22 @@ message MySQLDatabaseDropRequest {
 
 message MySQLDatabaseDropResponse {
   bool dropped = 1;  // false if it did not exist
+}
+
+message MySQLDatabaseMaintainRequest {
+  string username = 1;
+  string database = 2;
+  string action = 3;  // check, repair or optimize
+}
+
+message MySQLTableResult {
+  string table = 1;
+  string type = 2;  // status, note, warning or error: the worst MariaDB reported
+  string text = 3;
+}
+
+message MySQLDatabaseMaintainResponse {
+  repeated MySQLTableResult tables = 1;
 }
 
 message MySQLDatabaseRenameRequest {

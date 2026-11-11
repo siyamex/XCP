@@ -96,6 +96,18 @@ st, res = user.call("PUT", f"/databases/{w['database']['id']}", {"name": "other"
 check(st == 409 and res.get("code") == "rename_refused", "a database with a view is not renamed", f"{st} {res}")
 root_sql("DROP VIEW db1_store.v")
 
+# Check, repair, optimize (USR-DB-06): MariaDB's verdict on every table.
+for action in ("check", "optimize", "repair"):
+    st, r = user.call("POST", f"/databases/{w['database']['id']}/maintain", {"action": action})
+    j = user.wait_job(r["job_id"]) if st == 202 else {}
+    res = j.get("result") or {}
+    check(st == 202 and j.get("status") == "succeeded" and res.get("tables") == 1 and res.get("errors") == 0, f"{action} looks at the database's table", f"{st} {j}")
+check(sql("db1_app", new_pw, "SELECT name FROM items", "db1_store") == (True, "apple"), "and the data is still there")
+st, r = user.call("POST", f"/databases/{w['database']['id']}/maintain", {"action": "drop"})
+check(st == 400, "another action is refused", f"{st} {r}")
+st, r = user2.call("POST", f"/databases/{w['database']['id']}/maintain", {"action": "check"})
+check(st == 404, "another account cannot run it", f"{st} {r}")
+
 # phpMyAdmin: a one-time sign-on with access to the account's databases only.
 st, s = user.call("POST", f"/accounts/{accts['db1']}/phpmyadmin")
 url = (s or {}).get("url", "")

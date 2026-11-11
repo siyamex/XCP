@@ -18,9 +18,10 @@ import (
 // Job kinds. Apply and drop share the account's lock key, so they run in
 // order with each other and with the account's own jobs.
 const (
-	JobApply  = "mysql.apply"  // make MariaDB hold the account's users, grants and databases
-	JobDrop   = "mysql.drop"   // drop one database with its data
-	JobExpire = "mysql.expire" // drop expired phpMyAdmin sign-on users
+	JobApply    = "mysql.apply"  // make MariaDB hold the account's users, grants and databases
+	JobDrop     = "mysql.drop"   // drop one database with its data
+	JobMaintain = "db.maintain"  // check, repair or optimize a database's tables
+	JobExpire   = "mysql.expire" // drop expired phpMyAdmin sign-on users
 )
 
 // ExpireSchedule is how often JobExpire runs.
@@ -29,6 +30,22 @@ const ExpireSchedule = "*/10 * * * *"
 type applyPayload struct {
 	AccountID string `json:"account_id"`
 }
+
+type maintainPayload struct {
+	AccountID string `json:"account_id"`
+	Database  string `json:"database"`
+	Action    string `json:"action"`
+}
+
+// TableProblem is a table MariaDB did not just call fine.
+type TableProblem struct {
+	Table string `json:"table"`
+	Type  string `json:"type"` // note, warning or error
+	Text  string `json:"text"`
+}
+
+// maxProblems bounds the problems kept in a maintenance job's result.
+const maxProblems = 100
 
 type dropPayload struct {
 	AccountID string `json:"account_id"`
@@ -39,6 +56,7 @@ type dropPayload struct {
 func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobApply, 4, s.applyJob)
 	w.Register(JobDrop, 2, s.dropJob)
+	w.Register(JobMaintain, 1, s.maintainJob)
 	w.Register(JobExpire, 1, s.expireJob)
 }
 
@@ -169,6 +187,45 @@ func (s *Service) dropJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (an
 		return nil, permanentIfRefused(err)
 	}
 	return map[string]any{"database": p.Database, "dropped": res.GetDropped()}, nil
+}
+
+// maintainJob checks, repairs or optimizes a database's tables. Its result
+// names the tables MariaDB had something to say about.
+func (s *Service) maintainJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (any, error) {
+	var p maintainPayload
+	if err := json.Unmarshal(j.Payload, &p); err != nil || p.AccountID == "" || p.Database == "" {
+		return nil, jobs.Permanent(fmt.Errorf("bad job payload: %s", j.Payload))
+	}
+	a, err := s.db.AccountByID(ctx, p.AccountID)
+	if errors.Is(err, store.ErrNotFound) {
+		return map[string]string{"skipped": "account removed"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	r.Logf("%s of database %s", p.Action, p.Database)
+	res, err := s.agent.MySQLDatabaseMaintain(ctx, &agentv1.MySQLDatabaseMaintainRequest{Username: a.Username, Database: p.Database, Action: p.Action})
+	switch {
+	case status.Code(err) == codes.NotFound:
+		return nil, jobs.Permanent(errors.New("MariaDB is not installed"))
+	case err != nil:
+		return nil, permanentIfRefused(err)
+	}
+	problems := []TableProblem{}
+	errs := 0
+	for _, t := range res.GetTables() {
+		if t.GetType() == "status" {
+			continue
+		}
+		r.Logf("%s: %s: %s", t.GetTable(), t.GetType(), t.GetText())
+		if t.GetType() == "error" {
+			errs++
+		}
+		if len(problems) < maxProblems {
+			problems = append(problems, TableProblem{Table: t.GetTable(), Type: t.GetType(), Text: t.GetText()})
+		}
+	}
+	return map[string]any{"database": p.Database, "action": p.Action, "tables": len(res.GetTables()), "errors": errs, "problems": problems}, nil
 }
 
 func (s *Service) expireJob(ctx context.Context, _ *jobs.Job, _ jobs.Reporter) (any, error) {

@@ -122,6 +122,34 @@ func TestGrantChanges(t *testing.T) {
 	}
 }
 
+func TestMaintainVerdict(t *testing.T) {
+	for _, c := range []struct {
+		rows [][2]string
+		want TableResult
+	}{
+		{[][2]string{{"status", "OK"}}, TableResult{"t", "status", "OK"}},
+		{
+			[][2]string{{"note", "Table does not support optimize, doing recreate + analyze instead"}, {"status", "OK"}},
+			TableResult{"t", "note", "Table does not support optimize, doing recreate + analyze instead"},
+		},
+		{
+			[][2]string{{"Warning", "1 client is using the table"}, {"error", "Size of indexfile is: 1024"}, {"Error", "Corrupt"}, {"status", "Operation failed"}},
+			TableResult{"t", "error", "Size of indexfile is: 1024; Corrupt"},
+		},
+		{nil, TableResult{"t", "status", ""}},
+	} {
+		if got := verdict("t", c.rows); got != c.want {
+			t.Errorf("%v: %+v, want %+v", c.rows, got, c.want)
+		}
+	}
+	if err := CheckMaintainAction("drop"); !errors.Is(err, ErrInvalidRequest) {
+		t.Errorf("a bad action: %v", err)
+	}
+	if _, err := (&MySQL{}).Maintain(ctx, "alice", "bob_shop", MaintainCheck); !errors.Is(err, ErrInvalidRequest) {
+		t.Errorf("another account's database: %v", err)
+	}
+}
+
 func TestSignonNames(t *testing.T) {
 	exp := time.Unix(1_800_000_000, 0)
 	name := signonName("alice", exp, "ab12cd")

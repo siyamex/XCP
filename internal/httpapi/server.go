@@ -199,6 +199,7 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/database-wizard", access: authed, roles: adminOrUser, h: s.databaseWizard},
 		{method: "PUT", path: "/api/v1/databases/{id}", access: authed, roles: adminOrUser, h: s.renameDatabase},
 		{method: "DELETE", path: "/api/v1/databases/{id}", access: authed, roles: adminOrUser, h: s.deleteDatabase},
+		{method: "POST", path: "/api/v1/databases/{id}/maintain", access: authed, roles: adminOrUser, h: s.maintainDatabase},
 		{method: "POST", path: "/api/v1/accounts/{id}/database-users", access: authed, roles: adminOrUser, h: s.createDBUser},
 		{method: "PUT", path: "/api/v1/database-users/{id}/password", access: authed, roles: adminOrUser, h: s.setDBUserPassword},
 		{method: "DELETE", path: "/api/v1/database-users/{id}", access: authed, roles: adminOrUser, h: s.deleteDBUser},

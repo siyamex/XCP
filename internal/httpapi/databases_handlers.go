@@ -74,6 +74,21 @@ func (s *Server) deleteDatabase(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) maintainDatabase(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Action string `json:"action"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	jobID, err := s.Databases.Maintain(r.Context(), client(r), principal(r), r.PathValue("id"), in.Action)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
 func (s *Server) createDBUser(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
 		Name     string `json:"name"`

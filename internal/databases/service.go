@@ -725,3 +725,28 @@ func (s *Service) SetRootPassword(ctx context.Context, c auth.Client, p *auth.Pr
 	}
 	return s.audit.Record(ctx, event(c, p, "mysql.root_password", "", "server", "mysql", nil))
 }
+
+// Maintain queues a check, repair or optimize of every table of a database
+// (USR-DB-06, ADM-DB-04) and returns the job's ID; the job's result names
+// the tables with a note, a warning or an error.
+func (s *Service) Maintain(ctx context.Context, c auth.Client, p *auth.Principal, id, action string) (string, error) {
+	d, a, _, err := s.ownDatabase(ctx, p, id)
+	if err != nil {
+		return "", err
+	}
+	if err := agent.CheckMaintainAction(action); err != nil {
+		return "", badField("action", validate.CodeFormat, "action must be check, repair or optimize")
+	}
+	var jobID string
+	err = s.db.Tx(ctx, func(tx *sql.Tx) error {
+		// The account's lock key: after a pending create or rename of the database.
+		jobID, err = s.jobs.EnqueueTx(ctx, tx, JobMaintain, maintainPayload{AccountID: a.ID, Database: d.Name, Action: action}, jobs.EnqueueOptions{
+			AccountID: a.ID, LockKey: "account:" + a.ID, MaxAttempts: 1, CreatedBy: p.Login.ID,
+		})
+		if err != nil {
+			return err
+		}
+		return s.audit.RecordTx(ctx, tx, event(c, p, "database."+action, a.ID, "database", d.ID, map[string]any{"name": d.Name}))
+	})
+	return jobID, err
+}

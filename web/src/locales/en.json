@@ -991,6 +991,14 @@
     "newPassword": "New password",
     "changePassword": "Change password",
     "confirmDelete": "Delete the database {{name}} with all its data? This cannot be undone.",
+    "maintain": {
+      "action": "Table maintenance",
+      "check": "Check",
+      "repair": "Repair",
+      "optimize": "Optimize",
+      "run": "Run",
+      "done": "{{tables}} tables looked at, {{errors}} with errors."
+    },
     "confirmDeleteUser": "Delete the database user {{name}}?",
     "used": "{{used}} used",
     "usedOf": "{{used}} of {{max}} used",

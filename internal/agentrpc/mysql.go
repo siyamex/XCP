@@ -74,6 +74,19 @@ func (s *Server) MySQLDatabaseDrop(ctx context.Context, req *agentv1.MySQLDataba
 	return &agentv1.MySQLDatabaseDropResponse{Dropped: dropped}, nil
 }
 
+// MySQLDatabaseMaintain implements agentv1.AgentServiceServer.
+func (s *Server) MySQLDatabaseMaintain(ctx context.Context, req *agentv1.MySQLDatabaseMaintainRequest) (*agentv1.MySQLDatabaseMaintainResponse, error) {
+	list, err := s.MySQL.Maintain(ctx, req.GetUsername(), req.GetDatabase(), req.GetAction())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	res := &agentv1.MySQLDatabaseMaintainResponse{}
+	for _, t := range list {
+		res.Tables = append(res.Tables, &agentv1.MySQLTableResult{Table: t.Table, Type: t.Type, Text: t.Text})
+	}
+	return res, nil
+}
+
 // MySQLDatabaseRename implements agentv1.AgentServiceServer.
 func (s *Server) MySQLDatabaseRename(ctx context.Context, req *agentv1.MySQLDatabaseRenameRequest) (*agentv1.MySQLDatabaseRenameResponse, error) {
 	if err := s.MySQL.RenameDatabase(ctx, req.GetUsername(), req.GetFrom(), req.GetTo()); err != nil {
@@ -227,6 +240,28 @@ func (f *Fake) MySQLDatabaseDrop(_ context.Context, req *agentv1.MySQLDatabaseDr
 	dropped := a.databases[req.GetDatabase()]
 	delete(a.databases, req.GetDatabase())
 	return &agentv1.MySQLDatabaseDropResponse{Dropped: dropped}, nil
+}
+
+// MySQLDatabaseMaintain implements Client: a database has the tables "good"
+// and, if its name ends in "_broken", "bad" with an error.
+func (f *Fake) MySQLDatabaseMaintain(_ context.Context, req *agentv1.MySQLDatabaseMaintainRequest, _ ...grpc.CallOption) (*agentv1.MySQLDatabaseMaintainResponse, error) {
+	f.recordf("MySQLDatabaseMaintain %s %s", req.GetAction(), req.GetDatabase())
+	if err := agent.CheckMySQLName(req.GetUsername(), req.GetDatabase(), agent.MaxDatabaseName); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	if err := agent.CheckMaintainAction(req.GetAction()); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	if !f.mysql.account(req.GetUsername()).databases[req.GetDatabase()] {
+		return &agentv1.MySQLDatabaseMaintainResponse{}, nil
+	}
+	res := &agentv1.MySQLDatabaseMaintainResponse{Tables: []*agentv1.MySQLTableResult{{Table: "good", Type: "status", Text: "OK"}}}
+	if strings.HasSuffix(req.GetDatabase(), "_broken") {
+		res.Tables = append(res.Tables, &agentv1.MySQLTableResult{Table: "bad", Type: "error", Text: "Table is marked as crashed"})
+	}
+	return res, nil
 }
 
 // MySQLDatabaseRename implements Client.

@@ -1161,6 +1161,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/databases/{id}/maintain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check, repair or optimize every table of a database
+         * @description Runs as a job. Its `result` has `tables` (how many were looked at), `errors`, and `problems`:
+         *     the tables MariaDB had a note, a warning or an error about (`table`, `type`, `text`; at most 100).
+         */
+        post: operations["maintainDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accounts/{id}/database-users": {
         parameters: {
             query?: never;
@@ -6220,6 +6243,37 @@ export interface operations {
             };
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    maintainDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "check" | "repair" | "optimize";
+                };
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     createDatabaseUser: {

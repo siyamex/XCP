@@ -49,6 +49,7 @@ const (
 	AgentService_MySQLDatabaseSizes_FullMethodName     = "/xcp.agent.v1.AgentService/MySQLDatabaseSizes"
 	AgentService_MySQLDatabaseDrop_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLDatabaseDrop"
 	AgentService_MySQLDatabaseRename_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseRename"
+	AgentService_MySQLDatabaseMaintain_FullMethodName  = "/xcp.agent.v1.AgentService/MySQLDatabaseMaintain"
 	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
 	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
 	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
@@ -155,6 +156,9 @@ type AgentServiceClient interface {
 	// MySQLDatabaseRename moves all tables to a new database and drops the
 	// old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
 	MySQLDatabaseRename(ctx context.Context, in *MySQLDatabaseRenameRequest, opts ...grpc.CallOption) (*MySQLDatabaseRenameResponse, error)
+	// MySQLDatabaseMaintain checks, repairs or optimizes every table of one
+	// of the account's databases and returns MariaDB's verdict for each.
+	MySQLDatabaseMaintain(ctx context.Context, in *MySQLDatabaseMaintainRequest, opts ...grpc.CallOption) (*MySQLDatabaseMaintainResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error)
@@ -470,6 +474,16 @@ func (c *agentServiceClient) MySQLDatabaseRename(ctx context.Context, in *MySQLD
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MySQLDatabaseRenameResponse)
 	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseRename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseMaintain(ctx context.Context, in *MySQLDatabaseMaintainRequest, opts ...grpc.CallOption) (*MySQLDatabaseMaintainResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseMaintainResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseMaintain_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -940,6 +954,9 @@ type AgentServiceServer interface {
 	// MySQLDatabaseRename moves all tables to a new database and drops the
 	// old one. INVALID_ARGUMENT if it has views, triggers, routines or events.
 	MySQLDatabaseRename(context.Context, *MySQLDatabaseRenameRequest) (*MySQLDatabaseRenameResponse, error)
+	// MySQLDatabaseMaintain checks, repairs or optimizes every table of one
+	// of the account's databases and returns MariaDB's verdict for each.
+	MySQLDatabaseMaintain(context.Context, *MySQLDatabaseMaintainRequest) (*MySQLDatabaseMaintainResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error)
@@ -1113,6 +1130,9 @@ func (UnimplementedAgentServiceServer) MySQLDatabaseDrop(context.Context, *MySQL
 }
 func (UnimplementedAgentServiceServer) MySQLDatabaseRename(context.Context, *MySQLDatabaseRenameRequest) (*MySQLDatabaseRenameResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseRename not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseMaintain(context.Context, *MySQLDatabaseMaintainRequest) (*MySQLDatabaseMaintainResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseMaintain not implemented")
 }
 func (UnimplementedAgentServiceServer) MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLSignon not implemented")
@@ -1629,6 +1649,24 @@ func _AgentService_MySQLDatabaseRename_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).MySQLDatabaseRename(ctx, req.(*MySQLDatabaseRenameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseMaintain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseMaintainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseMaintain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseMaintain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseMaintain(ctx, req.(*MySQLDatabaseMaintainRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2443,6 +2481,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MySQLDatabaseRename",
 			Handler:    _AgentService_MySQLDatabaseRename_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseMaintain",
+			Handler:    _AgentService_MySQLDatabaseMaintain_Handler,
 		},
 		{
 			MethodName: "MySQLSignon",
