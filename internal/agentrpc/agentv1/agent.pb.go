@@ -1968,10 +1968,11 @@ func (x *PHPVersionsResponse) GetVersions() []string {
 
 type DNSZoneApplyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Zone          string                 `protobuf:"bytes,1,opt,name=zone,proto3" json:"zone,omitempty"`               // "example.com"
-	Nameservers   []string               `protobuf:"bytes,2,rep,name=nameservers,proto3" json:"nameservers,omitempty"` // the first is the primary in the SOA
-	Hostmaster    string                 `protobuf:"bytes,3,opt,name=hostmaster,proto3" json:"hostmaster,omitempty"`   // SOA mailbox as a name: "hostmaster.example.com"
-	Records       []*DNSRecord           `protobuf:"bytes,4,rep,name=records,proto3" json:"records,omitempty"`         // without SOA and the zone's own NS records
+	Zone          string                 `protobuf:"bytes,1,opt,name=zone,proto3" json:"zone,omitempty"`                    // "example.com"
+	Nameservers   []string               `protobuf:"bytes,2,rep,name=nameservers,proto3" json:"nameservers,omitempty"`      // the first is the primary in the SOA
+	Hostmaster    string                 `protobuf:"bytes,3,opt,name=hostmaster,proto3" json:"hostmaster,omitempty"`        // SOA mailbox as a name: "hostmaster.example.com"
+	Records       []*DNSRecord           `protobuf:"bytes,4,rep,name=records,proto3" json:"records,omitempty"`              // without SOA and the zone's own NS records
+	DryRun        bool                   `protobuf:"varint,5,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"` // only report whether PowerDNS differs; change nothing
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2032,6 +2033,13 @@ func (x *DNSZoneApplyRequest) GetRecords() []*DNSRecord {
 		return x.Records
 	}
 	return nil
+}
+
+func (x *DNSZoneApplyRequest) GetDryRun() bool {
+	if x != nil {
+		return x.DryRun
+	}
+	return false
 }
 
 // DNSRecord is one record in its stored form (internal/dnsrr).
@@ -8660,14 +8668,15 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\achanged\x18\x01 \x01(\bR\achanged\"\x14\n" +
 	"\x12PHPVersionsRequest\"1\n" +
 	"\x13PHPVersionsResponse\x12\x1a\n" +
-	"\bversions\x18\x01 \x03(\tR\bversions\"\x9e\x01\n" +
+	"\bversions\x18\x01 \x03(\tR\bversions\"\xb7\x01\n" +
 	"\x13DNSZoneApplyRequest\x12\x12\n" +
 	"\x04zone\x18\x01 \x01(\tR\x04zone\x12 \n" +
 	"\vnameservers\x18\x02 \x03(\tR\vnameservers\x12\x1e\n" +
 	"\n" +
 	"hostmaster\x18\x03 \x01(\tR\n" +
 	"hostmaster\x121\n" +
-	"\arecords\x18\x04 \x03(\v2\x17.xcp.agent.v1.DNSRecordR\arecords\"_\n" +
+	"\arecords\x18\x04 \x03(\v2\x17.xcp.agent.v1.DNSRecordR\arecords\x12\x17\n" +
+	"\adry_run\x18\x05 \x01(\bR\x06dryRun\"_\n" +
 	"\tDNSRecord\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x10\n" +

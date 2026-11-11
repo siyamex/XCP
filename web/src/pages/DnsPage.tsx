@@ -127,6 +127,7 @@ export function ZonePage() {
       <RecordForm key={editing?.id ?? `new-${saves}`} zone={z} record={editing} onStarted={started} onCancel={() => setEditing(undefined)} />
       <MailRoutingCard zone={z} onSaved={refresh} />
       <ZoneFileCard zone={z} onStarted={started} />
+      <ResetCard zone={z} onStarted={started} />
     </div>
   );
 }
@@ -245,6 +246,69 @@ function ZoneFileCard({ zone, onStarted }: { zone: Zone; onStarted: (r: { job_id
         )}
         <Button type="submit" variant="secondary" disabled={imp.isPending || text.trim() === ""}>{t("dns.file.import")}</Button>
       </form>
+    </Card>
+  );
+}
+
+function ResetCard({ zone, onStarted }: { zone: Zone; onStarted: (r: { job_id?: string }) => void }) {
+  const { t } = useTranslation();
+  const [confirm, setConfirm] = useState("");
+  const reset = useMutation({
+    mutationFn: () => unwrap(api.POST("/dns/zones/{id}/reset", { params: { path: { id: zone.id } }, body: { confirm } })),
+    onSuccess: (r) => { setConfirm(""); onStarted(r); },
+  });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.reset.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.reset.help")}</p>
+      <form onSubmit={(e) => { e.preventDefault(); reset.mutate(); }} className="flex flex-wrap items-end gap-3">
+        <Field id="reset-confirm" label={t("dns.reset.confirm", { zone: zone.name })}>
+          <Input id="reset-confirm" autoComplete="off" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </Field>
+        <Button type="submit" variant="danger" disabled={reset.isPending || confirm.trim().toLowerCase() !== zone.name}>{t("dns.reset.run")}</Button>
+      </form>
+      <ErrorAlert error={reset.error} />
+      {reset.data && <Alert kind="success">{t("dns.reset.done", { removed: reset.data.removed, added: reset.data.added, kept: reset.data.kept })}</Alert>}
+    </Card>
+  );
+}
+
+function SyncCheck() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["dns-sync"], queryFn: () => unwrap(api.GET("/server/dns/sync")), enabled: false, retry: false });
+  const repair = useMutation({
+    mutationFn: () => unwrap(api.POST("/server/dns/sync")),
+    onSuccess: () => qc.removeQueries({ queryKey: ["dns-sync"] }),
+  });
+  return (
+    <Card className="space-y-3">
+      <CardTitle>{t("dns.sync.title")}</CardTitle>
+      <p className="text-sm text-slate-500">{t("dns.sync.help")}</p>
+      <Button type="button" variant="secondary" disabled={q.isFetching} onClick={() => void q.refetch()}>{t("dns.sync.check")}</Button>
+      {q.isFetching && <Spinner />}
+      {q.isError && <ErrorAlert error={q.error} />}
+      <ErrorAlert error={repair.error} />
+      {repair.data && <Alert kind="success">{t("dns.sync.queued", { count: repair.data.queued })}</Alert>}
+      {q.data && !q.isFetching && (
+        <>
+          {q.data.items.length === 0
+            ? <Alert kind="success">{t("dns.sync.ok", { zones: q.data.zones })}</Alert>
+            : <Alert kind="info">{t("dns.sync.off", { count: q.data.items.length, zones: q.data.zones })}</Alert>}
+          {q.data.orphans > 0 && <p className="text-sm text-slate-500">{t("dns.sync.orphans", { count: q.data.orphans })}</p>}
+          <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
+            {q.data.items.map((i) => (
+              <li key={i.id} className="flex items-center justify-between gap-2 py-1">
+                <span><Link className="font-mono text-brand hover:underline" to="/dns/$zoneId" params={{ zoneId: i.id }}>{i.name}</Link> <span className="text-slate-500">{i.account}</span></span>
+                <span>{t(`dns.sync.${i.state}`)}</span>
+              </li>
+            ))}
+          </ul>
+          {q.data.items.length > 0 && (
+            <Button type="button" disabled={repair.isPending} onClick={() => repair.mutate()}>{t("dns.sync.repair")}</Button>
+          )}
+        </>
+      )}
     </Card>
   );
 }
@@ -426,6 +490,7 @@ export function DnsSettingsPage() {
         <Button type="button" variant="ghost" onClick={() => setForm({ ...form, template: [...form.template, { name: "", type: "A", content: "" }] })}>{t("dns.settings.addTemplateRecord")}</Button>
       </Card>
       <Button type="submit" disabled={save.isPending}>{t("dns.settings.save")}</Button>
+      <SyncCheck />
       <BulkTtl />
       <BulkMailRouting />
       <Orphans />

@@ -2,6 +2,7 @@ package agentrpc
 
 import (
 	"context"
+	"reflect"
 	"slices"
 	"sync"
 
@@ -24,7 +25,11 @@ func zoneFrom(req *agentv1.DNSZoneApplyRequest) agent.Zone {
 
 // DNSZoneApply implements agentv1.AgentServiceServer.
 func (s *Server) DNSZoneApply(ctx context.Context, req *agentv1.DNSZoneApplyRequest) (*agentv1.DNSZoneApplyResponse, error) {
-	changed, err := s.DNS.Apply(ctx, zoneFrom(req))
+	do := s.DNS.Apply
+	if req.GetDryRun() {
+		do = s.DNS.Differs
+	}
+	changed, err := do(ctx, zoneFrom(req))
 	if err != nil {
 		return nil, s.toStatus(err)
 	}
@@ -55,6 +60,17 @@ type fakeZones struct {
 	zones map[string]agent.Zone
 }
 
+// SetZone makes the fake agent serve a zone as given, as if someone changed
+// the DNS server behind the panel's back. For tests.
+func (f *Fake) SetZone(z agent.Zone) {
+	f.zones.mu.Lock()
+	defer f.zones.mu.Unlock()
+	if f.zones.zones == nil {
+		f.zones.zones = map[string]agent.Zone{}
+	}
+	f.zones.zones[z.Name] = z
+}
+
 // Zone returns a zone the fake agent serves, for tests.
 func (f *Fake) Zone(name string) (agent.Zone, bool) {
 	f.zones.mu.Lock()
@@ -65,10 +81,19 @@ func (f *Fake) Zone(name string) (agent.Zone, bool) {
 
 // DNSZoneApply implements Client.
 func (f *Fake) DNSZoneApply(_ context.Context, req *agentv1.DNSZoneApplyRequest, _ ...grpc.CallOption) (*agentv1.DNSZoneApplyResponse, error) {
+	z := zoneFrom(req)
+	if req.GetDryRun() {
+		if err := agent.CheckZone(z); err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		f.zones.mu.Lock()
+		defer f.zones.mu.Unlock()
+		have, ok := f.zones.zones[z.Name]
+		return &agentv1.DNSZoneApplyResponse{Changed: !ok || !reflect.DeepEqual(have, z)}, nil
+	}
 	f.mu.Lock()
 	f.record("DNSZoneApply %s (%d records)", req.GetZone(), len(req.GetRecords()))
 	f.mu.Unlock()
-	z := zoneFrom(req)
 	if err := agent.CheckZone(z); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}

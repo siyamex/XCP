@@ -141,6 +141,39 @@ func (s *Server) bulkMailRouting(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) resetZone(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Confirm string `json:"confirm"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	res, err := s.Zones.Reset(r.Context(), client(r), principal(r), r.PathValue("id"), in.Confirm)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, res)
+	return nil
+}
+
+func (s *Server) checkDNSSync(w http.ResponseWriter, r *http.Request) error {
+	rep, err := s.Zones.SyncCheck(r.Context(), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, rep)
+	return nil
+}
+
+func (s *Server) repairDNSSync(w http.ResponseWriter, r *http.Request) error {
+	n, err := s.Zones.SyncRepair(r.Context(), client(r), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"queued": n})
+	return nil
+}
+
 func (s *Server) listOrphanZones(w http.ResponseWriter, r *http.Request) error {
 	items, err := s.Zones.OrphanZones(r.Context(), principal(r))
 	if err != nil {

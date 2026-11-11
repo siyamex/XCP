@@ -1047,6 +1047,40 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /dns/zones/{id}/reset:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [dns]
+      summary: Make the zone what a new one would be
+      description: |
+        Removes the zone's records and writes those of the zone template, and the address records of the
+        account's other domains inside the zone. DKIM keys are kept. `confirm` is the zone's name.
+      operationId: resetZone
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [confirm], properties: { confirm: { type: string } } }
+      responses:
+        "200":
+          description: Done; a job serves the zone again.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [removed, added, kept]
+                properties:
+                  removed: { type: integer }
+                  added: { type: integer }
+                  kept: { type: integer, description: DKIM keys }
+                  job_id: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /dns/zones/{id}/import:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -1194,6 +1228,48 @@ paths:
               schema: { type: object, required: [zones], properties: { zones: { type: integer } } }
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
+
+  /server/dns/sync:
+    get:
+      tags: [dns]
+      summary: Compare the panel's zones with what the DNS server serves (admins)
+      operationId: checkDnsSync
+      responses:
+        "200":
+          description: The zones that are out of sync.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [zones, items, orphans]
+                properties:
+                  zones: { type: integer, description: Zones the panel holds }
+                  orphans: { type: integer, description: Served zones of no account }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, account, state]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        account: { type: string }
+                        state: { type: string, enum: [missing, differs] }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [dns]
+      summary: Serve the zones that are out of sync again as the panel holds them (admins)
+      operationId: repairDnsSync
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: Jobs queued.
+          content:
+            application/json:
+              schema: { type: object, required: [queued], properties: { queued: { type: integer } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
 
   /server/dns/bulk-ttl:
     post:

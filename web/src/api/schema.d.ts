@@ -722,6 +722,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dns/zones/{id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make the zone what a new one would be
+         * @description Removes the zone's records and writes those of the zone template, and the address records of the
+         *     account's other domains inside the zone. DKIM keys are kept. `confirm` is the zone's name.
+         */
+        post: operations["resetZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dns/zones/{id}/import": {
         parameters: {
             query?: never;
@@ -839,6 +862,24 @@ export interface paths {
          * @description Zones that have the routing already are not touched. The mail server is set up again for the accounts whose zones changed.
          */
         post: operations["bulkMailRouting"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/dns/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare the panel's zones with what the DNS server serves (admins) */
+        get: operations["checkDnsSync"];
+        put?: never;
+        /** Serve the zones that are out of sync again as the panel holds them (admins) */
+        post: operations["repairDnsSync"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5189,6 +5230,44 @@ export interface operations {
             404: components["responses"]["Problem"];
         };
     };
+    resetZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirm: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Done; a job serves the zone again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        removed: number;
+                        added: number;
+                        /** @description DKIM keys */
+                        kept: number;
+                        job_id?: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
     importZone: {
         parameters: {
             query?: never;
@@ -5387,6 +5466,64 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    checkDnsSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The zones that are out of sync. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Zones the panel holds */
+                        zones: number;
+                        /** @description Served zones of no account */
+                        orphans: number;
+                        items: {
+                            id: string;
+                            name: string;
+                            account: string;
+                            /** @enum {string} */
+                            state: "missing" | "differs";
+                        }[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    repairDnsSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Jobs queued. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        queued: number;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     bulkDnsTtl: {

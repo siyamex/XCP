@@ -109,7 +109,6 @@ check(all(r["ttl"] == 777 for r in z["records"]), "the zone's records have it", 
 st, res = api("POST", "/server/dns/bulk-ttl", {"ttl": 3600})
 
 # Bulk: one email routing for every zone; the mail server follows.
-import time
 def local_mail(want):
     for _ in range(60):
         if ("dns1.xcp.test" in open("/etc/postfix/xcp/domains").read().split()) == want:
@@ -127,8 +126,32 @@ st, res = api("POST", "/server/dns/bulk-mail-routing", {"mail_routing": "auto"})
 check(st == 200 and res["zones"] >= 1, "back to automatic", f"{st} {res}")
 check(local_mail(True), "Postfix takes the domain's mail again")
 
+# Sync check: a record put into the DNS server behind the panel's back.
+st, rep = api("GET", "/server/dns/sync")
+check(st == 200 and not any(i["name"] == "dns1.xcp.test" for i in rep["items"]), "the zone is in sync", f"{st} {rep}")
+subprocess.run(["pdnsutil", "add-record", "dns1.xcp.test", "drift", "A", "192.0.2.66"], capture_output=True)
+st, rep = api("GET", "/server/dns/sync")
+check(st == 200 and any(i["name"] == "dns1.xcp.test" and i["state"] == "differs" for i in rep["items"]), "a record added by hand is noticed", f"{st} {rep}")
+st, res = api("POST", "/server/dns/sync")
+check(st == 200 and res["queued"] >= 1, "the zones out of sync are queued", f"{st} {res}")
+until("drift.dns1.xcp.test", "A", lambda s, ans: s == "NXDOMAIN", "the stray record is gone")
+for _ in range(30):
+    st, rep = api("GET", "/server/dns/sync")
+    if not any(i["name"] == "dns1.xcp.test" for i in rep["items"]):
+        break
+    time.sleep(1)
+check(not any(i["name"] == "dns1.xcp.test" for i in rep["items"]), "the zone is in sync again", str(rep))
+
+# Reset to the template: what was added goes, the default records are back.
+st, res = api("POST", f"/dns/zones/{zid}/reset", {"confirm": "other.test"})
+check(st == 400, "a reset needs the zone's name", f"{st} {res}")
+st, res = api("POST", f"/dns/zones/{zid}/reset", {"confirm": "dns1.xcp.test"})
+check(st == 200 and res["removed"] > 0 and res["added"] > 0 and res.get("job_id"), "the zone is reset", f"{st} {res}")
+wait_job(res["job_id"])
+until("imp.dns1.xcp.test", "A", lambda s, ans: s == "NXDOMAIN", "an added record is gone after the reset")
+until("dns1.xcp.test", "MX", lambda s, ans: len(ans) == 1, "the default records are served")
+
 # Orphan zones: made in the DNS server by hand, not owned by an account.
-import subprocess
 subprocess.run(["pdnsutil", "create-zone", "stray.dns1.test"], capture_output=True)
 st, res = api("GET", "/server/dns/orphans")
 check(st == 200 and "stray.dns1.test" in res["items"] and "dns1.xcp.test" not in res["items"], "a zone no account owns is listed, an account's is not", f"{st} {res}")

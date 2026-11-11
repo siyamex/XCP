@@ -638,6 +638,95 @@ func TestBulkMailRouting(t *testing.T) {
 	}
 }
 
+func TestResetZone(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice", "example.com")
+	_, bob := e.account(t, "bob", "example.net")
+	fresh := e.waitServed(t, "example.com", func(s []string) bool { return len(s) > 0 })
+	primary := e.mustDomains(t, a.ID)[0]
+	e.add(t, a.ID, domains.AddInput{Kind: store.DomainSub, Name: "blog", ParentID: primary.ID})
+	z := e.zone(t, alice, a.ID)
+	for _, in := range []zones.RecordInput{
+		{Name: "api", Type: "A", Content: "192.0.2.77"},
+		{Name: "xcp._domainkey", Type: "TXT", Content: "v=DKIM1; k=rsa; p=abc"},
+	} {
+		if _, err := e.svc.AddRecord(ctx, client, alice, z.ID, in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, r := range z.Records {
+		if r.Type == "MX" || (r.Type == "A" && r.Name == "blog") {
+			if _, err := e.svc.DeleteRecord(ctx, client, alice, r.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	e.waitServed(t, "example.com", lacks("@ MX 10 mail.example.com.", "blog A 192.0.2.10"))
+
+	if _, err := e.svc.Reset(ctx, client, alice, z.ID, "example.org"); !errors.Is(err, validate.ErrValidation) {
+		t.Fatalf("wrong confirmation: %v", err)
+	}
+	if _, err := e.svc.Reset(ctx, client, bob, z.ID, "example.com"); err == nil {
+		t.Fatal("bob reset alice's zone")
+	}
+	res, err := e.svc.Reset(ctx, client, alice, z.ID, "Example.com ")
+	if err != nil || res.Kept != 1 || res.JobID == "" || res.Added != len(fresh)+2 {
+		t.Fatalf("%+v %v (a new zone has %d records)", res, err, len(fresh))
+	}
+	want := append(slices.Clone(fresh), "blog A 192.0.2.10", "blog AAAA 2001:db8::10", `xcp._domainkey TXT "v=DKIM1; k=rsa; p=abc"`)
+	slices.Sort(want)
+	got := e.waitServed(t, "example.com", has("@ MX 10 mail.example.com.", "blog A 192.0.2.10"))
+	if !slices.Equal(got, want) {
+		t.Fatalf("after the reset =\n%q\nwant\n%q", got, want)
+	}
+}
+
+func TestSyncCheck(t *testing.T) {
+	e := newEnv(t)
+	e.account(t, "alice", "example.com")
+	e.account(t, "bob", "example.net")
+	root := &auth.Principal{Login: &store.Login{ID: "admin", Role: store.RoleAdmin}, Session: &store.Session{}}
+	e.waitServed(t, "example.com", func(s []string) bool { return len(s) > 0 })
+	e.waitServed(t, "example.net", func(s []string) bool { return len(s) > 0 })
+	if _, err := e.svc.SyncCheck(ctx, &auth.Principal{Login: &store.Login{Role: store.RoleUser}}); !errors.Is(err, apperr.ErrForbidden) {
+		t.Fatalf("a customer: %v", err)
+	}
+	rep, err := e.svc.SyncCheck(ctx, root)
+	if err != nil || rep.Zones != 2 || len(rep.Items) != 0 || rep.Orphans != 0 {
+		t.Fatalf("in sync: %+v %v", rep, err)
+	}
+	if n, err := e.svc.SyncRepair(ctx, client, root); err != nil || n != 0 {
+		t.Fatalf("nothing to repair: %d %v", n, err)
+	}
+
+	// Behind the panel's back: one zone loses a record, one goes, one appears.
+	com, _ := e.fake.Zone("example.com")
+	com.Records = slices.Clone(com.Records[1:])
+	e.fake.SetZone(com)
+	if _, err := e.fake.DNSZoneDelete(ctx, &agentv1.DNSZoneDeleteRequest{Zone: "example.net"}); err != nil {
+		t.Fatal(err)
+	}
+	e.fake.SetZone(agent.Zone{Name: "stray.test", Nameservers: []string{"ns1.stray.test"}, Hostmaster: "hostmaster.stray.test"})
+	rep, err = e.svc.SyncCheck(ctx, root)
+	if err != nil || len(rep.Items) != 2 || rep.Orphans != 1 {
+		t.Fatalf("%+v %v", rep, err)
+	}
+	states := map[string]string{}
+	for _, i := range rep.Items {
+		states[i.Name] = i.State + " " + i.Account
+	}
+	if states["example.com"] != "differs alice" || states["example.net"] != "missing bob" {
+		t.Fatalf("%v", states)
+	}
+	if n, err := e.svc.SyncRepair(ctx, client, root); err != nil || n != 2 {
+		t.Fatalf("repair: %d %v", n, err)
+	}
+	waitFor(t, func() bool { rep, err := e.svc.SyncCheck(ctx, root); return err == nil && len(rep.Items) == 0 })
+	if _, ok := e.fake.Zone("stray.test"); !ok {
+		t.Error("the repair removed a zone of no account")
+	}
+}
+
 func TestOrphanZones(t *testing.T) {
 	e := newEnv(t)
 	e.account(t, "alice", "example.com")

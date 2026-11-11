@@ -421,6 +421,25 @@
       "apply": "Change all",
       "done": "Changed {{records}} records in {{zones}} zones."
     },
+    "reset": {
+      "title": "Reset to the default records",
+      "help": "Removes every record of this zone and writes the server's default records again, with the address records of your other domains in the zone. Records you added or changed are lost; download the zone file first to keep a copy. DKIM keys are kept.",
+      "confirm": "Type {{zone}} to confirm",
+      "run": "Reset the zone",
+      "done": "Removed {{removed}} records and wrote {{added}}; kept {{kept}} DKIM keys."
+    },
+    "sync": {
+      "title": "Check against the DNS server",
+      "help": "Compares every zone in the panel with what the DNS server really serves, for example after someone changed it by hand or it was restored from a backup. The check changes nothing.",
+      "check": "Check now",
+      "ok": "All {{zones}} zones are served as the panel holds them.",
+      "off": "{{count}} of {{zones}} zones are not served as the panel holds them.",
+      "orphans": "The DNS server also has {{count}} zones of no account; see the list of zones without an account.",
+      "missing": "not on the DNS server",
+      "differs": "other records served",
+      "repair": "Serve them again from the panel",
+      "queued": "{{count}} zones queued to be served again."
+    },
     "file": {
       "title": "Zone file",
       "help": "Download the zone as a zone file, or add the records of one (from another provider, say). Records the zone has already are skipped and nothing is replaced or removed. One invalid record refuses the whole file.",

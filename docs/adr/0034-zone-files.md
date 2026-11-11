@@ -55,7 +55,26 @@
   (`dns.bulk.mail_routing`). The MX records are not touched: `auto` keeps
   following them, the other values override them as for one zone.
 
+## Addendum: reset to the template
+
+- `POST /dns/zones/{id}/reset {confirm}` (the zone's owner; `confirm` is the
+  zone's name) deletes the zone's records and writes what a new zone would
+  have: the rendered template, and the host records of the account's other
+  domains whose home is this zone. DKIM key records (`TXT` at
+  `*._domainkey.*`) are kept, because mail already signed must stay
+  verifiable and the panel cannot tell a stale key from a live one here.
+  Audited as `dns.zone.reset`; the mail hook runs, as the MX may change.
+
+## Addendum: sync check
+
+- `DNSZoneApplyRequest.dry_run`: the agent computes the same difference as
+  for an apply and reports `changed` without writing. The panel never reads
+  PowerDNS's records itself, so there is one comparison, in one place.
+- `GET /server/dns/sync` (admins) lists the panel's zones that PowerDNS does
+  not have (`missing`) or serves differently (`differs`), and counts the
+  orphans. `POST /server/dns/sync` checks again and queues `dns.apply` for
+  those zones; orphans are not touched (they have their own list).
+
 ## Not done
 
-- "Reset to template" (USR-DNS-04), because it removes records.
 - Replacing import (a zone file that becomes the zone).

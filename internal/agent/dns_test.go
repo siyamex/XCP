@@ -131,9 +131,16 @@ func TestDNSApplyCreatesThenChangesOnlyTheDifference(t *testing.T) {
 		t.Fatalf("unchanged zone: changed=%v err=%v patches=%v", changed, err, f.patches)
 	}
 
+	if differs, err := d.Differs(ctx, z); err != nil || differs {
+		t.Fatalf("same zone differs=%v err=%v", differs, err)
+	}
+
 	// One more A record, the CNAME gone: only those RRsets and the SOA change.
 	z.Records = append(z.Records[:1], z.Records[2:]...)
 	z.Records = append(z.Records, dnsrr.Record{Name: "example.com", Type: "A", TTL: 300, Content: "192.0.2.11"})
+	if differs, err := d.Differs(ctx, z); err != nil || !differs || len(f.patches) != 0 {
+		t.Fatalf("a dry run: differs=%v err=%v patches=%v", differs, err, f.patches)
+	}
 	if changed, err := d.Apply(ctx, z); err != nil || !changed {
 		t.Fatalf("change: changed=%v err=%v", changed, err)
 	}
@@ -165,6 +172,12 @@ func TestDNSApplyCreatesThenChangesOnlyTheDifference(t *testing.T) {
 	}
 	if ok, err := d.Delete(ctx, "example.com"); err != nil || ok {
 		t.Fatalf("delete again: %v %v", ok, err)
+	}
+	if differs, err := d.Differs(ctx, z); err != nil || !differs {
+		t.Fatalf("a zone PowerDNS does not have: differs=%v err=%v", differs, err)
+	}
+	if _, ok := f.zones["example.com."]; ok {
+		t.Fatal("a dry run made the zone")
 	}
 }
 

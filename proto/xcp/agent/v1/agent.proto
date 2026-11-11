@@ -470,6 +470,7 @@ message DNSZoneApplyRequest {
   repeated string nameservers = 2;  // the first is the primary in the SOA
   string hostmaster = 3;            // SOA mailbox as a name: "hostmaster.example.com"
   repeated DNSRecord records = 4;   // without SOA and the zone's own NS records
+  bool dry_run = 5;                 // only report whether PowerDNS differs; change nothing
 }
 
 // DNSRecord is one record in its stored form (internal/dnsrr).

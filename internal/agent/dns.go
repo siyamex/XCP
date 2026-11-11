@@ -141,7 +141,12 @@ func (d *DNS) soa(z Zone, serial uint32) pdnsRRset {
 
 // Apply makes PowerDNS serve exactly z: it creates the zone, or changes
 // only the RRsets that differ, in one PATCH that also raises the SOA serial.
-func (d *DNS) Apply(ctx context.Context, z Zone) (bool, error) {
+func (d *DNS) Apply(ctx context.Context, z Zone) (bool, error) { return d.apply(ctx, z, false) }
+
+// Differs reports whether Apply would change anything, without changing it.
+func (d *DNS) Differs(ctx context.Context, z Zone) (bool, error) { return d.apply(ctx, z, true) }
+
+func (d *DNS) apply(ctx context.Context, z Zone, dry bool) (bool, error) {
 	if err := CheckZone(z); err != nil {
 		return false, err
 	}
@@ -154,6 +159,9 @@ func (d *DNS) Apply(ctx context.Context, z Zone) (bool, error) {
 		return false, err
 	}
 	if !found {
+		if dry {
+			return true, nil
+		}
 		none := "" // XCP keeps the serial itself
 		create := pdnsZone{Name: fqdn(z.Name), Kind: "Native", SOAEditAPI: &none, RRsets: []pdnsRRset{d.soa(z, d.serial(0))}}
 		for k, s := range want {
@@ -198,6 +206,9 @@ func (d *DNS) Apply(ctx context.Context, z Zone) (bool, error) {
 	soaWant := fqdn(z.Nameservers[0]) + " " + fqdn(z.Hostmaster) + " " + soaTimers
 	if len(changes) == 0 && soaNames == soaWant {
 		return false, nil
+	}
+	if dry {
+		return true, nil
 	}
 	changes = append(changes, d.soa(z, d.serial(serial)))
 	slices.SortFunc(changes, func(a, b pdnsRRset) int { return strings.Compare(a.Name+a.Type, b.Name+b.Type) })
