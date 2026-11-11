@@ -1161,6 +1161,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/databases/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dump a database into the account's home folder
+         * @description Runs as a job that writes `db-dumps/<database>-<time>.sql.gz` in the home, owned by the account's user.
+         *     Its `result` has `path` (in the home) and `size`. It fails while the folder holds 20 files.
+         */
+        post: operations["exportDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a dump from the account's home folder in a database
+         * @description Runs as a job. The file (`.sql`, `.sql.gz` or `.sql.zst`) must be a regular file of the account's user;
+         *     links are not followed. Its statements run as a temporary user with rights on this database only.
+         *     Tables the dump drops and creates are replaced; other tables stay.
+         */
+        post: operations["importDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/databases/{id}/maintain": {
         parameters: {
             query?: never;
@@ -6241,6 +6288,61 @@ export interface operations {
                     "application/json": components["schemas"]["JobRef"];
                 };
             };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    exportDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    importDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Relative to the home folder */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
         };

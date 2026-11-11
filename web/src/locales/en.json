@@ -991,6 +991,14 @@
     "newPassword": "New password",
     "changePassword": "Change password",
     "confirmDelete": "Delete the database {{name}} with all its data? This cannot be undone.",
+    "dump": {
+      "export": "Export",
+      "import": "Import",
+      "path": "Dump file in your home folder (.sql, .sql.gz, .sql.zst)",
+      "exported": "Saved as {{path}} in your home folder. Download it with the file manager.",
+      "imported": "The dump was imported.",
+      "confirm": "Import into {{name}}? Tables that the dump contains are replaced."
+    },
     "maintain": {
       "action": "Table maintenance",
       "check": "Check",

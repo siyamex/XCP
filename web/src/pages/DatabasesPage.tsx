@@ -188,6 +188,16 @@ function DatabaseRow({ d, prefix, onStarted }: { d: Database; prefix: string; on
   const [action, setAction] = useState<"check" | "repair" | "optimize">("check");
   const maintain = useMutation({ mutationFn: () => unwrap(api.POST("/databases/{id}/maintain", { ...path, body: { action } })) });
   const job = useJob(maintain.data?.job_id, () => undefined);
+  const [dumpPath, setDumpPath] = useState("");
+  const [importing, setImporting] = useState(false);
+  const exportDb = useMutation({ mutationFn: () => unwrap(api.POST("/databases/{id}/export", path)) });
+  const importDb = useMutation({
+    mutationFn: () => unwrap(api.POST("/databases/{id}/import", { ...path, body: { path: dumpPath } })),
+    onSuccess: () => setImporting(false),
+  });
+  const exportJob = useJob(exportDb.data?.job_id, () => undefined);
+  const importJob = useJob(importDb.data?.job_id, () => onStarted({}));
+  const busy = (j?: { status: string }) => !!j && j.status !== "succeeded" && j.status !== "failed";
   const result = job?.status === "succeeded" ? (job.result as { tables?: number; errors?: number; problems?: { table: string; type: string; text: string }[] } | undefined) : undefined;
   return (
     <tr className="border-t border-slate-100 align-top dark:border-slate-800">
@@ -202,6 +212,19 @@ function DatabaseRow({ d, prefix, onStarted }: { d: Database; prefix: string; on
         <ErrorAlert error={rename.error ?? remove.error ?? maintain.error} />
         {job && job.status !== "succeeded" && job.status !== "failed" && <p className="text-xs font-normal text-slate-500">{t("job.running")}</p>}
         {job?.status === "failed" && <p className="text-xs font-normal text-red-700 dark:text-red-400">{t("job.failed", { error: job.error ?? "" })}</p>}
+        <ErrorAlert error={exportDb.error ?? importDb.error} />
+        {(busy(exportJob) || busy(importJob)) && <p className="text-xs font-normal text-slate-500">{t("job.running")}</p>}
+        {[exportJob, importJob].map((j, i) => j?.status === "failed" && <p key={i} className="text-xs font-normal text-red-700 dark:text-red-400">{t("job.failed", { error: j.error ?? "" })}</p>)}
+        {exportJob?.status === "succeeded" && (
+          <p className="text-xs font-normal text-green-700 dark:text-green-400">{t("databases.dump.exported", { path: String((exportJob.result as { path?: string } | undefined)?.path ?? "") })}</p>
+        )}
+        {importJob?.status === "succeeded" && <p className="text-xs font-normal text-green-700 dark:text-green-400">{t("databases.dump.imported")}</p>}
+        {importing && (
+          <form onSubmit={(e) => { e.preventDefault(); if (window.confirm(t("databases.dump.confirm", { name: d.name }))) importDb.mutate(); }} className="mt-1 flex items-center gap-1 font-normal">
+            <Input aria-label={t("databases.dump.path")} placeholder="db-dumps/file.sql.gz" required value={dumpPath} onChange={(e) => setDumpPath(e.target.value)} />
+            <Button type="submit" variant="secondary" disabled={importDb.isPending}>{t("databases.dump.import")}</Button>
+          </form>
+        )}
         {result && (
           <div className="mt-1 text-xs font-normal">
             <p className={result.errors ? "text-red-700 dark:text-red-400" : "text-green-700 dark:text-green-400"}>
@@ -221,6 +244,8 @@ function DatabaseRow({ d, prefix, onStarted }: { d: Database; prefix: string; on
           {(["check", "repair", "optimize"] as const).map((a) => <option key={a} value={a}>{t(`databases.maintain.${a}`)}</option>)}
         </select>
         <Button variant="ghost" disabled={maintain.isPending || (!!job && job.status !== "succeeded" && job.status !== "failed")} onClick={() => maintain.mutate()}>{t("databases.maintain.run")}</Button>
+        <Button variant="ghost" disabled={exportDb.isPending || busy(exportJob)} onClick={() => exportDb.mutate()}>{t("databases.dump.export")}</Button>
+        <Button variant="ghost" disabled={busy(importJob)} onClick={() => setImporting(!importing)}>{importing ? t("common.cancel") : t("databases.dump.import")}</Button>
         <Button variant="ghost" onClick={() => setRenaming(!renaming)}>{renaming ? t("common.cancel") : t("databases.rename")}</Button>
         <Button variant="ghost" disabled={remove.isPending}
           onClick={() => window.confirm(t("databases.confirmDelete", { name: d.name })) && remove.mutate()}>{t("common.delete")}</Button>

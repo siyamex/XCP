@@ -750,3 +750,50 @@ func (s *Service) Maintain(ctx context.Context, c auth.Client, p *auth.Principal
 	})
 	return jobID, err
 }
+
+func (s *Service) enqueueDump(ctx context.Context, c auth.Client, p *auth.Principal, kind, action string, a *store.Account, d *store.Database, path string) (string, error) {
+	var jobID string
+	err := s.db.Tx(ctx, func(tx *sql.Tx) error {
+		var err error
+		jobID, err = s.jobs.EnqueueTx(ctx, tx, kind, dumpPayload{AccountID: a.ID, Database: d.Name, Path: path}, jobs.EnqueueOptions{
+			AccountID: a.ID, LockKey: "account:" + a.ID, MaxAttempts: 1, CreatedBy: p.Login.ID,
+		})
+		if err != nil {
+			return err
+		}
+		details := map[string]any{"name": d.Name}
+		if path != "" {
+			details["path"] = path
+		}
+		return s.audit.RecordTx(ctx, tx, event(c, p, action, a.ID, "database", d.ID, details))
+	})
+	return jobID, err
+}
+
+// Export queues a dump of a database into the folder db-dumps of the
+// account's home (USR-DB-07). The job's result has the file's path and size.
+func (s *Service) Export(ctx context.Context, c auth.Client, p *auth.Principal, id string) (string, error) {
+	d, a, _, err := s.ownDatabase(ctx, p, id)
+	if err != nil {
+		return "", err
+	}
+	return s.enqueueDump(ctx, c, p, JobExport, "database.export", a, d, "")
+}
+
+// Import queues running a dump (.sql, .sql.gz, .sql.zst) from the account's
+// home in a database. What the dump drops and creates is replaced; other
+// tables stay.
+func (s *Service) Import(ctx context.Context, c auth.Client, p *auth.Principal, id, path string) (string, error) {
+	d, a, _, err := s.ownDatabase(ctx, p, id)
+	if err != nil {
+		return "", err
+	}
+	if err := changeable(a); err != nil {
+		return "", err
+	}
+	clean, err := agent.CheckDumpPath(path)
+	if err != nil {
+		return "", badField("path", validate.CodeFormat, "give a .sql, .sql.gz or .sql.zst file in the home folder")
+	}
+	return s.enqueueDump(ctx, c, p, JobImport, "database.import", a, d, clean)
+}

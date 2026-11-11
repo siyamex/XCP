@@ -1694,6 +1694,57 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /databases/{id}/export:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Dump a database into the account's home folder
+      description: |
+        Runs as a job that writes `db-dumps/<database>-<time>.sql.gz` in the home, owned by the account's user.
+        Its `result` has `path` (in the home) and `size`. It fails while the folder holds 20 files.
+      operationId: exportDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /databases/{id}/import:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [databases]
+      summary: Run a dump from the account's home folder in a database
+      description: |
+        Runs as a job. The file (`.sql`, `.sql.gz` or `.sql.zst`) must be a regular file of the account's user;
+        links are not followed. Its statements run as a temporary user with rights on this database only.
+        Tables the dump drops and creates are replaced; other tables stay.
+      operationId: importDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [path]
+              properties:
+                path: { type: string, description: Relative to the home folder }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /databases/{id}/maintain:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }

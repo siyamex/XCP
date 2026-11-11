@@ -21,6 +21,8 @@ const (
 	JobApply    = "mysql.apply"  // make MariaDB hold the account's users, grants and databases
 	JobDrop     = "mysql.drop"   // drop one database with its data
 	JobMaintain = "db.maintain"  // check, repair or optimize a database's tables
+	JobExport   = "db.export"    // dump a database into the account's home
+	JobImport   = "db.import"    // run a dump from the account's home in a database
 	JobExpire   = "mysql.expire" // drop expired phpMyAdmin sign-on users
 )
 
@@ -29,6 +31,12 @@ const ExpireSchedule = "*/10 * * * *"
 
 type applyPayload struct {
 	AccountID string `json:"account_id"`
+}
+
+type dumpPayload struct {
+	AccountID string `json:"account_id"`
+	Database  string `json:"database"`
+	Path      string `json:"path,omitempty"` // import: the dump in the account's home
 }
 
 type maintainPayload struct {
@@ -57,6 +65,8 @@ func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobApply, 4, s.applyJob)
 	w.Register(JobDrop, 2, s.dropJob)
 	w.Register(JobMaintain, 1, s.maintainJob)
+	w.Register(JobExport, 1, s.exportJob)
+	w.Register(JobImport, 1, s.importJob)
 	w.Register(JobExpire, 1, s.expireJob)
 }
 
@@ -187,6 +197,53 @@ func (s *Service) dropJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (an
 		return nil, permanentIfRefused(err)
 	}
 	return map[string]any{"database": p.Database, "dropped": res.GetDropped()}, nil
+}
+
+// dumpAccount reads a dump job's payload and finds its account.
+func (s *Service) dumpAccount(ctx context.Context, j *jobs.Job) (dumpPayload, *store.Account, error) {
+	var p dumpPayload
+	if err := json.Unmarshal(j.Payload, &p); err != nil || p.AccountID == "" || p.Database == "" {
+		return p, nil, jobs.Permanent(fmt.Errorf("bad job payload: %s", j.Payload))
+	}
+	a, err := s.db.AccountByID(ctx, p.AccountID)
+	if errors.Is(err, store.ErrNotFound) {
+		return p, nil, jobs.Permanent(errors.New("the account is gone"))
+	}
+	return p, a, err
+}
+
+// exportJob dumps a database into the account's home; its result has the path.
+func (s *Service) exportJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (any, error) {
+	p, a, err := s.dumpAccount(ctx, j)
+	if err != nil {
+		return nil, err
+	}
+	r.Logf("exporting database %s", p.Database)
+	res, err := s.agent.MySQLDatabaseExport(ctx, &agentv1.MySQLDatabaseExportRequest{Username: a.Username, Database: p.Database})
+	switch {
+	case status.Code(err) == codes.NotFound:
+		return nil, jobs.Permanent(errors.New("MariaDB is not installed"))
+	case err != nil:
+		return nil, permanentIfRefused(err)
+	}
+	return map[string]any{"database": p.Database, "path": res.GetPath(), "size": res.GetSize()}, nil
+}
+
+// importJob runs a dump from the account's home in a database.
+func (s *Service) importJob(ctx context.Context, j *jobs.Job, r jobs.Reporter) (any, error) {
+	p, a, err := s.dumpAccount(ctx, j)
+	if err != nil {
+		return nil, err
+	}
+	r.Logf("importing %s into database %s", p.Path, p.Database)
+	_, err = s.agent.MySQLDatabaseImport(ctx, &agentv1.MySQLDatabaseImportRequest{Username: a.Username, Database: p.Database, Path: p.Path})
+	switch {
+	case status.Code(err) == codes.NotFound:
+		return nil, jobs.Permanent(errors.New("MariaDB is not installed"))
+	case err != nil:
+		return nil, permanentIfRefused(err)
+	}
+	return map[string]any{"database": p.Database, "path": p.Path}, nil
 }
 
 // maintainJob checks, repairs or optimizes a database's tables. Its result

@@ -50,6 +50,8 @@ const (
 	AgentService_MySQLDatabaseDrop_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLDatabaseDrop"
 	AgentService_MySQLDatabaseRename_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseRename"
 	AgentService_MySQLDatabaseMaintain_FullMethodName  = "/xcp.agent.v1.AgentService/MySQLDatabaseMaintain"
+	AgentService_MySQLDatabaseExport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseExport"
+	AgentService_MySQLDatabaseImport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseImport"
 	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
 	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
 	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
@@ -159,6 +161,14 @@ type AgentServiceClient interface {
 	// MySQLDatabaseMaintain checks, repairs or optimizes every table of one
 	// of the account's databases and returns MariaDB's verdict for each.
 	MySQLDatabaseMaintain(ctx context.Context, in *MySQLDatabaseMaintainRequest, opts ...grpc.CallOption) (*MySQLDatabaseMaintainResponse, error)
+	// MySQLDatabaseExport dumps one of the account's databases into a new
+	// gzip file in the folder db-dumps of the account's home, owned by the
+	// account's user.
+	MySQLDatabaseExport(ctx context.Context, in *MySQLDatabaseExportRequest, opts ...grpc.CallOption) (*MySQLDatabaseExportResponse, error)
+	// MySQLDatabaseImport runs a dump (.sql, .sql.gz or .sql.zst) from the
+	// account's home in one of its databases, as a temporary user that can
+	// touch nothing else.
+	MySQLDatabaseImport(ctx context.Context, in *MySQLDatabaseImportRequest, opts ...grpc.CallOption) (*MySQLDatabaseImportResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error)
@@ -484,6 +494,26 @@ func (c *agentServiceClient) MySQLDatabaseMaintain(ctx context.Context, in *MySQ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MySQLDatabaseMaintainResponse)
 	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseMaintain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseExport(ctx context.Context, in *MySQLDatabaseExportRequest, opts ...grpc.CallOption) (*MySQLDatabaseExportResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseExportResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseExport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLDatabaseImport(ctx context.Context, in *MySQLDatabaseImportRequest, opts ...grpc.CallOption) (*MySQLDatabaseImportResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLDatabaseImportResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseImport_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -957,6 +987,14 @@ type AgentServiceServer interface {
 	// MySQLDatabaseMaintain checks, repairs or optimizes every table of one
 	// of the account's databases and returns MariaDB's verdict for each.
 	MySQLDatabaseMaintain(context.Context, *MySQLDatabaseMaintainRequest) (*MySQLDatabaseMaintainResponse, error)
+	// MySQLDatabaseExport dumps one of the account's databases into a new
+	// gzip file in the folder db-dumps of the account's home, owned by the
+	// account's user.
+	MySQLDatabaseExport(context.Context, *MySQLDatabaseExportRequest) (*MySQLDatabaseExportResponse, error)
+	// MySQLDatabaseImport runs a dump (.sql, .sql.gz or .sql.zst) from the
+	// account's home in one of its databases, as a temporary user that can
+	// touch nothing else.
+	MySQLDatabaseImport(context.Context, *MySQLDatabaseImportRequest) (*MySQLDatabaseImportResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error)
@@ -1133,6 +1171,12 @@ func (UnimplementedAgentServiceServer) MySQLDatabaseRename(context.Context, *MyS
 }
 func (UnimplementedAgentServiceServer) MySQLDatabaseMaintain(context.Context, *MySQLDatabaseMaintainRequest) (*MySQLDatabaseMaintainResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseMaintain not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseExport(context.Context, *MySQLDatabaseExportRequest) (*MySQLDatabaseExportResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseExport not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLDatabaseImport(context.Context, *MySQLDatabaseImportRequest) (*MySQLDatabaseImportResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseImport not implemented")
 }
 func (UnimplementedAgentServiceServer) MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLSignon not implemented")
@@ -1667,6 +1711,42 @@ func _AgentService_MySQLDatabaseMaintain_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).MySQLDatabaseMaintain(ctx, req.(*MySQLDatabaseMaintainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseExport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseExportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseExport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseExport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseExport(ctx, req.(*MySQLDatabaseExportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLDatabaseImport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLDatabaseImportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLDatabaseImport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLDatabaseImport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLDatabaseImport(ctx, req.(*MySQLDatabaseImportRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2485,6 +2565,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MySQLDatabaseMaintain",
 			Handler:    _AgentService_MySQLDatabaseMaintain_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseExport",
+			Handler:    _AgentService_MySQLDatabaseExport_Handler,
+		},
+		{
+			MethodName: "MySQLDatabaseImport",
+			Handler:    _AgentService_MySQLDatabaseImport_Handler,
 		},
 		{
 			MethodName: "MySQLSignon",

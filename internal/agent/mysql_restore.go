@@ -16,6 +16,12 @@ import (
 // every privilege on that one database and nothing else, then drops the
 // user. db has been checked by CheckMySQLName: only a-z, 0-9 and _.
 func (m *MySQL) RestoreDump(ctx context.Context, run *execx.Runner, db string, dump io.Reader) error {
+	return m.runDump(ctx, run, db, dump, false)
+}
+
+// runDump is RestoreDump; with selectDB the client starts in the database,
+// for dumps that do not name one.
+func (m *MySQL) runDump(ctx context.Context, run *execx.Runner, db string, dump io.Reader, selectDB bool) error {
 	c, err := m.conn(ctx)
 	if err != nil {
 		return err
@@ -35,9 +41,13 @@ func (m *MySQL) RestoreDump(ctx context.Context, run *execx.Runner, db string, d
 	}
 	pr, pw := io.Pipe()
 	go func() { pw.CloseWithError(stripDefiners(pw, dump)) }()
+	args := []string{"--protocol=SOCKET", "--socket=" + m.Socket, "--user=" + user, "--default-character-set=utf8mb4", "--max-allowed-packet=256M"}
+	if selectDB {
+		args = append(args, "--database="+db)
+	}
 	res, err := run.Run(ctx, execx.Cmd{
 		Path: MariaDBClientPath, Stdin: pr, Timeout: backupMaxRuntime, MaxOutput: 64 << 10,
-		Args: []string{"--protocol=SOCKET", "--socket=" + m.Socket, "--user=" + user, "--default-character-set=utf8mb4", "--max-allowed-packet=256M"},
+		Args: args,
 		Env:  append(slices.Clone(execx.SafeEnv), "MYSQL_PWD="+pass),
 	})
 	pr.Close()

@@ -108,6 +108,38 @@ check(st == 400, "another action is refused", f"{st} {r}")
 st, r = user2.call("POST", f"/databases/{w['database']['id']}/maintain", {"action": "check"})
 check(st == 404, "another account cannot run it", f"{st} {r}")
 
+# Export and import (USR-DB-07): a dump in the home folder, owned by the account.
+import gzip, os, pwd
+st, r = user.call("POST", f"/databases/{w['database']['id']}/export")
+j = user.wait_job(r["job_id"]) if st == 202 else {}
+dump = (j.get("result") or {}).get("path", "")
+full = os.path.join("/home/db1", dump)
+check(st == 202 and j.get("status") == "succeeded" and dump.startswith("db-dumps/db1_store-") and dump.endswith(".sql.gz"), "export writes a dump into the home", f"{st} {j}")
+stat = os.stat(full)
+text = gzip.open(full, "rt").read()
+check(pwd.getpwuid(stat.st_uid).pw_name == "db1" and stat.st_mode & 0o077 == 0, "the dump belongs to the account and nobody else reads it", oct(stat.st_mode))
+check("apple" in text and "CREATE DATABASE" not in text and "USE `" not in text, "it holds the data and names no database")
+root_sql("DELETE FROM db1_store.items; INSERT INTO db1_store.items VALUES (9, 'changed')")
+st, r = user.call("POST", f"/databases/{w['database']['id']}/import", {"path": dump})
+j = user.wait_job(r["job_id"]) if st == 202 else {}
+check(st == 202 and j.get("status") == "succeeded", "import runs the dump", f"{st} {j}")
+check(root_sql("SELECT name FROM db1_store.items") == "apple", "and the table is as it was exported", root_sql("SELECT name FROM db1_store.items"))
+# What import must refuse: files of others, links, statements for other databases.
+open("/home/db1/rootfile.sql", "w").write("SELECT 1;\n")
+os.symlink("/etc/passwd", "/home/db1/link.sql")
+evil = "/home/db1/evil.sql"
+open(evil, "w").write("CREATE TABLE db2_x.stolen (a INT);\nDROP DATABASE mysql;\n")
+os.chown(evil, stat.st_uid, stat.st_gid)
+for path, what in (("rootfile.sql", "a file of another user"), ("link.sql", "a link"), ("evil.sql", "a dump that reaches for other databases"), ("../db2/x.sql", "a path outside the home")):
+    st, r = user.call("POST", f"/databases/{w['database']['id']}/import", {"path": path})
+    j = user.wait_job(r["job_id"]) if st == 202 else {}
+    check(st == 400 or j.get("status") == "failed", f"import refuses {what}", f"{st} {j.get('status')} {j.get('error')}")
+check("mysql" in root_sql("SHOW DATABASES").split() and "stolen" not in root_sql("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'db2%'"), "and nothing outside the database was touched")
+for f in ("rootfile.sql", "link.sql", "evil.sql"):
+    os.remove(os.path.join("/home/db1", f))
+st, r = user2.call("POST", f"/databases/{w['database']['id']}/export")
+check(st == 404, "another account cannot export it", f"{st} {r}")
+
 # phpMyAdmin: a one-time sign-on with access to the account's databases only.
 st, s = user.call("POST", f"/accounts/{accts['db1']}/phpmyadmin")
 url = (s or {}).get("url", "")

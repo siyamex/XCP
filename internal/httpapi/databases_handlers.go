@@ -89,6 +89,30 @@ func (s *Server) maintainDatabase(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
+func (s *Server) exportDatabase(w http.ResponseWriter, r *http.Request) error {
+	jobID, err := s.Databases.Export(r.Context(), client(r), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
+func (s *Server) importDatabase(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Path string `json:"path"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	jobID, err := s.Databases.Import(r.Context(), client(r), principal(r), r.PathValue("id"), in.Path)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
 func (s *Server) createDBUser(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
 		Name     string `json:"name"`

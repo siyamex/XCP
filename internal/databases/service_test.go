@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -120,6 +121,52 @@ func (e *env) waitJob(t *testing.T, id string) *jobs.Job {
 			t.Fatalf("job %s did not finish", id)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestExportImport(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	d, err := e.svc.CreateDatabase(ctx, client, alice, a.ID, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, d.JobID)
+	if _, err := e.svc.Export(ctx, client, bob, d.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("bob exports alice's database: %v", err)
+	}
+	jobID, err := e.svc.Export(ctx, client, alice, d.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res map[string]any
+	if err := json.Unmarshal(e.waitJob(t, jobID).Result, &res); err != nil || res["path"] != "db-dumps/alice_shop-20261111T100000Z.sql.gz" || res["size"] != float64(1234) {
+		t.Fatalf("export result %v %v", res, err)
+	}
+	for _, bad := range []string{"", "../bob/dump.sql", "notes.txt"} {
+		if _, err := e.svc.Import(ctx, client, alice, d.ID, bad); !field(err, "path") {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+	if _, err := e.svc.Import(ctx, client, bob, d.ID, "dump.sql"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("bob imports into alice's database: %v", err)
+	}
+	jobID, err = e.svc.Import(ctx, client, alice, d.ID, "/db-dumps/./alice_shop.sql.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(e.waitJob(t, jobID).Result, &res); err != nil || res["path"] != "db-dumps/alice_shop.sql.gz" {
+		t.Fatalf("import result %v %v", res, err)
+	}
+	// A file that is not there fails the job with the agent's reason.
+	jobID, err = e.svc.Import(ctx, client, alice, d.ID, "missing.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { j, err := e.q.Get(ctx, jobID); return err == nil && j.Status == jobs.StatusFailed })
+	if j, _ := e.q.Get(ctx, jobID); !strings.Contains(j.Error, "cannot open missing.sql") {
+		t.Errorf("job error %q", j.Error)
 	}
 }
 

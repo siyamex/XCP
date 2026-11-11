@@ -87,6 +87,23 @@ func (s *Server) MySQLDatabaseMaintain(ctx context.Context, req *agentv1.MySQLDa
 	return res, nil
 }
 
+// MySQLDatabaseExport implements agentv1.AgentServiceServer.
+func (s *Server) MySQLDatabaseExport(ctx context.Context, req *agentv1.MySQLDatabaseExportRequest) (*agentv1.MySQLDatabaseExportResponse, error) {
+	path, size, err := s.Backups.ExportDatabase(ctx, req.GetUsername(), req.GetDatabase())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MySQLDatabaseExportResponse{Path: path, Size: size}, nil
+}
+
+// MySQLDatabaseImport implements agentv1.AgentServiceServer.
+func (s *Server) MySQLDatabaseImport(ctx context.Context, req *agentv1.MySQLDatabaseImportRequest) (*agentv1.MySQLDatabaseImportResponse, error) {
+	if err := s.Backups.ImportDatabase(ctx, s.MySQL, req.GetUsername(), req.GetDatabase(), req.GetPath()); err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MySQLDatabaseImportResponse{}, nil
+}
+
 // MySQLDatabaseRename implements agentv1.AgentServiceServer.
 func (s *Server) MySQLDatabaseRename(ctx context.Context, req *agentv1.MySQLDatabaseRenameRequest) (*agentv1.MySQLDatabaseRenameResponse, error) {
 	if err := s.MySQL.RenameDatabase(ctx, req.GetUsername(), req.GetFrom(), req.GetTo()); err != nil {
@@ -262,6 +279,35 @@ func (f *Fake) MySQLDatabaseMaintain(_ context.Context, req *agentv1.MySQLDataba
 		res.Tables = append(res.Tables, &agentv1.MySQLTableResult{Table: "bad", Type: "error", Text: "Table is marked as crashed"})
 	}
 	return res, nil
+}
+
+// MySQLDatabaseExport implements Client.
+func (f *Fake) MySQLDatabaseExport(_ context.Context, req *agentv1.MySQLDatabaseExportRequest, _ ...grpc.CallOption) (*agentv1.MySQLDatabaseExportResponse, error) {
+	f.recordf("MySQLDatabaseExport %s", req.GetDatabase())
+	if err := agent.CheckMySQLName(req.GetUsername(), req.GetDatabase(), agent.MaxDatabaseName); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	if !f.mysql.account(req.GetUsername()).databases[req.GetDatabase()] {
+		return nil, status.Errorf(codes.Internal, "database %s does not exist", req.GetDatabase())
+	}
+	return &agentv1.MySQLDatabaseExportResponse{Path: agent.DumpDir + "/" + req.GetDatabase() + "-20261111T100000Z.sql.gz", Size: 1234}, nil
+}
+
+// MySQLDatabaseImport implements Client: a path with "missing" in it does not exist.
+func (f *Fake) MySQLDatabaseImport(_ context.Context, req *agentv1.MySQLDatabaseImportRequest, _ ...grpc.CallOption) (*agentv1.MySQLDatabaseImportResponse, error) {
+	f.recordf("MySQLDatabaseImport %s %s", req.GetDatabase(), req.GetPath())
+	if err := agent.CheckMySQLName(req.GetUsername(), req.GetDatabase(), agent.MaxDatabaseName); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	if _, err := agent.CheckDumpPath(req.GetPath()); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	if strings.Contains(req.GetPath(), "missing") {
+		return nil, status.Errorf(codes.InvalidArgument, "cannot open %s", req.GetPath())
+	}
+	return &agentv1.MySQLDatabaseImportResponse{}, nil
 }
 
 // MySQLDatabaseRename implements Client.

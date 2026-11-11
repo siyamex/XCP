@@ -150,6 +150,23 @@ func TestMaintainVerdict(t *testing.T) {
 	}
 }
 
+func TestCheckDumpPath(t *testing.T) {
+	for in, want := range map[string]string{
+		"db-dumps/alice_shop-20261111T100000Z.sql.gz": "db-dumps/alice_shop-20261111T100000Z.sql.gz",
+		"/public_html/./dump.SQL":                     "public_html/dump.SQL",
+		" old.sql.zst ":                               "old.sql.zst",
+	} {
+		if got, err := CheckDumpPath(in); err != nil || got != want {
+			t.Errorf("%q: %q, %v", in, got, err)
+		}
+	}
+	for _, bad := range []string{"", ".", "../other/dump.sql", "a/../../etc/shadow.sql", "notes.txt", "dump.sql.bz2", ".sqlx"} {
+		if _, err := CheckDumpPath(bad); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+}
+
 func TestSignonNames(t *testing.T) {
 	exp := time.Unix(1_800_000_000, 0)
 	name := signonName("alice", exp, "ab12cd")
