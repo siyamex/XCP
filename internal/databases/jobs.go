@@ -103,6 +103,9 @@ func (s *Service) AccountRequest(ctx context.Context, a *store.Account) (*agentv
 		return nil, err
 	}
 	req := &agentv1.MySQLAccountApplyRequest{Username: a.Username, Locked: a.Status == store.AccountSuspended}
+	if req.RemoteHosts, err = store.DBRemoteHosts(ctx, s.db.R, a.ID); err != nil {
+		return nil, err
+	}
 	name := map[string]string{}
 	for _, d := range dbs {
 		req.Databases = append(req.Databases, d.Name)

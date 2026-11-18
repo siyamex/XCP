@@ -31,6 +31,7 @@ var AccountTables = []struct {
 	{"mail_autoresponders", `mailbox_id IN (SELECT m.id FROM mailboxes m JOIN domains d ON d.id = m.domain_id WHERE d.account_id = ?)`},
 	{"ftp_accounts", `domain_id IN (SELECT id FROM domains WHERE account_id = ?)`},
 	{"cron_jobs", `account_id = ?`},
+	{"db_remote_hosts", `account_id = ?`},
 }
 
 // AccountExport is an account's rows, by table, each row by column. BLOB

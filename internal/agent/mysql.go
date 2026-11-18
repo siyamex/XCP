@@ -34,6 +34,8 @@ type MySQL struct {
 	TicketDir   string // phpMyAdmin sign-on tickets; missing means phpMyAdmin is not installed
 	TicketUser  string // the user phpMyAdmin runs as, who reads and deletes tickets
 	VersionFile string // the installed phpMyAdmin version
+	RemoteConf  string // MySQLRemoteConf; tests change it
+	Services    ServiceManager
 	Now         func() time.Time
 	mu          sync.Mutex
 	db          *sql.DB
@@ -63,6 +65,9 @@ type MySQLAccount struct {
 	Databases []string // full names: <username>_<name>
 	Users     []MySQLUser
 	Locked    bool // the account is suspended
+	// RemoteHosts are the hosts besides localhost every user of the
+	// account may connect from (CheckRemoteHost patterns).
+	RemoteHosts []string
 }
 
 // MySQLUser is a database user of an account.
@@ -159,6 +164,19 @@ func CheckMySQLAccount(a MySQLAccount) error {
 		}
 		dbs[d] = true
 	}
+	if len(a.RemoteHosts) > MaxRemoteHosts {
+		return invalid("at most %d remote hosts", MaxRemoteHosts)
+	}
+	hosts := map[string]bool{}
+	for _, h := range a.RemoteHosts {
+		if err := CheckRemoteHost(h); err != nil {
+			return err
+		}
+		if hosts[h] || h == "localhost" {
+			return invalid("remote host %s is listed twice", h)
+		}
+		hosts[h] = true
+	}
 	seen := map[string]bool{}
 	for _, u := range a.Users {
 		if err := CheckMySQLName(a.Username, u.Name, MaxDBUserName); err != nil {
@@ -233,7 +251,7 @@ func userAt(name, host string) string { return quote(name) + "@" + quote(host) }
 // privileges from have into want (both keyed by grant pattern). It only
 // adds and removes what differs, so the user never loses a privilege it
 // keeps, not even for a moment.
-func grantChanges(user string, have, want map[string]map[string]bool) []string {
+func grantChanges(user, host string, have, want map[string]map[string]bool) []string {
 	order := append(MySQLPrivileges(), grantOption)
 	list := func(set map[string]bool, not map[string]bool) string {
 		var out []string
@@ -247,12 +265,12 @@ func grantChanges(user string, have, want map[string]map[string]bool) []string {
 	var stmts []string
 	for _, db := range sortedKeys(have) {
 		if l := list(have[db], want[db]); l != "" {
-			stmts = append(stmts, "REVOKE "+l+" ON "+ident(db)+".* FROM "+userAt(user, "localhost"))
+			stmts = append(stmts, "REVOKE "+l+" ON "+ident(db)+".* FROM "+userAt(user, host))
 		}
 	}
 	for _, db := range sortedKeys(want) {
 		if l := list(want[db], have[db]); l != "" {
-			stmts = append(stmts, "GRANT "+l+" ON "+ident(db)+".* TO "+userAt(user, "localhost"))
+			stmts = append(stmts, "GRANT "+l+" ON "+ident(db)+".* TO "+userAt(user, host))
 		}
 	}
 	return stmts
@@ -295,10 +313,14 @@ func (m *MySQL) conn(ctx context.Context) (*sql.Conn, error) {
 	return m.db.Conn(ctx)
 }
 
-// mysqlUser is a user as MariaDB has it.
+// mysqlUser is a user as MariaDB has it, on each of its hosts.
 type mysqlUser struct {
-	hosts  []string
-	local  bool // has 'localhost', the host XCP manages
+	hosts []string
+	at    map[string]mysqlLogin
+}
+
+// mysqlLogin is one user@host.
+type mysqlLogin struct {
 	plugin string
 	auth   string
 	locked bool
@@ -322,14 +344,12 @@ func usersLike(ctx context.Context, c *sql.Conn, prefix string) (map[string]*mys
 		}
 		u := users[name]
 		if u == nil {
-			u = &mysqlUser{}
+			u = &mysqlUser{at: map[string]mysqlLogin{}}
 			users[name] = u
 		}
 		u.hosts = append(u.hosts, host)
-		if host == "localhost" {
-			// JSON_VALUE gives a JSON true as "1".
-			u.local, u.plugin, u.auth, u.locked = true, plugin, auth, locked == "1" || locked == "true"
-		}
+		// JSON_VALUE gives a JSON true as "1".
+		u.at[host] = mysqlLogin{plugin: plugin, auth: auth, locked: locked == "1" || locked == "true"}
 	}
 	return users, rows.Err()
 }
@@ -356,7 +376,7 @@ func databasesLike(ctx context.Context, c *sql.Conn, prefix string) (map[string]
 }
 
 // grantsOf returns a user's database privileges, keyed by grant pattern.
-func grantsOf(ctx context.Context, c *sql.Conn, name string) (map[string]map[string]bool, error) {
+func grantsOf(ctx context.Context, c *sql.Conn, name, host string) (map[string]map[string]bool, error) {
 	cols := make([]string, 0, len(privColumns)+2)
 	cols = append(cols, "Db")
 	for _, p := range privColumns {
@@ -364,7 +384,7 @@ func grantsOf(ctx context.Context, c *sql.Conn, name string) (map[string]map[str
 	}
 	cols = append(cols, "Grant_priv")
 	rows, err := c.QueryContext(ctx, "SELECT "+strings.Join(cols, ", ")+ //nolint:gosec // G202: column names from privColumns
-		" FROM mysql.db WHERE Host = 'localhost' AND User = ?", name)
+		" FROM mysql.db WHERE Host = ? AND User = ?", host, name)
 	if err != nil {
 		return nil, err
 	}
@@ -469,37 +489,53 @@ func (m *MySQL) ApplyAccount(ctx context.Context, a MySQLAccount) (bool, error) 
 	if a.Locked {
 		lock = " ACCOUNT LOCK"
 	}
+	hosts := append([]string{"localhost"}, a.RemoteHosts...)
 	for _, u := range a.Users {
 		auth := " IDENTIFIED BY PASSWORD " + quote(u.PasswordHash)
-		switch st := users[u.Name]; {
-		case st == nil || !st.local:
-			create := "CREATE USER " + userAt(u.Name, "localhost") + auth
-			if a.Locked {
-				create += lock
-			}
-			if err := exec(ctx, c, create); err != nil {
-				return changed, err
-			}
-			changed = true
-		case st.plugin != "mysql_native_password" || st.auth != u.PasswordHash || st.locked != a.Locked:
-			if err := exec(ctx, c, "ALTER USER "+userAt(u.Name, "localhost")+auth+lock); err != nil {
-				return changed, err
-			}
-			changed = true
+		st := users[u.Name]
+		if st == nil {
+			st = &mysqlUser{at: map[string]mysqlLogin{}}
 		}
-		hasGrants, err := grantsOf(ctx, c, u.Name)
-		if err != nil {
-			return changed, err
+		// The user on a host that is no longer allowed goes.
+		for _, h := range st.hosts {
+			if !slices.Contains(hosts, h) {
+				if err := exec(ctx, c, "DROP USER IF EXISTS "+userAt(u.Name, h)); err != nil {
+					return changed, err
+				}
+				changed = true
+			}
 		}
 		wantGrants := map[string]map[string]bool{}
 		for _, g := range u.Grants {
 			wantGrants[grantPattern(g.Database)], _ = privSet(g.Privileges) // checked above
 		}
-		stmts := grantChanges(u.Name, hasGrants, wantGrants)
-		if err := exec(ctx, c, stmts...); err != nil {
-			return changed, err
+		for _, h := range hosts {
+			switch l, ok := st.at[h]; {
+			case !ok:
+				create := "CREATE USER " + userAt(u.Name, h) + auth
+				if a.Locked {
+					create += lock
+				}
+				if err := exec(ctx, c, create); err != nil {
+					return changed, err
+				}
+				changed = true
+			case l.plugin != "mysql_native_password" || l.auth != u.PasswordHash || l.locked != a.Locked:
+				if err := exec(ctx, c, "ALTER USER "+userAt(u.Name, h)+auth+lock); err != nil {
+					return changed, err
+				}
+				changed = true
+			}
+			hasGrants, err := grantsOf(ctx, c, u.Name, h)
+			if err != nil {
+				return changed, err
+			}
+			stmts := grantChanges(u.Name, h, hasGrants, wantGrants)
+			if err := exec(ctx, c, stmts...); err != nil {
+				return changed, err
+			}
+			changed = changed || len(stmts) > 0
 		}
-		changed = changed || len(stmts) > 0
 	}
 	if a.Locked {
 		// A suspended account signs in nowhere, phpMyAdmin included.

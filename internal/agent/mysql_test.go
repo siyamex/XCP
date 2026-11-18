@@ -1,7 +1,10 @@
 package agent
 
 import (
+	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -107,7 +110,7 @@ func TestGrantChanges(t *testing.T) {
 		`alice\_same`: all,
 		`alice\_new`:  set("SELECT"),
 	}
-	got := grantChanges("alice_app", have, want)
+	got := grantChangesLocal("alice_app", have, want)
 	exp := []string{
 		"REVOKE SELECT, GRANT OPTION ON `alice\\_old`.* FROM 'alice_app'@'localhost'",
 		"REVOKE INSERT, UPDATE ON `alice\\_shop`.* FROM 'alice_app'@'localhost'",
@@ -117,7 +120,7 @@ func TestGrantChanges(t *testing.T) {
 	if !slices.Equal(got, exp) {
 		t.Fatalf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(exp, "\n"))
 	}
-	if n := grantChanges("alice_app", want, want); len(n) != 0 {
+	if n := grantChangesLocal("alice_app", want, want); len(n) != 0 {
 		t.Fatalf("no change expected, got %v", n)
 	}
 }
@@ -185,5 +188,74 @@ func TestSignonNames(t *testing.T) {
 		if s := randomString(40, alphabet); len(s) != 40 || strings.Trim(s, alphabet) != "" {
 			t.Fatalf("random %q", s)
 		}
+	}
+}
+
+func grantChangesLocal(user string, have, want map[string]map[string]bool) []string {
+	return grantChanges(user, "localhost", have, want)
+}
+
+func TestCheckRemoteHost(t *testing.T) {
+	for _, ok := range []string{"%", "192.0.2.7", "2001:db8::7", "192.0.2.0/255.255.255.0", "10.0.0.0/255.0.0.0", "192.0.2.7/255.255.255.255"} {
+		if err := CheckRemoteHost(ok); err != nil {
+			t.Errorf("%q: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{
+		"", "localhost", "example.com", "192.0.2.%", "192.0.2.0/24", "192.0.2.1/255.255.255.0",
+		"192.0.2.0/255.0.255.0", "2001:db8::/ffff::", "01.2.3.4", "fe80::1%eth0", "::ffff:192.0.2.1", "'; DROP USER root; --",
+	} {
+		if err := CheckRemoteHost(bad); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+	a := MySQLAccount{Username: "alice", RemoteHosts: []string{"192.0.2.7", "192.0.2.7"}}
+	if err := CheckMySQLAccount(a); !errors.Is(err, ErrInvalidRequest) {
+		t.Errorf("a host twice: %v", err)
+	}
+	if got := grantChanges("alice_app", "192.0.2.7", nil, map[string]map[string]bool{`alice\_shop`: {"SELECT": true}}); len(got) != 1 ||
+		got[0] != "GRANT SELECT ON `alice\\_shop`.* TO 'alice_app'@'192.0.2.7'" {
+		t.Errorf("grant on a remote host: %q", got)
+	}
+}
+
+type fakeServices struct{ did []string }
+
+func (f *fakeServices) Status(context.Context, string) (UnitStatus, error) { return UnitStatus{}, nil }
+
+func (f *fakeServices) Do(_ context.Context, unit string, a Action) error {
+	f.did = append(f.did, string(a)+" "+unit)
+	return nil
+}
+
+func TestMySQLListen(t *testing.T) {
+	dir := t.TempDir()
+	server := filepath.Join(dir, "mariadbd")
+	if err := os.WriteFile(server, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	svc := &fakeServices{}
+	m := &MySQL{Server: server, RemoteConf: filepath.Join(dir, "91-xcp-remote.cnf"), Services: svc}
+	steps := []struct {
+		remote, changed bool
+	}{{true, true}, {true, false}, {false, true}, {false, false}}
+	for _, s := range steps {
+		changed, err := m.Listen(ctx, s.remote)
+		if err != nil || changed != s.changed {
+			t.Fatalf("remote=%v: changed=%v err=%v", s.remote, changed, err)
+		}
+		_, statErr := os.Stat(m.RemoteConf)
+		if (statErr == nil) != s.remote {
+			t.Fatalf("remote=%v: the file is there: %v", s.remote, statErr == nil)
+		}
+	}
+	if len(svc.did) != 2 || svc.did[0] != "restart mariadb.service" {
+		t.Errorf("restarts: %v", svc.did)
+	}
+	if b, _ := os.ReadFile(m.RemoteConf); b != nil {
+		t.Error("the file stayed")
+	}
+	if _, err := (&MySQL{Server: filepath.Join(dir, "none")}).Listen(ctx, true); !errors.Is(err, ErrNotInstalled) {
+		t.Errorf("without MariaDB: %v", err)
 	}
 }

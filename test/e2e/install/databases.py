@@ -108,6 +108,46 @@ check(st == 400, "another action is refused", f"{st} {r}")
 st, r = user2.call("POST", f"/databases/{w['database']['id']}/maintain", {"action": "check"})
 check(st == 404, "another account cannot run it", f"{st} {r}")
 
+# Remote access (USR-DB-05): connect over TCP from this server's own address, which MariaDB sees as a remote host.
+import socket
+ip = subprocess.run(["sh", "-c", "ip -4 -o addr show scope global | awk '{print $4}' | cut -d/ -f1 | head -1"], capture_output=True, text=True).stdout.strip()
+def tcp(user, password):
+    r = subprocess.run(["mariadb", "-N", "-B", "--protocol=TCP", "-h", ip, "-P", "3306", "-u", user, "-e", "SELECT name FROM db1_store.items"],
+                       env=dict(os.environ, MYSQL_PWD=password), capture_output=True, text=True, timeout=20)
+    return r.returncode == 0, (r.stdout + r.stderr).strip()
+def listening():
+    with socket.socket() as so:
+        so.settimeout(3)
+        return so.connect_ex((ip, 3306)) == 0
+check(ip != "" and not listening(), "MariaDB does not listen on the server's address at first", ip)
+st, r = user.call("PUT", f"/accounts/{accts['db1']}/database-remote", {"hosts": [ip, "198.51.100.0/24", "example.com"]})
+check(st == 400, "a host name is refused", f"{st} {r}")
+st, r = user.call("PUT", f"/accounts/{accts['db1']}/database-remote", {"hosts": [ip, "198.51.100.0/24"]})
+check(st == 202 and r["hosts"] == [ip, "198.51.100.0/255.255.255.0"] and r["enabled"] is False, "the account lists remote hosts", f"{st} {r}")
+user.wait_job(r["job_id"])
+check(root_sql(f"SELECT COUNT(*) FROM mysql.global_priv WHERE User = 'db1_app' AND Host IN ('{ip}', '198.51.100.0/255.255.255.0')") == "2", "the user exists on those hosts too")
+st, r = user.call("PUT", "/server/mysql/remote", {"enabled": True})
+check(st == 403, "a customer cannot switch the server", f"{st}")
+st, r = api("PUT", "/server/mysql/remote", {"enabled": True})
+check(st == 204, "the admin lets MariaDB accept remote connections", f"{st} {r}")
+for _ in range(30):
+    if listening():
+        break
+    time.sleep(1)
+check(tcp("db1_app", new_pw) == (True, "apple"), "the user connects from a listed host", str(tcp("db1_app", new_pw)))
+st, s2 = api("GET", "/server/mysql")
+check(s2.get("remote") is True, "the status says so", str(s2))
+st, r = user.call("PUT", f"/accounts/{accts['db1']}/database-remote", {"hosts": []})
+user.wait_job(r["job_id"])
+ok, out = tcp("db1_app", new_pw)
+check(not ok and "not allowed to connect" in out, "without the host it is refused", out)
+check(root_sql("SELECT COUNT(*) FROM mysql.global_priv WHERE User = 'db1_app' AND Host <> 'localhost'") == "0", "and the remote users are gone")
+check(sql("db1_app", new_pw, "SELECT 1")[0], "the user still connects on the server")
+st, r = api("PUT", "/server/mysql/remote", {"enabled": False})
+check(st == 204, "remote access off again", f"{st}")
+time.sleep(3)
+check(not listening(), "MariaDB listens on 127.0.0.1 only again")
+
 # Export and import (USR-DB-07): a dump in the home folder, owned by the account.
 import gzip, os, pwd
 st, r = user.call("POST", f"/databases/{w['database']['id']}/export")

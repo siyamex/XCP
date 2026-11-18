@@ -991,6 +991,16 @@
     "newPassword": "New password",
     "changePassword": "Change password",
     "confirmDelete": "Delete the database {{name}} with all its data? This cannot be undone.",
+    "remote": {
+      "title": "Remote access",
+      "help": "Applications on this server always reach your databases. To connect from another computer, list its address here: one address per line, a network like 198.51.100.0/24, or % for any address. Every database user gets these hosts, with the same password and rights.",
+      "hosts": "Hosts that may connect",
+      "off": "This server does not accept database connections from other hosts at the moment. The list is kept and works once the administrator switches remote access on.",
+      "server": "Accept database connections from other hosts",
+      "serverHelp": "MariaDB listens on every address; each account decides which hosts may connect. Open TCP port 3306 in the firewall as well. MariaDB restarts when you change this.",
+      "confirmOn": "MariaDB will restart and accept connections from other hosts. Continue?",
+      "confirmOff": "MariaDB will restart and accept connections from this server only. Continue?"
+    },
     "dump": {
       "export": "Export",
       "import": "Import",

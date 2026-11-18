@@ -1694,6 +1694,48 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /accounts/{id}/database-remote:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [databases]
+      summary: Hosts the account's database users may connect from besides this server
+      operationId: getDBRemote
+      responses:
+        "200":
+          description: The hosts, and whether the server accepts remote connections at all.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DBRemote" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [databases]
+      summary: Set the hosts the account's database users may connect from
+      description: |
+        Each host is `%` (any host), an IP address, or an IPv4 network like 192.0.2.0/24; at most 20.
+        Every database user of the account gets the same hosts, with the same password and privileges.
+      operationId: putDBRemote
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [hosts], properties: { hosts: { type: array, maxItems: 20, items: { type: string } } } }
+      responses:
+        "202":
+          description: Saved; the job applies it in MariaDB.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/DBRemote" }
+                  - { type: object, required: [job_id], properties: { job_id: { type: string } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /databases/{id}/export:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -1924,13 +1966,33 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [installed]
+                required: [installed, remote]
                 properties:
                   installed: { type: boolean }
                   version: { type: string }
                   phpmyadmin: { type: string, description: Installed version }
                   detail: { type: string }
+                  remote: { type: boolean, description: MariaDB listens on every address }
         "403": { $ref: "#/components/responses/Problem" }
+
+  /server/mysql/remote:
+    put:
+      tags: [databases]
+      summary: Let MariaDB accept connections from other hosts, or from this server only (admins)
+      description: |
+        MariaDB restarts when this changes. Which hosts may connect is each account's list;
+        the firewall must also let TCP port 3306 in. 409 `not_installed`.
+      operationId: setMySQLRemote
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [enabled], properties: { enabled: { type: boolean } } }
+      responses:
+        "204": { description: Done. }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
 
   /server/mysql/root-password:
     put:
@@ -4060,6 +4122,13 @@ components:
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         job_id: { type: string }
+
+    DBRemote:
+      type: object
+      required: [hosts, enabled]
+      properties:
+        hosts: { type: array, items: { type: string }, description: "MariaDB host patterns: %, an address, or address/netmask" }
+        enabled: { type: boolean, description: The server accepts connections from other hosts at all }
 
     DatabaseOverview:
       type: object

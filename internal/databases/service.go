@@ -104,6 +104,7 @@ type Status struct {
 	Version    string `json:"version,omitempty"`
 	PHPMyAdmin string `json:"phpmyadmin,omitempty"` // installed version
 	Detail     string `json:"detail,omitempty"`
+	Remote     bool   `json:"remote"` // MariaDB listens on every address
 }
 
 // ConnectHost is where applications on this server reach MariaDB.
@@ -702,9 +703,9 @@ func (s *Service) Status(ctx context.Context, p *auth.Principal) (Status, error)
 	case status.Code(err) == codes.NotFound:
 		return Status{Detail: status.Convert(err).Message()}, nil
 	case err != nil:
-		return Status{Installed: true, Detail: "the database server did not answer: " + status.Convert(err).Message()}, nil
+		return Status{Installed: true, Detail: "the database server did not answer: " + status.Convert(err).Message(), Remote: s.remoteEnabled(ctx)}, nil
 	}
-	return Status{Installed: true, Version: res.GetVersion(), PHPMyAdmin: res.GetPhpmyadmin()}, nil
+	return Status{Installed: true, Version: res.GetVersion(), PHPMyAdmin: res.GetPhpmyadmin(), Remote: s.remoteEnabled(ctx)}, nil
 }
 
 // SetRootPassword lets MariaDB's root in with this password (ADM-DB-09).

@@ -52,6 +52,7 @@ const (
 	AgentService_MySQLDatabaseMaintain_FullMethodName  = "/xcp.agent.v1.AgentService/MySQLDatabaseMaintain"
 	AgentService_MySQLDatabaseExport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseExport"
 	AgentService_MySQLDatabaseImport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseImport"
+	AgentService_MySQLListen_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLListen"
 	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
 	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
 	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
@@ -169,6 +170,9 @@ type AgentServiceClient interface {
 	// account's home in one of its databases, as a temporary user that can
 	// touch nothing else.
 	MySQLDatabaseImport(ctx context.Context, in *MySQLDatabaseImportRequest, opts ...grpc.CallOption) (*MySQLDatabaseImportResponse, error)
+	// MySQLListen makes MariaDB listen on every address (remote) or on
+	// 127.0.0.1 only, and restarts it when that changes.
+	MySQLListen(ctx context.Context, in *MySQLListenRequest, opts ...grpc.CallOption) (*MySQLListenResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error)
@@ -514,6 +518,16 @@ func (c *agentServiceClient) MySQLDatabaseImport(ctx context.Context, in *MySQLD
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MySQLDatabaseImportResponse)
 	err := c.cc.Invoke(ctx, AgentService_MySQLDatabaseImport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLListen(ctx context.Context, in *MySQLListenRequest, opts ...grpc.CallOption) (*MySQLListenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLListenResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLListen_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -995,6 +1009,9 @@ type AgentServiceServer interface {
 	// account's home in one of its databases, as a temporary user that can
 	// touch nothing else.
 	MySQLDatabaseImport(context.Context, *MySQLDatabaseImportRequest) (*MySQLDatabaseImportResponse, error)
+	// MySQLListen makes MariaDB listen on every address (remote) or on
+	// 127.0.0.1 only, and restarts it when that changes.
+	MySQLListen(context.Context, *MySQLListenRequest) (*MySQLListenResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error)
@@ -1177,6 +1194,9 @@ func (UnimplementedAgentServiceServer) MySQLDatabaseExport(context.Context, *MyS
 }
 func (UnimplementedAgentServiceServer) MySQLDatabaseImport(context.Context, *MySQLDatabaseImportRequest) (*MySQLDatabaseImportResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLDatabaseImport not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLListen(context.Context, *MySQLListenRequest) (*MySQLListenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLListen not implemented")
 }
 func (UnimplementedAgentServiceServer) MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLSignon not implemented")
@@ -1747,6 +1767,24 @@ func _AgentService_MySQLDatabaseImport_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).MySQLDatabaseImport(ctx, req.(*MySQLDatabaseImportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLListen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLListenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLListen(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLListen_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLListen(ctx, req.(*MySQLListenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2573,6 +2611,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MySQLDatabaseImport",
 			Handler:    _AgentService_MySQLDatabaseImport_Handler,
+		},
+		{
+			MethodName: "MySQLListen",
+			Handler:    _AgentService_MySQLListen_Handler,
 		},
 		{
 			MethodName: "MySQLSignon",

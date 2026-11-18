@@ -1161,6 +1161,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accounts/{id}/database-remote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Hosts the account's database users may connect from besides this server */
+        get: operations["getDBRemote"];
+        /**
+         * Set the hosts the account's database users may connect from
+         * @description Each host is `%` (any host), an IP address, or an IPv4 network like 192.0.2.0/24; at most 20.
+         *     Every database user of the account gets the same hosts, with the same password and privileges.
+         */
+        put: operations["putDBRemote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/databases/{id}/export": {
         parameters: {
             query?: never;
@@ -1341,6 +1365,27 @@ export interface paths {
         /** The database server and phpMyAdmin (admins) */
         get: operations["getMySQLStatus"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mysql/remote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Let MariaDB accept connections from other hosts, or from this server only (admins)
+         * @description MariaDB restarts when this changes. Which hosts may connect is each account's list;
+         *     the firewall must also let TCP port 3306 in. 409 `not_installed`.
+         */
+        put: operations["setMySQLRemote"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3111,6 +3156,12 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             job_id?: string;
+        };
+        DBRemote: {
+            /** @description MariaDB host patterns: %, an address, or address/netmask */
+            hosts: string[];
+            /** @description The server accepts connections from other hosts at all */
+            enabled: boolean;
         };
         DatabaseOverview: {
             prefix: string;
@@ -6292,6 +6343,64 @@ export interface operations {
             409: components["responses"]["Problem"];
         };
     };
+    getDBRemote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The hosts, and whether the server accepts remote connections at all. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DBRemote"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    putDBRemote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    hosts: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved; the job applies it in MariaDB. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DBRemote"] & {
+                        job_id: string;
+                    };
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
     exportDatabase: {
         parameters: {
             query?: never;
@@ -6571,10 +6680,38 @@ export interface operations {
                         /** @description Installed version */
                         phpmyadmin?: string;
                         detail?: string;
+                        /** @description MariaDB listens on every address */
+                        remote: boolean;
                     };
                 };
             };
             403: components["responses"]["Problem"];
+        };
+    };
+    setMySQLRemote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Done. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     setMySQLRootPassword: {

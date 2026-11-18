@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -121,6 +122,72 @@ func (e *env) waitJob(t *testing.T, id string) *jobs.Job {
 			t.Fatalf("job %s did not finish", id)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestRemoteHosts(t *testing.T) {
+	for in, want := range map[string]string{
+		"%": "%", "Any": "%", " 192.0.2.7 ": "192.0.2.7", "192.0.2.0/24": "192.0.2.0/255.255.255.0", "10.0.0.0/8": "10.0.0.0/255.0.0.0",
+		"192.0.2.7/32": "192.0.2.7", "2001:DB8::7": "2001:db8::7", "2001:db8::7/128": "2001:db8::7", "::ffff:192.0.2.9": "192.0.2.9",
+	} {
+		if got, err := databases.RemoteHost(in); err != nil || got != want {
+			t.Errorf("%q: %q, %v", in, got, err)
+		}
+	}
+	for _, bad := range []string{"example.com", "192.0.2.1/24", "2001:db8::/64", "192.0.2.%", "fe80::1%eth0", "1.2.3"} {
+		if _, err := databases.RemoteHost(bad); !field(err, "hosts") {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+
+	e := newEnv(t)
+	a, alice := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	if _, _, err := e.svc.SetRemote(ctx, client, bob, a.ID, []string{"192.0.2.7"}); err == nil {
+		t.Fatal("bob set alice's hosts")
+	}
+	rm, jobID, err := e.svc.SetRemote(ctx, client, alice, a.ID, []string{"192.0.2.7", "", "198.51.100.0/24", "192.0.2.7"})
+	if err != nil || !slices.Equal(rm.Hosts, []string{"192.0.2.7", "198.51.100.0/255.255.255.0"}) || rm.Enabled {
+		t.Fatalf("%+v %v", rm, err)
+	}
+	e.waitJob(t, jobID)
+	if _, hosts := e.fake.MySQLRemote("alice"); !slices.Equal(hosts, rm.Hosts) {
+		t.Fatalf("the agent got %v", hosts)
+	}
+	many := make([]string, 21)
+	for i := range many {
+		many[i] = fmt.Sprintf("192.0.2.%d", i+1)
+	}
+	if _, _, err := e.svc.SetRemote(ctx, client, alice, a.ID, many); !field(err, "hosts") {
+		t.Errorf("21 hosts: %v", err)
+	}
+	if got, _ := e.svc.Remote(ctx, alice, a.ID); !slices.Equal(got.Hosts, rm.Hosts) {
+		t.Errorf("read back %v", got.Hosts)
+	}
+
+	// The server switch is the admin's.
+	if err := e.svc.SetRemoteEnabled(ctx, client, alice, true); !errors.Is(err, apperr.ErrForbidden) {
+		t.Fatalf("a customer: %v", err)
+	}
+	if err := e.svc.SetRemoteEnabled(ctx, client, e.admin, true); err != nil {
+		t.Fatal(err)
+	}
+	if on, _ := e.fake.MySQLRemote("alice"); !on {
+		t.Error("MariaDB does not listen")
+	}
+	if got, _ := e.svc.Remote(ctx, alice, a.ID); !got.Enabled {
+		t.Error("the account does not see it on")
+	}
+	if st, _ := e.svc.Status(ctx, e.admin); !st.Remote {
+		t.Error("the status does not say so")
+	}
+	if _, jobID, err := e.svc.SetRemote(ctx, client, alice, a.ID, nil); err != nil {
+		t.Fatal(err)
+	} else {
+		e.waitJob(t, jobID)
+	}
+	if _, hosts := e.fake.MySQLRemote("alice"); len(hosts) != 0 {
+		t.Errorf("after clearing: %v", hosts)
 	}
 }
 

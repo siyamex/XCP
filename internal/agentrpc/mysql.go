@@ -18,7 +18,7 @@ import (
 )
 
 func mysqlAccountFrom(req *agentv1.MySQLAccountApplyRequest) agent.MySQLAccount {
-	a := agent.MySQLAccount{Username: req.GetUsername(), Databases: req.GetDatabases(), Locked: req.GetLocked()}
+	a := agent.MySQLAccount{Username: req.GetUsername(), Databases: req.GetDatabases(), Locked: req.GetLocked(), RemoteHosts: req.GetRemoteHosts()}
 	for _, u := range req.GetUsers() {
 		mu := agent.MySQLUser{Name: u.GetName(), PasswordHash: u.GetPasswordHash()}
 		for _, g := range u.GetGrants() {
@@ -87,6 +87,15 @@ func (s *Server) MySQLDatabaseMaintain(ctx context.Context, req *agentv1.MySQLDa
 	return res, nil
 }
 
+// MySQLListen implements agentv1.AgentServiceServer.
+func (s *Server) MySQLListen(ctx context.Context, req *agentv1.MySQLListenRequest) (*agentv1.MySQLListenResponse, error) {
+	changed, err := s.MySQL.Listen(ctx, req.GetRemote())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MySQLListenResponse{Changed: changed}, nil
+}
+
 // MySQLDatabaseExport implements agentv1.AgentServiceServer.
 func (s *Server) MySQLDatabaseExport(ctx context.Context, req *agentv1.MySQLDatabaseExportRequest) (*agentv1.MySQLDatabaseExportResponse, error) {
 	path, size, err := s.Backups.ExportDatabase(ctx, req.GetUsername(), req.GetDatabase())
@@ -144,12 +153,14 @@ type fakeMySQL struct {
 	accounts map[string]*fakeMySQLAccount
 	signons  []string // usernames, one per sign-on
 	rootHash string
+	remote   bool
 }
 
 type fakeMySQLAccount struct {
 	databases map[string]bool
 	users     map[string]agent.MySQLUser
 	locked    bool
+	hosts     []string
 }
 
 func (f *fakeMySQL) account(username string) *fakeMySQLAccount {
@@ -219,7 +230,7 @@ func (f *Fake) MySQLAccountApply(_ context.Context, req *agentv1.MySQLAccountApp
 	for _, u := range in.Users {
 		a.users[u.Name] = u
 	}
-	a.locked = in.Locked
+	a.locked, a.hosts = in.Locked, in.RemoteHosts
 	return &agentv1.MySQLAccountApplyResponse{Changed: true}, nil
 }
 
@@ -279,6 +290,24 @@ func (f *Fake) MySQLDatabaseMaintain(_ context.Context, req *agentv1.MySQLDataba
 		res.Tables = append(res.Tables, &agentv1.MySQLTableResult{Table: "bad", Type: "error", Text: "Table is marked as crashed"})
 	}
 	return res, nil
+}
+
+// MySQLListen implements Client.
+func (f *Fake) MySQLListen(_ context.Context, req *agentv1.MySQLListenRequest, _ ...grpc.CallOption) (*agentv1.MySQLListenResponse, error) {
+	f.recordf("MySQLListen %v", req.GetRemote())
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	changed := f.mysql.remote != req.GetRemote()
+	f.mysql.remote = req.GetRemote()
+	return &agentv1.MySQLListenResponse{Changed: changed}, nil
+}
+
+// MySQLRemote reports whether the fake MariaDB listens on every address,
+// and the remote hosts of an account. For tests.
+func (f *Fake) MySQLRemote(username string) (bool, []string) {
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	return f.mysql.remote, slices.Clone(f.mysql.account(username).hosts)
 }
 
 // MySQLDatabaseExport implements Client.

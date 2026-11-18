@@ -113,6 +113,10 @@ service AgentService {
   // touch nothing else.
   rpc MySQLDatabaseImport(MySQLDatabaseImportRequest) returns (MySQLDatabaseImportResponse);
 
+  // MySQLListen makes MariaDB listen on every address (remote) or on
+  // 127.0.0.1 only, and restarts it when that changes.
+  rpc MySQLListen(MySQLListenRequest) returns (MySQLListenResponse);
+
   // MySQLSignon creates a temporary user for phpMyAdmin with all privileges
   // on the given databases and a one-time ticket to sign in with it.
   rpc MySQLSignon(MySQLSignonRequest) returns (MySQLSignonResponse);
@@ -534,6 +538,7 @@ message MySQLAccountApplyRequest {
   repeated string databases = 2;  // full names: <username>_<name>
   repeated MySQLUser users = 3;
   bool locked = 4;                // suspended: users locked, sign-on users dropped
+  repeated string remote_hosts = 5;  // MariaDB host patterns the users may also connect from
 }
 
 message MySQLUser {
@@ -591,6 +596,14 @@ message MySQLTableResult {
 
 message MySQLDatabaseMaintainResponse {
   repeated MySQLTableResult tables = 1;
+}
+
+message MySQLListenRequest {
+  bool remote = 1;
+}
+
+message MySQLListenResponse {
+  bool changed = 1;
 }
 
 message MySQLDatabaseExportRequest {

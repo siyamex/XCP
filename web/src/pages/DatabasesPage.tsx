@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
@@ -89,6 +89,7 @@ export function AccountDatabases({ accountId }: { accountId: string }) {
       <Wizard accountId={accountId} o={o} onStarted={started} />
       <DatabaseList accountId={accountId} o={o} onStarted={started} />
       <UserList accountId={accountId} o={o} onStarted={started} />
+      <RemoteCard accountId={accountId} onStarted={started} />
     </div>
   );
 }
@@ -381,6 +382,35 @@ function GrantForm({ u, o, onStarted }: { u: DBUser; o: Overview; onStarted: (r:
 }
 
 /** The database server for admins (ADM-DB-08, 09). */
+/** Hosts the account's database users may connect from besides the server (USR-DB-05). */
+function RemoteCard({ accountId, onStarted }: { accountId: string; onStarted: (r: { job_id?: string }) => void }) {
+  const { t } = useTranslation();
+  const path = { params: { path: { id: accountId } } };
+  const q = useQuery({ queryKey: ["db-remote", accountId], queryFn: () => unwrap(api.GET("/accounts/{id}/database-remote", path)), retry: false });
+  const [text, setText] = useState("");
+  useEffect(() => { if (q.data) setText(q.data.hosts.join("\n")); }, [q.data]);
+  const save = useMutation({
+    mutationFn: () => unwrap(api.PUT("/accounts/{id}/database-remote", { ...path, body: { hosts: text.split(/[\s,]+/).filter(Boolean) } })),
+    onSuccess: (r) => { setText(r.hosts.join("\n")); onStarted(r); },
+  });
+  if (!q.data) return q.isError ? <ErrorAlert error={q.error} /> : null;
+  return (
+    <Card>
+      <CardTitle>{t("databases.remote.title")}</CardTitle>
+      <p className="mb-3 text-sm text-slate-500">{t("databases.remote.help")}</p>
+      {!q.data.enabled && <Alert kind="info">{t("databases.remote.off")}</Alert>}
+      <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="mt-3 max-w-md space-y-3">
+        <Field id="db-remote" label={t("databases.remote.hosts")}>
+          <textarea id="db-remote" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={"192.0.2.10\n198.51.100.0/24"}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-900" />
+        </Field>
+        <ErrorAlert error={save.error} />
+        <Button type="submit" variant="secondary" disabled={save.isPending}>{t("common.save")}</Button>
+      </form>
+    </Card>
+  );
+}
+
 function ServerCard() {
   const { t } = useTranslation();
   const [password, setPassword] = useState("");
@@ -388,6 +418,11 @@ function ServerCard() {
   const save = useMutation({
     mutationFn: () => unwrap(api.PUT("/server/mysql/root-password", { body: { password } })),
     onSuccess: () => setPassword(""),
+  });
+  const qc = useQueryClient();
+  const remote = useMutation({
+    mutationFn: (enabled: boolean) => unwrap(api.PUT("/server/mysql/remote", { body: { enabled } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["mysql-status"] }),
   });
   if (status.isPending) return <Spinner />;
   if (!status.data) return <ErrorAlert error={status.error} />;
@@ -402,6 +437,15 @@ function ServerCard() {
         <dd>{s.phpmyadmin || t("databases.notInstalled")}</dd>
       </dl>
       {s.detail && s.installed && <Alert kind="info">{s.detail}</Alert>}
+      <div className="mb-4 space-y-2 border-b border-slate-100 pb-4 dark:border-slate-800">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={s.remote} disabled={remote.isPending || !s.installed}
+            onChange={(e) => window.confirm(t(e.target.checked ? "databases.remote.confirmOn" : "databases.remote.confirmOff")) && remote.mutate(e.target.checked)} />
+          {t("databases.remote.server")}
+        </label>
+        <p className="text-xs text-slate-500">{t("databases.remote.serverHelp")}</p>
+        <ErrorAlert error={remote.error} />
+      </div>
       <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-3">
         <p className="text-sm text-slate-500">{t("databases.rootHint")}</p>
         <div className="flex flex-wrap items-end gap-2">

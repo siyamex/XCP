@@ -113,6 +113,44 @@ func (s *Server) importDatabase(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) getDBRemote(w http.ResponseWriter, r *http.Request) error {
+	rm, err := s.Databases.Remote(r.Context(), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, rm)
+	return nil
+}
+
+func (s *Server) putDBRemote(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Hosts []string `json:"hosts"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	rm, jobID, err := s.Databases.SetRemote(r.Context(), client(r), principal(r), r.PathValue("id"), in.Hosts)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{"hosts": rm.Hosts, "enabled": rm.Enabled, "job_id": jobID})
+	return nil
+}
+
+func (s *Server) setMySQLRemote(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	if err := s.Databases.SetRemoteEnabled(r.Context(), client(r), principal(r), in.Enabled); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
 func (s *Server) createDBUser(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
 		Name     string `json:"name"`

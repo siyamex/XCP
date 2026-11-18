@@ -122,6 +122,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		MySQL: &agent.MySQL{
 			Server: agent.MariaDBServer, Socket: agent.MySQLSocket,
 			TicketDir: agent.PMATicketDir, TicketUser: agent.PMAUser, VersionFile: agent.PMAVersionFile,
+			Services: agent.Systemctl{Run: runner},
 		},
 		Version:  version.Version,
 		Hostname: hostname,
