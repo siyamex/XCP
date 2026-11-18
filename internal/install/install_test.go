@@ -334,7 +334,7 @@ func TestFirstInstall(t *testing.T) {
 		"db install", "systemctl restart mariadb.service", "useradd xcp-pma", "download https://files.example/pma.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
 		"mail install", "systemctl enable --now redis-server.service rspamd.service dovecot.service xcp-mailpolicy.service postfix.service",
-		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart postfix.service",
+		"systemctl restart rspamd.service", "systemctl restart dovecot.service", "systemctl restart xcp-mailpolicy.service", "systemctl restart postfix.service",
 		"useradd xcp-rc", "download https://files.example/rc.tar.gz",
 		"systemctl reload-or-restart php8.3-fpm.service", "systemctl reload-or-restart apache2.service",
 		"ftp install", "systemctl daemon-reload", "systemctl enable --now xcp-ftpauth.service pure-ftpd.service",
@@ -373,7 +373,8 @@ func TestReinstallChangesNothingAndKeepsEdits(t *testing.T) {
 	}
 	if slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") || slices.Contains(e.sys.calls, "systemctl daemon-reload") ||
 		slices.Contains(e.sys.calls, "systemctl restart pdns.service") || slices.Contains(e.sys.calls, "systemctl restart mariadb.service") ||
-		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") || slices.Contains(e.sys.calls, "systemctl restart postfix.service") {
+		slices.Contains(e.sys.calls, "systemctl reload-or-restart apache2.service") || slices.Contains(e.sys.calls, "systemctl restart postfix.service") ||
+		slices.Contains(e.sys.calls, "systemctl restart xcp-mailpolicy.service") {
 		t.Fatalf("services restarted although nothing changed: %q", e.sys.calls)
 	}
 	if !bytes.Equal(e.read(t, PDNSKeyFile), pdnsKey) {
@@ -390,8 +391,10 @@ func TestUpgradeRestartsServices(t *testing.T) {
 	if !slices.Equal(res.Changed, []string{"file /usr/sbin/xcp-api"}) {
 		t.Fatalf("changed = %v", res.Changed)
 	}
-	if !slices.Contains(e.sys.calls, "systemctl restart xcp-agent.service xcp-api.service xcp-logd.service") {
-		t.Fatalf("no restart after binary upgrade: %q", e.sys.calls)
+	for _, c := range []string{"systemctl restart xcp-agent.service xcp-api.service xcp-logd.service", "systemctl restart xcp-mailpolicy.service", "systemctl restart xcp-ftpauth.service"} {
+		if !slices.Contains(e.sys.calls, c) {
+			t.Fatalf("%q missing after a binary upgrade: %q", c, e.sys.calls)
+		}
 	}
 	if string(e.read(t, "/usr/sbin/xcp-api")) != "xcp-api v2" {
 		t.Fatal("binary not upgraded")

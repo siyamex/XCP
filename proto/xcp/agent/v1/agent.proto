@@ -151,8 +151,8 @@ service AgentService {
   rpc MailQueueList(MailQueueListRequest) returns (MailQueueListResponse);
   // MailboxUsage lists a mailbox's folders with their messages and size.
   rpc MailboxUsage(MailboxUsageRequest) returns (MailboxUsageResponse);
-  // MailboxCleanup deletes the messages of one folder of a mailbox that
-  // arrived before a number of days ago.
+  // MailboxCleanup deletes the messages of one folder of a mailbox
+  // received before a number of days ago.
   rpc MailboxCleanup(MailboxCleanupRequest) returns (MailboxCleanupResponse);
   // MailQueueAction flushes or deletes queued mail.
   rpc MailQueueAction(MailQueueActionRequest) returns (MailQueueActionResponse);

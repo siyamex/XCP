@@ -202,8 +202,8 @@ type AgentServiceClient interface {
 	MailQueueList(ctx context.Context, in *MailQueueListRequest, opts ...grpc.CallOption) (*MailQueueListResponse, error)
 	// MailboxUsage lists a mailbox's folders with their messages and size.
 	MailboxUsage(ctx context.Context, in *MailboxUsageRequest, opts ...grpc.CallOption) (*MailboxUsageResponse, error)
-	// MailboxCleanup deletes the messages of one folder of a mailbox that
-	// arrived before a number of days ago.
+	// MailboxCleanup deletes the messages of one folder of a mailbox
+	// received before a number of days ago.
 	MailboxCleanup(ctx context.Context, in *MailboxCleanupRequest, opts ...grpc.CallOption) (*MailboxCleanupResponse, error)
 	// MailQueueAction flushes or deletes queued mail.
 	MailQueueAction(ctx context.Context, in *MailQueueActionRequest, opts ...grpc.CallOption) (*MailQueueActionResponse, error)
@@ -1092,8 +1092,8 @@ type AgentServiceServer interface {
 	MailQueueList(context.Context, *MailQueueListRequest) (*MailQueueListResponse, error)
 	// MailboxUsage lists a mailbox's folders with their messages and size.
 	MailboxUsage(context.Context, *MailboxUsageRequest) (*MailboxUsageResponse, error)
-	// MailboxCleanup deletes the messages of one folder of a mailbox that
-	// arrived before a number of days ago.
+	// MailboxCleanup deletes the messages of one folder of a mailbox
+	// received before a number of days ago.
 	MailboxCleanup(context.Context, *MailboxCleanupRequest) (*MailboxCleanupResponse, error)
 	// MailQueueAction flushes or deletes queued mail.
 	MailQueueAction(context.Context, *MailQueueActionRequest) (*MailQueueActionResponse, error)

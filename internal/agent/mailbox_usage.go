@@ -127,9 +127,10 @@ func (m *Mail) MailboxUsage(ctx context.Context, username, address string) ([]Ma
 	return m.folders(ctx, address, "*")
 }
 
-// MailboxCleanup deletes the messages of one folder of a mailbox that
-// arrived (were saved) before days days ago, and reports how many went and
-// how many bytes they took.
+// MailboxCleanup deletes the messages of one folder of a mailbox received
+// before days days ago (IMAP's internal date: when the message arrived, or
+// the date a mail program gave it when it copied it in), and reports how
+// many went and how many bytes they took.
 func (m *Mail) MailboxCleanup(ctx context.Context, username, address, folder string, days int) (int64, int64, error) {
 	if days < 1 || days > MaxCleanupDays {
 		return 0, 0, invalid("days must be 1 to %d", MaxCleanupDays)
@@ -149,7 +150,7 @@ func (m *Mail) MailboxCleanup(ctx context.Context, username, address, folder str
 	}
 	res, err := m.Run.Run(ctx, execx.Cmd{
 		Path: DoveadmPath, Timeout: backupMaxRuntime, MaxOutput: 64 << 10,
-		Args: []string{"expunge", "-u", address, "mailbox", folder, "savedbefore", strconv.Itoa(days) + "d"},
+		Args: []string{"expunge", "-u", address, "mailbox", folder, "before", strconv.Itoa(days) + "d"},
 	})
 	if err != nil {
 		return 0, 0, fmt.Errorf("%w: %s", err, strings.TrimSpace(string(res.Stderr)))

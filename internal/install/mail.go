@@ -241,7 +241,10 @@ func (in *installer) mail(ctx context.Context) error {
 	if err := in.o.Sys.Systemctl(ctx, "enable", "--now", "redis-server.service", "rspamd.service", "dovecot.service", "xcp-mailpolicy.service", "postfix.service"); err != nil {
 		return err
 	}
-	for _, unit := range []string{"rspamd.service", "dovecot.service", "postfix.service"} {
+	// in.restart: the binaries changed, xcp-mailpolicy among them; the
+	// running daemon would keep the old code until the server restarts.
+	changed["xcp-mailpolicy.service"] = in.restart
+	for _, unit := range []string{"rspamd.service", "dovecot.service", "xcp-mailpolicy.service", "postfix.service"} {
 		if changed[unit] {
 			if err := in.o.Sys.Systemctl(ctx, "restart", unit); err != nil {
 				return err

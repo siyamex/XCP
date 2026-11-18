@@ -198,20 +198,22 @@ wait_job(r["job_id"])
 limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=True, text=True).stdout.strip()
 check(limit == "1048576", "the largest message size reaches Postfix", limit)
 # Mailbox usage and clean-up (USR-MAIL-02): the folders as Dovecot counts them; old mail goes.
+user.login("mail1", PW)  # suspending ended the user's sessions
 st, u = user.call("GET", f"/mailboxes/{info['id']}/usage")
 inbox_n = next((f["messages"] for f in u.get("folders", []) if f["name"] == "INBOX"), 0)
 check(st == 200 and inbox_n >= 1 and u["bytes"] > 0, "the mailbox's folders with messages and size", str(u)[:300])
 st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "INBOX", "days": 3650})
 j = user.wait_job(r["job_id"]) if st == 202 else {}
 check(st == 202 and j.get("status") == "succeeded" and (j.get("result") or {}).get("removed") == 0, "nothing is older than ten years", f"{st} {j}")
-# Make one message old: Dovecot reads the save date from the file's time in maildir.
+# Make one message old: in maildir the received date is the file's time.
 import glob
 cur = sorted(glob.glob(f"/home/mail1/mail/{DOMAIN}/info/Maildir/cur/*") + glob.glob(f"/home/mail1/mail/{DOMAIN}/info/Maildir/new/*"))
 old = 1500000000
 if cur:
     os.utime(cur[0], (old, old))
-subprocess.run(["doveadm", "index", "-u", f"info@{DOMAIN}", "INBOX"], capture_output=True)
-subprocess.run(["doveadm", "force-resync", "-u", f"info@{DOMAIN}", "INBOX"], capture_output=True)
+# Dovecot keeps the date in its index cache: drop the cache so it reads the file's time again.
+for c in glob.glob(f"/home/mail1/mail/{DOMAIN}/info/Maildir/dovecot.index*"):
+    os.remove(c)
 st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "INBOX", "days": 30})
 j = user.wait_job(r["job_id"]) if st == 202 else {}
 st, u2 = user.call("GET", f"/mailboxes/{info['id']}/usage")
