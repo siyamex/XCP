@@ -149,6 +149,11 @@ service AgentService {
   rpc MailSettingsApply(MailSettingsApplyRequest) returns (MailSettingsApplyResponse);
   // MailQueueList returns Postfix's queue (newest first, at most 500).
   rpc MailQueueList(MailQueueListRequest) returns (MailQueueListResponse);
+  // MailboxUsage lists a mailbox's folders with their messages and size.
+  rpc MailboxUsage(MailboxUsageRequest) returns (MailboxUsageResponse);
+  // MailboxCleanup deletes the messages of one folder of a mailbox that
+  // arrived before a number of days ago.
+  rpc MailboxCleanup(MailboxCleanupRequest) returns (MailboxCleanupResponse);
   // MailQueueAction flushes or deletes queued mail.
   rpc MailQueueAction(MailQueueActionRequest) returns (MailQueueActionResponse);
 
@@ -742,6 +747,33 @@ message MailAccountRemoveRequest {
 
 message MailAccountRemoveResponse {
   bool removed = 1;
+}
+
+message MailboxUsageRequest {
+  string username = 1;  // the account
+  string address = 2;   // one of its mailboxes
+}
+
+message MailFolder {
+  string name = 1;
+  int64 messages = 2;
+  int64 bytes = 3;
+}
+
+message MailboxUsageResponse {
+  repeated MailFolder folders = 1;
+}
+
+message MailboxCleanupRequest {
+  string username = 1;
+  string address = 2;
+  string folder = 3;
+  int32 days = 4;  // 1..3650: what arrived before then goes
+}
+
+message MailboxCleanupResponse {
+  int64 removed = 1;  // messages
+  int64 bytes = 2;    // freed
 }
 
 message MailQueueListRequest {}

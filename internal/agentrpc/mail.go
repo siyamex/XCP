@@ -155,6 +155,28 @@ func (f *Fake) MailSettingsApply(_ context.Context, req *agentv1.MailSettingsApp
 	return &agentv1.MailSettingsApplyResponse{Changed: true}, nil
 }
 
+// MailboxUsage implements agentv1.AgentServiceServer.
+func (s *Server) MailboxUsage(ctx context.Context, req *agentv1.MailboxUsageRequest) (*agentv1.MailboxUsageResponse, error) {
+	list, err := s.Mail.MailboxUsage(ctx, req.GetUsername(), req.GetAddress())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	res := &agentv1.MailboxUsageResponse{}
+	for _, f := range list {
+		res.Folders = append(res.Folders, &agentv1.MailFolder{Name: f.Name, Messages: f.Messages, Bytes: f.Bytes})
+	}
+	return res, nil
+}
+
+// MailboxCleanup implements agentv1.AgentServiceServer.
+func (s *Server) MailboxCleanup(ctx context.Context, req *agentv1.MailboxCleanupRequest) (*agentv1.MailboxCleanupResponse, error) {
+	n, b, err := s.Mail.MailboxCleanup(ctx, req.GetUsername(), req.GetAddress(), req.GetFolder(), int(req.GetDays()))
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MailboxCleanupResponse{Removed: n, Bytes: b}, nil
+}
+
 // MailWebmailSignon implements agentv1.AgentServiceServer.
 func (s *Server) MailWebmailSignon(ctx context.Context, req *agentv1.MailWebmailSignonRequest) (*agentv1.MailWebmailSignonResponse, error) {
 	ticket, err := s.Mail.WebmailSignon(ctx, req.GetUsername(), req.GetAddress())
@@ -170,6 +192,42 @@ func (s *Server) MailWebmailExpire(ctx context.Context, _ *agentv1.MailWebmailEx
 		return nil, s.toStatus(err)
 	}
 	return &agentv1.MailWebmailExpireResponse{}, nil
+}
+
+func (f *Fake) fakeMailbox(username, address string) bool {
+	for _, d := range f.mail.accounts[username].Domains {
+		for _, b := range d.Mailboxes {
+			if b.Local+"@"+d.Name == address {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// MailboxUsage implements Client: every mailbox has INBOX with 3 messages
+// of 1000 bytes and Sent with 1.
+func (f *Fake) MailboxUsage(_ context.Context, req *agentv1.MailboxUsageRequest, _ ...grpc.CallOption) (*agentv1.MailboxUsageResponse, error) {
+	f.mail.mu.Lock()
+	defer f.mail.mu.Unlock()
+	if !f.fakeMailbox(req.GetUsername(), req.GetAddress()) {
+		return nil, fakeInvalid(agent.ErrInvalidRequest)
+	}
+	return &agentv1.MailboxUsageResponse{Folders: []*agentv1.MailFolder{{Name: "INBOX", Messages: 3, Bytes: 3000}, {Name: "Sent", Messages: 1, Bytes: 1000}}}, nil
+}
+
+// MailboxCleanup implements Client: it removes 2 messages of INBOX.
+func (f *Fake) MailboxCleanup(_ context.Context, req *agentv1.MailboxCleanupRequest, _ ...grpc.CallOption) (*agentv1.MailboxCleanupResponse, error) {
+	f.recordf("MailboxCleanup %s %s %d", req.GetAddress(), req.GetFolder(), req.GetDays())
+	if err := agent.CheckFolderName(req.GetFolder()); err != nil {
+		return nil, fakeInvalid(err)
+	}
+	f.mail.mu.Lock()
+	defer f.mail.mu.Unlock()
+	if !f.fakeMailbox(req.GetUsername(), req.GetAddress()) || (req.GetFolder() != "INBOX" && req.GetFolder() != "Sent") {
+		return nil, fakeInvalid(agent.ErrInvalidRequest)
+	}
+	return &agentv1.MailboxCleanupResponse{Removed: 2, Bytes: 2000}, nil
 }
 
 // MailWebmailSignon implements Client: a ticket if the mailbox may log in.

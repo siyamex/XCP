@@ -5,7 +5,7 @@ import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { useMe } from "../auth";
 import { ErrorAlert } from "../components/ErrorAlert";
-import { JobNotice } from "../components/JobNotice";
+import { JobNotice, useJob } from "../components/JobNotice";
 import { MailQueueCard } from "./MailQueueCard";
 import { SpamCard } from "./SpamCard";
 import { Alert, Button, Card, CardTitle, Field, Input, Spinner } from "../components/ui";
@@ -147,6 +147,61 @@ function Mailboxes({ accountId, o, domains, onStarted }: { accountId: string; o:
   );
 }
 
+function size(bytes: number) {
+  return bytes >= 1 << 30 ? `${(bytes / (1 << 30)).toFixed(1)} GB` : bytes >= 1 << 20 ? `${(bytes / (1 << 20)).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
+}
+
+/** A mailbox's folders, and deleting old mail of one (USR-MAIL-02). */
+function MailboxUsage({ id }: { id: string }) {
+  const { t } = useTranslation();
+  const path = { params: { path: { id } } };
+  const q = useQuery({ queryKey: ["mailbox-usage", id], queryFn: () => unwrap(api.GET("/mailboxes/{id}/usage", path)), retry: false });
+  const [folder, setFolder] = useState("");
+  const [days, setDays] = useState(365);
+  const clean = useMutation({ mutationFn: () => unwrap(api.POST("/mailboxes/{id}/cleanup", { ...path, body: { folder: folder || "INBOX", days } })) });
+  const job = useJob(clean.data?.job_id, () => void q.refetch());
+  const result = job?.status === "succeeded" ? (job.result as { removed?: number; bytes?: number } | undefined) : undefined;
+  if (q.isPending) return <Spinner />;
+  if (!q.data) return <ErrorAlert error={q.error} />;
+  const u = q.data;
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="font-medium">
+        {t("email.usage.total", { size: size(u.bytes) })}
+        {u.quota_mb > 0 && <span className="text-slate-500"> {t("email.usage.ofQuota", { quota: u.quota_mb, percent: Math.round((u.bytes / (u.quota_mb << 20)) * 100) })}</span>}
+      </p>
+      {u.folders.length === 0 && <p className="text-slate-500">{t("email.usage.none")}</p>}
+      {u.folders.length > 0 && (
+        <>
+          <ul className="max-w-md divide-y divide-slate-100 dark:divide-slate-800">
+            {u.folders.map((f) => (
+              <li key={f.name} className="flex justify-between gap-2 py-0.5">
+                <span className="font-mono">{f.name}</span>
+                <span className="text-slate-500">{t("email.usage.messages", { count: f.messages })} · {size(f.bytes)}</span>
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={(e) => { e.preventDefault(); if (window.confirm(t("email.usage.confirm", { folder: folder || "INBOX", days }))) clean.mutate(); }}
+            className="flex flex-wrap items-end gap-2">
+            <Field id={`cl-f-${id}`} label={t("email.usage.folder")}>
+              <select id={`cl-f-${id}`} className={selectClass} value={folder || "INBOX"} onChange={(e) => setFolder(e.target.value)}>
+                {u.folders.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+              </select>
+            </Field>
+            <Field id={`cl-d-${id}`} label={t("email.usage.olderThan")}>
+              <Input id={`cl-d-${id}`} type="number" min={1} max={3650} className="w-24" value={days} onChange={(e) => setDays(Number(e.target.value))} />
+            </Field>
+            <Button type="submit" variant="secondary" disabled={clean.isPending || (!!job && job.status !== "succeeded" && job.status !== "failed")}>{t("email.usage.clean")}</Button>
+          </form>
+          <ErrorAlert error={clean.error} />
+          {job?.status === "failed" && <Alert>{t("job.failed", { error: job.error ?? "" })}</Alert>}
+          {result && <Alert kind="success">{t("email.usage.cleaned", { count: result.removed ?? 0, size: size(result.bytes ?? 0) })}</Alert>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number | null | undefined; onStarted: (r: { job_id?: string }) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -199,6 +254,7 @@ function MailboxRow({ m, maxQuota, onStarted }: { m: Mailbox; maxQuota: number |
               </Field>
               <Button type="submit" variant="secondary" disabled={update.isPending}>{t("email.saveQuota")}</Button>
             </form>
+            <MailboxUsage id={m.id} />
             <AutoresponderForm m={m} onStarted={onStarted} />
             <form onSubmit={(e) => { e.preventDefault(); setPw.mutate(); }} className="flex flex-wrap items-end gap-2">
               <Field id={`pw-${m.id}`} label={t("databases.newPassword")}>

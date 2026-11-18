@@ -3,6 +3,7 @@ package mail_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -505,6 +506,52 @@ func TestMailQueueAdminOnly(t *testing.T) {
 	}
 	if err := e.svc.QueueAction(ctx, client, e.admin, "delete_all", nil); err != nil || len(e.fake.QueuedIDs()) != 0 {
 		t.Errorf("delete_all: %v %v", err, e.fake.QueuedIDs())
+	}
+}
+
+func isField(err error, name string) bool {
+	var v *validate.Error
+	return errors.As(err, &v) && v.Field == name
+}
+
+func TestMailboxUsageAndCleanup(t *testing.T) {
+	e := newEnv(t)
+	a, user := e.account(t, "alice")
+	_, bob := e.account(t, "bob")
+	o, _ := e.svc.Overview(ctx, user, a.ID)
+	m, err := e.svc.CreateMailbox(ctx, client, user, a.ID, mail.MailboxInput{DomainID: o.Domains[0].ID, Local: "info", Password: pw, QuotaMB: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, m.JobID)
+	u, err := e.svc.Usage(ctx, user, m.ID)
+	if err != nil || u.Bytes != 4000 || len(u.Folders) != 2 || u.Folders[0].Name != "INBOX" || u.QuotaMB != 100 {
+		t.Fatalf("%+v %v", u, err)
+	}
+	if _, err := e.svc.Usage(ctx, bob, m.ID); err == nil {
+		t.Fatal("bob read alice's mailbox")
+	}
+	for _, c := range []struct {
+		folder string
+		days   int
+		field  string
+	}{{"INBOX", 0, "days"}, {"INBOX", 4000, "days"}, {"*", 30, "folder"}, {"", 30, "folder"}} {
+		if _, err := e.svc.Cleanup(ctx, client, user, m.ID, c.folder, c.days); !isField(err, c.field) {
+			t.Errorf("%+v: %v", c, err)
+		}
+	}
+	if _, err := e.svc.Cleanup(ctx, client, bob, m.ID, "INBOX", 30); err == nil {
+		t.Fatal("bob cleaned alice's mailbox")
+	}
+	jobID, err := e.svc.Cleanup(ctx, client, user, m.ID, "INBOX", 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res map[string]any
+	e.waitJob(t, jobID)
+	j, _ := e.q.Get(ctx, jobID)
+	if err := json.Unmarshal(j.Result, &res); err != nil || res["removed"] != float64(2) || res["bytes"] != float64(2000) {
+		t.Fatalf("%v %v", res, err)
 	}
 }
 

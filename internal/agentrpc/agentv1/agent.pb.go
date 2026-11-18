@@ -4663,6 +4663,282 @@ func (x *MailAccountRemoveResponse) GetRemoved() bool {
 	return false
 }
 
+type MailboxUsageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"` // the account
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`   // one of its mailboxes
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MailboxUsageRequest) Reset() {
+	*x = MailboxUsageRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MailboxUsageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MailboxUsageRequest) ProtoMessage() {}
+
+func (x *MailboxUsageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MailboxUsageRequest.ProtoReflect.Descriptor instead.
+func (*MailboxUsageRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *MailboxUsageRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MailboxUsageRequest) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+type MailFolder struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Messages      int64                  `protobuf:"varint,2,opt,name=messages,proto3" json:"messages,omitempty"`
+	Bytes         int64                  `protobuf:"varint,3,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MailFolder) Reset() {
+	*x = MailFolder{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MailFolder) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MailFolder) ProtoMessage() {}
+
+func (x *MailFolder) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MailFolder.ProtoReflect.Descriptor instead.
+func (*MailFolder) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *MailFolder) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *MailFolder) GetMessages() int64 {
+	if x != nil {
+		return x.Messages
+	}
+	return 0
+}
+
+func (x *MailFolder) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+type MailboxUsageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Folders       []*MailFolder          `protobuf:"bytes,1,rep,name=folders,proto3" json:"folders,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MailboxUsageResponse) Reset() {
+	*x = MailboxUsageResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MailboxUsageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MailboxUsageResponse) ProtoMessage() {}
+
+func (x *MailboxUsageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MailboxUsageResponse.ProtoReflect.Descriptor instead.
+func (*MailboxUsageResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *MailboxUsageResponse) GetFolders() []*MailFolder {
+	if x != nil {
+		return x.Folders
+	}
+	return nil
+}
+
+type MailboxCleanupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Folder        string                 `protobuf:"bytes,3,opt,name=folder,proto3" json:"folder,omitempty"`
+	Days          int32                  `protobuf:"varint,4,opt,name=days,proto3" json:"days,omitempty"` // 1..3650: what arrived before then goes
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MailboxCleanupRequest) Reset() {
+	*x = MailboxCleanupRequest{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MailboxCleanupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MailboxCleanupRequest) ProtoMessage() {}
+
+func (x *MailboxCleanupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MailboxCleanupRequest.ProtoReflect.Descriptor instead.
+func (*MailboxCleanupRequest) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *MailboxCleanupRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *MailboxCleanupRequest) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *MailboxCleanupRequest) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *MailboxCleanupRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+type MailboxCleanupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Removed       int64                  `protobuf:"varint,1,opt,name=removed,proto3" json:"removed,omitempty"` // messages
+	Bytes         int64                  `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`     // freed
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MailboxCleanupResponse) Reset() {
+	*x = MailboxCleanupResponse{}
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MailboxCleanupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MailboxCleanupResponse) ProtoMessage() {}
+
+func (x *MailboxCleanupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MailboxCleanupResponse.ProtoReflect.Descriptor instead.
+func (*MailboxCleanupResponse) Descriptor() ([]byte, []int) {
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *MailboxCleanupResponse) GetRemoved() int64 {
+	if x != nil {
+		return x.Removed
+	}
+	return 0
+}
+
+func (x *MailboxCleanupResponse) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
 type MailQueueListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4671,7 +4947,7 @@ type MailQueueListRequest struct {
 
 func (x *MailQueueListRequest) Reset() {
 	*x = MailQueueListRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[82]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4683,7 +4959,7 @@ func (x *MailQueueListRequest) String() string {
 func (*MailQueueListRequest) ProtoMessage() {}
 
 func (x *MailQueueListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[82]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4696,7 +4972,7 @@ func (x *MailQueueListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailQueueListRequest.ProtoReflect.Descriptor instead.
 func (*MailQueueListRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{82}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{87}
 }
 
 type QueuedMail struct {
@@ -4713,7 +4989,7 @@ type QueuedMail struct {
 
 func (x *QueuedMail) Reset() {
 	*x = QueuedMail{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[83]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4725,7 +5001,7 @@ func (x *QueuedMail) String() string {
 func (*QueuedMail) ProtoMessage() {}
 
 func (x *QueuedMail) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[83]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4738,7 +5014,7 @@ func (x *QueuedMail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueuedMail.ProtoReflect.Descriptor instead.
 func (*QueuedMail) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{83}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *QueuedMail) GetId() string {
@@ -4793,7 +5069,7 @@ type QueuedRecipient struct {
 
 func (x *QueuedRecipient) Reset() {
 	*x = QueuedRecipient{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[84]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4805,7 +5081,7 @@ func (x *QueuedRecipient) String() string {
 func (*QueuedRecipient) ProtoMessage() {}
 
 func (x *QueuedRecipient) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[84]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4818,7 +5094,7 @@ func (x *QueuedRecipient) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueuedRecipient.ProtoReflect.Descriptor instead.
 func (*QueuedRecipient) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{84}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *QueuedRecipient) GetAddress() string {
@@ -4844,7 +5120,7 @@ type MailQueueListResponse struct {
 
 func (x *MailQueueListResponse) Reset() {
 	*x = MailQueueListResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[85]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4856,7 +5132,7 @@ func (x *MailQueueListResponse) String() string {
 func (*MailQueueListResponse) ProtoMessage() {}
 
 func (x *MailQueueListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[85]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4869,7 +5145,7 @@ func (x *MailQueueListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailQueueListResponse.ProtoReflect.Descriptor instead.
 func (*MailQueueListResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{85}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *MailQueueListResponse) GetMessages() []*QueuedMail {
@@ -4889,7 +5165,7 @@ type MailQueueActionRequest struct {
 
 func (x *MailQueueActionRequest) Reset() {
 	*x = MailQueueActionRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[86]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4901,7 +5177,7 @@ func (x *MailQueueActionRequest) String() string {
 func (*MailQueueActionRequest) ProtoMessage() {}
 
 func (x *MailQueueActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[86]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4914,7 +5190,7 @@ func (x *MailQueueActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailQueueActionRequest.ProtoReflect.Descriptor instead.
 func (*MailQueueActionRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{86}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *MailQueueActionRequest) GetAction() string {
@@ -4939,7 +5215,7 @@ type MailQueueActionResponse struct {
 
 func (x *MailQueueActionResponse) Reset() {
 	*x = MailQueueActionResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[87]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4951,7 +5227,7 @@ func (x *MailQueueActionResponse) String() string {
 func (*MailQueueActionResponse) ProtoMessage() {}
 
 func (x *MailQueueActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[87]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4964,7 +5240,7 @@ func (x *MailQueueActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailQueueActionResponse.ProtoReflect.Descriptor instead.
 func (*MailQueueActionResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{87}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{92}
 }
 
 type MailSettingsApplyRequest struct {
@@ -4987,7 +5263,7 @@ type MailSettingsApplyRequest struct {
 
 func (x *MailSettingsApplyRequest) Reset() {
 	*x = MailSettingsApplyRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[88]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4999,7 +5275,7 @@ func (x *MailSettingsApplyRequest) String() string {
 func (*MailSettingsApplyRequest) ProtoMessage() {}
 
 func (x *MailSettingsApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[88]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5012,7 +5288,7 @@ func (x *MailSettingsApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailSettingsApplyRequest.ProtoReflect.Descriptor instead.
 func (*MailSettingsApplyRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{88}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *MailSettingsApplyRequest) GetHostname() string {
@@ -5108,7 +5384,7 @@ type MailSettingsApplyResponse struct {
 
 func (x *MailSettingsApplyResponse) Reset() {
 	*x = MailSettingsApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[89]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5120,7 +5396,7 @@ func (x *MailSettingsApplyResponse) String() string {
 func (*MailSettingsApplyResponse) ProtoMessage() {}
 
 func (x *MailSettingsApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[89]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5133,7 +5409,7 @@ func (x *MailSettingsApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailSettingsApplyResponse.ProtoReflect.Descriptor instead.
 func (*MailSettingsApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{89}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *MailSettingsApplyResponse) GetChanged() bool {
@@ -5153,7 +5429,7 @@ type MailWebmailSignonRequest struct {
 
 func (x *MailWebmailSignonRequest) Reset() {
 	*x = MailWebmailSignonRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[90]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5165,7 +5441,7 @@ func (x *MailWebmailSignonRequest) String() string {
 func (*MailWebmailSignonRequest) ProtoMessage() {}
 
 func (x *MailWebmailSignonRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[90]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5178,7 +5454,7 @@ func (x *MailWebmailSignonRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailWebmailSignonRequest.ProtoReflect.Descriptor instead.
 func (*MailWebmailSignonRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{90}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *MailWebmailSignonRequest) GetUsername() string {
@@ -5204,7 +5480,7 @@ type MailWebmailSignonResponse struct {
 
 func (x *MailWebmailSignonResponse) Reset() {
 	*x = MailWebmailSignonResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[91]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5216,7 +5492,7 @@ func (x *MailWebmailSignonResponse) String() string {
 func (*MailWebmailSignonResponse) ProtoMessage() {}
 
 func (x *MailWebmailSignonResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[91]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5229,7 +5505,7 @@ func (x *MailWebmailSignonResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailWebmailSignonResponse.ProtoReflect.Descriptor instead.
 func (*MailWebmailSignonResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{91}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *MailWebmailSignonResponse) GetTicket() string {
@@ -5247,7 +5523,7 @@ type MailWebmailExpireRequest struct {
 
 func (x *MailWebmailExpireRequest) Reset() {
 	*x = MailWebmailExpireRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[92]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5259,7 +5535,7 @@ func (x *MailWebmailExpireRequest) String() string {
 func (*MailWebmailExpireRequest) ProtoMessage() {}
 
 func (x *MailWebmailExpireRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[92]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5272,7 +5548,7 @@ func (x *MailWebmailExpireRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailWebmailExpireRequest.ProtoReflect.Descriptor instead.
 func (*MailWebmailExpireRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{92}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{97}
 }
 
 type MailWebmailExpireResponse struct {
@@ -5283,7 +5559,7 @@ type MailWebmailExpireResponse struct {
 
 func (x *MailWebmailExpireResponse) Reset() {
 	*x = MailWebmailExpireResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[93]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5295,7 +5571,7 @@ func (x *MailWebmailExpireResponse) String() string {
 func (*MailWebmailExpireResponse) ProtoMessage() {}
 
 func (x *MailWebmailExpireResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[93]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5308,7 +5584,7 @@ func (x *MailWebmailExpireResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailWebmailExpireResponse.ProtoReflect.Descriptor instead.
 func (*MailWebmailExpireResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{93}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{98}
 }
 
 type UserHelperStartRequest struct {
@@ -5320,7 +5596,7 @@ type UserHelperStartRequest struct {
 
 func (x *UserHelperStartRequest) Reset() {
 	*x = UserHelperStartRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[94]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5332,7 +5608,7 @@ func (x *UserHelperStartRequest) String() string {
 func (*UserHelperStartRequest) ProtoMessage() {}
 
 func (x *UserHelperStartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[94]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5345,7 +5621,7 @@ func (x *UserHelperStartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserHelperStartRequest.ProtoReflect.Descriptor instead.
 func (*UserHelperStartRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{94}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *UserHelperStartRequest) GetUsername() string {
@@ -5364,7 +5640,7 @@ type UserHelperStartResponse struct {
 
 func (x *UserHelperStartResponse) Reset() {
 	*x = UserHelperStartResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[95]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5376,7 +5652,7 @@ func (x *UserHelperStartResponse) String() string {
 func (*UserHelperStartResponse) ProtoMessage() {}
 
 func (x *UserHelperStartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[95]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5389,7 +5665,7 @@ func (x *UserHelperStartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserHelperStartResponse.ProtoReflect.Descriptor instead.
 func (*UserHelperStartResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{95}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *UserHelperStartResponse) GetSocket() string {
@@ -5411,7 +5687,7 @@ type FTPLogin struct {
 
 func (x *FTPLogin) Reset() {
 	*x = FTPLogin{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[96]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5423,7 +5699,7 @@ func (x *FTPLogin) String() string {
 func (*FTPLogin) ProtoMessage() {}
 
 func (x *FTPLogin) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[96]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5436,7 +5712,7 @@ func (x *FTPLogin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPLogin.ProtoReflect.Descriptor instead.
 func (*FTPLogin) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{96}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *FTPLogin) GetLogin() string {
@@ -5477,7 +5753,7 @@ type FTPAccountApplyRequest struct {
 
 func (x *FTPAccountApplyRequest) Reset() {
 	*x = FTPAccountApplyRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[97]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5489,7 +5765,7 @@ func (x *FTPAccountApplyRequest) String() string {
 func (*FTPAccountApplyRequest) ProtoMessage() {}
 
 func (x *FTPAccountApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[97]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5502,7 +5778,7 @@ func (x *FTPAccountApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPAccountApplyRequest.ProtoReflect.Descriptor instead.
 func (*FTPAccountApplyRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{97}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *FTPAccountApplyRequest) GetUsername() string {
@@ -5529,7 +5805,7 @@ type FTPAccountApplyResponse struct {
 
 func (x *FTPAccountApplyResponse) Reset() {
 	*x = FTPAccountApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[98]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5541,7 +5817,7 @@ func (x *FTPAccountApplyResponse) String() string {
 func (*FTPAccountApplyResponse) ProtoMessage() {}
 
 func (x *FTPAccountApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[98]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5554,7 +5830,7 @@ func (x *FTPAccountApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPAccountApplyResponse.ProtoReflect.Descriptor instead.
 func (*FTPAccountApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{98}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *FTPAccountApplyResponse) GetChanged() bool {
@@ -5579,7 +5855,7 @@ type FTPSessionsRequest struct {
 
 func (x *FTPSessionsRequest) Reset() {
 	*x = FTPSessionsRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[99]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5591,7 +5867,7 @@ func (x *FTPSessionsRequest) String() string {
 func (*FTPSessionsRequest) ProtoMessage() {}
 
 func (x *FTPSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[99]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5604,7 +5880,7 @@ func (x *FTPSessionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPSessionsRequest.ProtoReflect.Descriptor instead.
 func (*FTPSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{99}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{104}
 }
 
 type FTPSession struct {
@@ -5625,7 +5901,7 @@ type FTPSession struct {
 
 func (x *FTPSession) Reset() {
 	*x = FTPSession{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[100]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5637,7 +5913,7 @@ func (x *FTPSession) String() string {
 func (*FTPSession) ProtoMessage() {}
 
 func (x *FTPSession) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[100]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5650,7 +5926,7 @@ func (x *FTPSession) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPSession.ProtoReflect.Descriptor instead.
 func (*FTPSession) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{100}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *FTPSession) GetPid() int32 {
@@ -5732,7 +6008,7 @@ type FTPSessionsResponse struct {
 
 func (x *FTPSessionsResponse) Reset() {
 	*x = FTPSessionsResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[101]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5744,7 +6020,7 @@ func (x *FTPSessionsResponse) String() string {
 func (*FTPSessionsResponse) ProtoMessage() {}
 
 func (x *FTPSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[101]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5757,7 +6033,7 @@ func (x *FTPSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPSessionsResponse.ProtoReflect.Descriptor instead.
 func (*FTPSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{101}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *FTPSessionsResponse) GetSessions() []*FTPSession {
@@ -5777,7 +6053,7 @@ type FTPSessionKillRequest struct {
 
 func (x *FTPSessionKillRequest) Reset() {
 	*x = FTPSessionKillRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[102]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5789,7 +6065,7 @@ func (x *FTPSessionKillRequest) String() string {
 func (*FTPSessionKillRequest) ProtoMessage() {}
 
 func (x *FTPSessionKillRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[102]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5802,7 +6078,7 @@ func (x *FTPSessionKillRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPSessionKillRequest.ProtoReflect.Descriptor instead.
 func (*FTPSessionKillRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{102}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *FTPSessionKillRequest) GetPid() int32 {
@@ -5828,7 +6104,7 @@ type FTPSessionKillResponse struct {
 
 func (x *FTPSessionKillResponse) Reset() {
 	*x = FTPSessionKillResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[103]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5840,7 +6116,7 @@ func (x *FTPSessionKillResponse) String() string {
 func (*FTPSessionKillResponse) ProtoMessage() {}
 
 func (x *FTPSessionKillResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[103]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5853,7 +6129,7 @@ func (x *FTPSessionKillResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPSessionKillResponse.ProtoReflect.Descriptor instead.
 func (*FTPSessionKillResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{103}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *FTPSessionKillResponse) GetEnded() bool {
@@ -5872,7 +6148,7 @@ type FTPAccountRemoveRequest struct {
 
 func (x *FTPAccountRemoveRequest) Reset() {
 	*x = FTPAccountRemoveRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[104]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5884,7 +6160,7 @@ func (x *FTPAccountRemoveRequest) String() string {
 func (*FTPAccountRemoveRequest) ProtoMessage() {}
 
 func (x *FTPAccountRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[104]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5897,7 +6173,7 @@ func (x *FTPAccountRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPAccountRemoveRequest.ProtoReflect.Descriptor instead.
 func (*FTPAccountRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{104}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *FTPAccountRemoveRequest) GetUsername() string {
@@ -5916,7 +6192,7 @@ type FTPAccountRemoveResponse struct {
 
 func (x *FTPAccountRemoveResponse) Reset() {
 	*x = FTPAccountRemoveResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[105]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5928,7 +6204,7 @@ func (x *FTPAccountRemoveResponse) String() string {
 func (*FTPAccountRemoveResponse) ProtoMessage() {}
 
 func (x *FTPAccountRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[105]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5941,7 +6217,7 @@ func (x *FTPAccountRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FTPAccountRemoveResponse.ProtoReflect.Descriptor instead.
 func (*FTPAccountRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{105}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *FTPAccountRemoveResponse) GetRemoved() bool {
@@ -5963,7 +6239,7 @@ type CronJob struct {
 
 func (x *CronJob) Reset() {
 	*x = CronJob{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[106]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5975,7 +6251,7 @@ func (x *CronJob) String() string {
 func (*CronJob) ProtoMessage() {}
 
 func (x *CronJob) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[106]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5988,7 +6264,7 @@ func (x *CronJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronJob.ProtoReflect.Descriptor instead.
 func (*CronJob) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{106}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *CronJob) GetId() string {
@@ -6029,7 +6305,7 @@ type CronAccountApplyRequest struct {
 
 func (x *CronAccountApplyRequest) Reset() {
 	*x = CronAccountApplyRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[107]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6041,7 +6317,7 @@ func (x *CronAccountApplyRequest) String() string {
 func (*CronAccountApplyRequest) ProtoMessage() {}
 
 func (x *CronAccountApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[107]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6054,7 +6330,7 @@ func (x *CronAccountApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronAccountApplyRequest.ProtoReflect.Descriptor instead.
 func (*CronAccountApplyRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{107}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *CronAccountApplyRequest) GetUsername() string {
@@ -6080,7 +6356,7 @@ type CronAccountApplyResponse struct {
 
 func (x *CronAccountApplyResponse) Reset() {
 	*x = CronAccountApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[108]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6092,7 +6368,7 @@ func (x *CronAccountApplyResponse) String() string {
 func (*CronAccountApplyResponse) ProtoMessage() {}
 
 func (x *CronAccountApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[108]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6105,7 +6381,7 @@ func (x *CronAccountApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronAccountApplyResponse.ProtoReflect.Descriptor instead.
 func (*CronAccountApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{108}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *CronAccountApplyResponse) GetChanged() bool {
@@ -6124,7 +6400,7 @@ type CronAccountRemoveRequest struct {
 
 func (x *CronAccountRemoveRequest) Reset() {
 	*x = CronAccountRemoveRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[109]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6136,7 +6412,7 @@ func (x *CronAccountRemoveRequest) String() string {
 func (*CronAccountRemoveRequest) ProtoMessage() {}
 
 func (x *CronAccountRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[109]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6149,7 +6425,7 @@ func (x *CronAccountRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronAccountRemoveRequest.ProtoReflect.Descriptor instead.
 func (*CronAccountRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{109}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *CronAccountRemoveRequest) GetUsername() string {
@@ -6168,7 +6444,7 @@ type CronAccountRemoveResponse struct {
 
 func (x *CronAccountRemoveResponse) Reset() {
 	*x = CronAccountRemoveResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[110]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6180,7 +6456,7 @@ func (x *CronAccountRemoveResponse) String() string {
 func (*CronAccountRemoveResponse) ProtoMessage() {}
 
 func (x *CronAccountRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[110]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6193,7 +6469,7 @@ func (x *CronAccountRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronAccountRemoveResponse.ProtoReflect.Descriptor instead.
 func (*CronAccountRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{110}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *CronAccountRemoveResponse) GetRemoved() bool {
@@ -6212,7 +6488,7 @@ type CronStatusRequest struct {
 
 func (x *CronStatusRequest) Reset() {
 	*x = CronStatusRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[111]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6224,7 +6500,7 @@ func (x *CronStatusRequest) String() string {
 func (*CronStatusRequest) ProtoMessage() {}
 
 func (x *CronStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[111]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6237,7 +6513,7 @@ func (x *CronStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronStatusRequest.ProtoReflect.Descriptor instead.
 func (*CronStatusRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{111}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *CronStatusRequest) GetUsername() string {
@@ -6261,7 +6537,7 @@ type CronRun struct {
 
 func (x *CronRun) Reset() {
 	*x = CronRun{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[112]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6273,7 +6549,7 @@ func (x *CronRun) String() string {
 func (*CronRun) ProtoMessage() {}
 
 func (x *CronRun) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[112]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6286,7 +6562,7 @@ func (x *CronRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronRun.ProtoReflect.Descriptor instead.
 func (*CronRun) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{112}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *CronRun) GetJobId() string {
@@ -6340,7 +6616,7 @@ type CronStatusResponse struct {
 
 func (x *CronStatusResponse) Reset() {
 	*x = CronStatusResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[113]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6352,7 +6628,7 @@ func (x *CronStatusResponse) String() string {
 func (*CronStatusResponse) ProtoMessage() {}
 
 func (x *CronStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[113]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6365,7 +6641,7 @@ func (x *CronStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronStatusResponse.ProtoReflect.Descriptor instead.
 func (*CronStatusResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{113}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *CronStatusResponse) GetRuns() []*CronRun {
@@ -6387,7 +6663,7 @@ type SiteLogTailRequest struct {
 
 func (x *SiteLogTailRequest) Reset() {
 	*x = SiteLogTailRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[114]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6399,7 +6675,7 @@ func (x *SiteLogTailRequest) String() string {
 func (*SiteLogTailRequest) ProtoMessage() {}
 
 func (x *SiteLogTailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[114]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6412,7 +6688,7 @@ func (x *SiteLogTailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteLogTailRequest.ProtoReflect.Descriptor instead.
 func (*SiteLogTailRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{114}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *SiteLogTailRequest) GetUsername() string {
@@ -6452,7 +6728,7 @@ type SiteLogTailResponse struct {
 
 func (x *SiteLogTailResponse) Reset() {
 	*x = SiteLogTailResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[115]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6464,7 +6740,7 @@ func (x *SiteLogTailResponse) String() string {
 func (*SiteLogTailResponse) ProtoMessage() {}
 
 func (x *SiteLogTailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[115]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6477,7 +6753,7 @@ func (x *SiteLogTailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteLogTailResponse.ProtoReflect.Descriptor instead.
 func (*SiteLogTailResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{115}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *SiteLogTailResponse) GetLines() []string {
@@ -6499,7 +6775,7 @@ type SiteLogReadRequest struct {
 
 func (x *SiteLogReadRequest) Reset() {
 	*x = SiteLogReadRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[116]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6511,7 +6787,7 @@ func (x *SiteLogReadRequest) String() string {
 func (*SiteLogReadRequest) ProtoMessage() {}
 
 func (x *SiteLogReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[116]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6524,7 +6800,7 @@ func (x *SiteLogReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteLogReadRequest.ProtoReflect.Descriptor instead.
 func (*SiteLogReadRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{116}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *SiteLogReadRequest) GetUsername() string {
@@ -6565,7 +6841,7 @@ type SiteLogReadResponse struct {
 
 func (x *SiteLogReadResponse) Reset() {
 	*x = SiteLogReadResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[117]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6577,7 +6853,7 @@ func (x *SiteLogReadResponse) String() string {
 func (*SiteLogReadResponse) ProtoMessage() {}
 
 func (x *SiteLogReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[117]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6590,7 +6866,7 @@ func (x *SiteLogReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteLogReadResponse.ProtoReflect.Descriptor instead.
 func (*SiteLogReadResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{117}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *SiteLogReadResponse) GetData() []byte {
@@ -6618,7 +6894,7 @@ type BackupCreateRequest struct {
 
 func (x *BackupCreateRequest) Reset() {
 	*x = BackupCreateRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[118]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6630,7 +6906,7 @@ func (x *BackupCreateRequest) String() string {
 func (*BackupCreateRequest) ProtoMessage() {}
 
 func (x *BackupCreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[118]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6643,7 +6919,7 @@ func (x *BackupCreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupCreateRequest.ProtoReflect.Descriptor instead.
 func (*BackupCreateRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{118}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *BackupCreateRequest) GetUsername() string {
@@ -6679,7 +6955,7 @@ type BackupCreateResponse struct {
 
 func (x *BackupCreateResponse) Reset() {
 	*x = BackupCreateResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[119]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6691,7 +6967,7 @@ func (x *BackupCreateResponse) String() string {
 func (*BackupCreateResponse) ProtoMessage() {}
 
 func (x *BackupCreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[119]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6704,7 +6980,7 @@ func (x *BackupCreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupCreateResponse.ProtoReflect.Descriptor instead.
 func (*BackupCreateResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{119}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *BackupCreateResponse) GetFile() string {
@@ -6747,7 +7023,7 @@ type BackupReadRequest struct {
 
 func (x *BackupReadRequest) Reset() {
 	*x = BackupReadRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[120]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6759,7 +7035,7 @@ func (x *BackupReadRequest) String() string {
 func (*BackupReadRequest) ProtoMessage() {}
 
 func (x *BackupReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[120]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6772,7 +7048,7 @@ func (x *BackupReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupReadRequest.ProtoReflect.Descriptor instead.
 func (*BackupReadRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{120}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *BackupReadRequest) GetUsername() string {
@@ -6813,7 +7089,7 @@ type BackupReadResponse struct {
 
 func (x *BackupReadResponse) Reset() {
 	*x = BackupReadResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[121]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6825,7 +7101,7 @@ func (x *BackupReadResponse) String() string {
 func (*BackupReadResponse) ProtoMessage() {}
 
 func (x *BackupReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[121]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6838,7 +7114,7 @@ func (x *BackupReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupReadResponse.ProtoReflect.Descriptor instead.
 func (*BackupReadResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{121}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *BackupReadResponse) GetData() []byte {
@@ -6865,7 +7141,7 @@ type BackupDeleteRequest struct {
 
 func (x *BackupDeleteRequest) Reset() {
 	*x = BackupDeleteRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[122]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6877,7 +7153,7 @@ func (x *BackupDeleteRequest) String() string {
 func (*BackupDeleteRequest) ProtoMessage() {}
 
 func (x *BackupDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[122]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6890,7 +7166,7 @@ func (x *BackupDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupDeleteRequest.ProtoReflect.Descriptor instead.
 func (*BackupDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{122}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *BackupDeleteRequest) GetUsername() string {
@@ -6916,7 +7192,7 @@ type BackupDeleteResponse struct {
 
 func (x *BackupDeleteResponse) Reset() {
 	*x = BackupDeleteResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[123]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6928,7 +7204,7 @@ func (x *BackupDeleteResponse) String() string {
 func (*BackupDeleteResponse) ProtoMessage() {}
 
 func (x *BackupDeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[123]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6941,7 +7217,7 @@ func (x *BackupDeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupDeleteResponse.ProtoReflect.Descriptor instead.
 func (*BackupDeleteResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{123}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *BackupDeleteResponse) GetDeleted() bool {
@@ -6960,7 +7236,7 @@ type BackupRemoveAccountRequest struct {
 
 func (x *BackupRemoveAccountRequest) Reset() {
 	*x = BackupRemoveAccountRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[124]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6972,7 +7248,7 @@ func (x *BackupRemoveAccountRequest) String() string {
 func (*BackupRemoveAccountRequest) ProtoMessage() {}
 
 func (x *BackupRemoveAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[124]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6985,7 +7261,7 @@ func (x *BackupRemoveAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoveAccountRequest.ProtoReflect.Descriptor instead.
 func (*BackupRemoveAccountRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{124}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *BackupRemoveAccountRequest) GetUsername() string {
@@ -7004,7 +7280,7 @@ type BackupRemoveAccountResponse struct {
 
 func (x *BackupRemoveAccountResponse) Reset() {
 	*x = BackupRemoveAccountResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[125]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7016,7 +7292,7 @@ func (x *BackupRemoveAccountResponse) String() string {
 func (*BackupRemoveAccountResponse) ProtoMessage() {}
 
 func (x *BackupRemoveAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[125]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7029,7 +7305,7 @@ func (x *BackupRemoveAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoveAccountResponse.ProtoReflect.Descriptor instead.
 func (*BackupRemoveAccountResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{125}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *BackupRemoveAccountResponse) GetRemoved() bool {
@@ -7047,7 +7323,7 @@ type ServerStatusRequest struct {
 
 func (x *ServerStatusRequest) Reset() {
 	*x = ServerStatusRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[126]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7059,7 +7335,7 @@ func (x *ServerStatusRequest) String() string {
 func (*ServerStatusRequest) ProtoMessage() {}
 
 func (x *ServerStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[126]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7072,7 +7348,7 @@ func (x *ServerStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerStatusRequest.ProtoReflect.Descriptor instead.
 func (*ServerStatusRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{126}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{131}
 }
 
 type HostDisk struct {
@@ -7090,7 +7366,7 @@ type HostDisk struct {
 
 func (x *HostDisk) Reset() {
 	*x = HostDisk{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[127]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7102,7 +7378,7 @@ func (x *HostDisk) String() string {
 func (*HostDisk) ProtoMessage() {}
 
 func (x *HostDisk) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[127]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7115,7 +7391,7 @@ func (x *HostDisk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostDisk.ProtoReflect.Descriptor instead.
 func (*HostDisk) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{127}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *HostDisk) GetMount() string {
@@ -7178,7 +7454,7 @@ type HostNet struct {
 
 func (x *HostNet) Reset() {
 	*x = HostNet{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[128]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7190,7 +7466,7 @@ func (x *HostNet) String() string {
 func (*HostNet) ProtoMessage() {}
 
 func (x *HostNet) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[128]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7203,7 +7479,7 @@ func (x *HostNet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostNet.ProtoReflect.Descriptor instead.
 func (*HostNet) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{128}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *HostNet) GetName() string {
@@ -7240,7 +7516,7 @@ type HostProc struct {
 
 func (x *HostProc) Reset() {
 	*x = HostProc{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[129]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7252,7 +7528,7 @@ func (x *HostProc) String() string {
 func (*HostProc) ProtoMessage() {}
 
 func (x *HostProc) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[129]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7265,7 +7541,7 @@ func (x *HostProc) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostProc.ProtoReflect.Descriptor instead.
 func (*HostProc) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{129}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *HostProc) GetPid() int32 {
@@ -7314,7 +7590,7 @@ type HostAccount struct {
 
 func (x *HostAccount) Reset() {
 	*x = HostAccount{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[130]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7326,7 +7602,7 @@ func (x *HostAccount) String() string {
 func (*HostAccount) ProtoMessage() {}
 
 func (x *HostAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[130]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7339,7 +7615,7 @@ func (x *HostAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostAccount.ProtoReflect.Descriptor instead.
 func (*HostAccount) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{130}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *HostAccount) GetUsername() string {
@@ -7395,7 +7671,7 @@ type ServerStatusResponse struct {
 
 func (x *ServerStatusResponse) Reset() {
 	*x = ServerStatusResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[131]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7407,7 +7683,7 @@ func (x *ServerStatusResponse) String() string {
 func (*ServerStatusResponse) ProtoMessage() {}
 
 func (x *ServerStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[131]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7420,7 +7696,7 @@ func (x *ServerStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerStatusResponse.ProtoReflect.Descriptor instead.
 func (*ServerStatusResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{131}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *ServerStatusResponse) GetHostname() string {
@@ -7601,7 +7877,7 @@ type ServiceLogRequest struct {
 
 func (x *ServiceLogRequest) Reset() {
 	*x = ServiceLogRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[132]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7613,7 +7889,7 @@ func (x *ServiceLogRequest) String() string {
 func (*ServiceLogRequest) ProtoMessage() {}
 
 func (x *ServiceLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[132]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7626,7 +7902,7 @@ func (x *ServiceLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceLogRequest.ProtoReflect.Descriptor instead.
 func (*ServiceLogRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{132}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *ServiceLogRequest) GetService() string {
@@ -7653,7 +7929,7 @@ type ServiceLogResponse struct {
 
 func (x *ServiceLogResponse) Reset() {
 	*x = ServiceLogResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[133]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7665,7 +7941,7 @@ func (x *ServiceLogResponse) String() string {
 func (*ServiceLogResponse) ProtoMessage() {}
 
 func (x *ServiceLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[133]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7678,7 +7954,7 @@ func (x *ServiceLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceLogResponse.ProtoReflect.Descriptor instead.
 func (*ServiceLogResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{133}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *ServiceLogResponse) GetUnit() string {
@@ -7717,7 +7993,7 @@ type RemoteSpec struct {
 
 func (x *RemoteSpec) Reset() {
 	*x = RemoteSpec{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[134]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7729,7 +8005,7 @@ func (x *RemoteSpec) String() string {
 func (*RemoteSpec) ProtoMessage() {}
 
 func (x *RemoteSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[134]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7742,7 +8018,7 @@ func (x *RemoteSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteSpec.ProtoReflect.Descriptor instead.
 func (*RemoteSpec) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{134}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *RemoteSpec) GetKind() string {
@@ -7852,7 +8128,7 @@ type BackupRemoteTestRequest struct {
 
 func (x *BackupRemoteTestRequest) Reset() {
 	*x = BackupRemoteTestRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[135]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7864,7 +8140,7 @@ func (x *BackupRemoteTestRequest) String() string {
 func (*BackupRemoteTestRequest) ProtoMessage() {}
 
 func (x *BackupRemoteTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[135]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7877,7 +8153,7 @@ func (x *BackupRemoteTestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteTestRequest.ProtoReflect.Descriptor instead.
 func (*BackupRemoteTestRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{135}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *BackupRemoteTestRequest) GetSpec() *RemoteSpec {
@@ -7896,7 +8172,7 @@ type BackupRemoteTestResponse struct {
 
 func (x *BackupRemoteTestResponse) Reset() {
 	*x = BackupRemoteTestResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[136]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7908,7 +8184,7 @@ func (x *BackupRemoteTestResponse) String() string {
 func (*BackupRemoteTestResponse) ProtoMessage() {}
 
 func (x *BackupRemoteTestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[136]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7921,7 +8197,7 @@ func (x *BackupRemoteTestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteTestResponse.ProtoReflect.Descriptor instead.
 func (*BackupRemoteTestResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{136}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *BackupRemoteTestResponse) GetHostKey() string {
@@ -7942,7 +8218,7 @@ type BackupRemoteFileRequest struct {
 
 func (x *BackupRemoteFileRequest) Reset() {
 	*x = BackupRemoteFileRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[137]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7954,7 +8230,7 @@ func (x *BackupRemoteFileRequest) String() string {
 func (*BackupRemoteFileRequest) ProtoMessage() {}
 
 func (x *BackupRemoteFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[137]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7967,7 +8243,7 @@ func (x *BackupRemoteFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteFileRequest.ProtoReflect.Descriptor instead.
 func (*BackupRemoteFileRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{137}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *BackupRemoteFileRequest) GetSpec() *RemoteSpec {
@@ -8000,7 +8276,7 @@ type BackupRemoteSizeResponse struct {
 
 func (x *BackupRemoteSizeResponse) Reset() {
 	*x = BackupRemoteSizeResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[138]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8012,7 +8288,7 @@ func (x *BackupRemoteSizeResponse) String() string {
 func (*BackupRemoteSizeResponse) ProtoMessage() {}
 
 func (x *BackupRemoteSizeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[138]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8025,7 +8301,7 @@ func (x *BackupRemoteSizeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteSizeResponse.ProtoReflect.Descriptor instead.
 func (*BackupRemoteSizeResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{138}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *BackupRemoteSizeResponse) GetSize() int64 {
@@ -8045,7 +8321,7 @@ type BackupRemoteListRequest struct {
 
 func (x *BackupRemoteListRequest) Reset() {
 	*x = BackupRemoteListRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[139]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8057,7 +8333,7 @@ func (x *BackupRemoteListRequest) String() string {
 func (*BackupRemoteListRequest) ProtoMessage() {}
 
 func (x *BackupRemoteListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[139]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8070,7 +8346,7 @@ func (x *BackupRemoteListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteListRequest.ProtoReflect.Descriptor instead.
 func (*BackupRemoteListRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{139}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *BackupRemoteListRequest) GetSpec() *RemoteSpec {
@@ -8099,7 +8375,7 @@ type RemoteObject struct {
 
 func (x *RemoteObject) Reset() {
 	*x = RemoteObject{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[140]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8111,7 +8387,7 @@ func (x *RemoteObject) String() string {
 func (*RemoteObject) ProtoMessage() {}
 
 func (x *RemoteObject) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[140]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8124,7 +8400,7 @@ func (x *RemoteObject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteObject.ProtoReflect.Descriptor instead.
 func (*RemoteObject) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{140}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *RemoteObject) GetUsername() string {
@@ -8164,7 +8440,7 @@ type BackupRemoteListResponse struct {
 
 func (x *BackupRemoteListResponse) Reset() {
 	*x = BackupRemoteListResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[141]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8176,7 +8452,7 @@ func (x *BackupRemoteListResponse) String() string {
 func (*BackupRemoteListResponse) ProtoMessage() {}
 
 func (x *BackupRemoteListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[141]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8189,7 +8465,7 @@ func (x *BackupRemoteListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteListResponse.ProtoReflect.Descriptor instead.
 func (*BackupRemoteListResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{141}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *BackupRemoteListResponse) GetObjects() []*RemoteObject {
@@ -8207,7 +8483,7 @@ type BackupRemoteDeleteResponse struct {
 
 func (x *BackupRemoteDeleteResponse) Reset() {
 	*x = BackupRemoteDeleteResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[142]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8219,7 +8495,7 @@ func (x *BackupRemoteDeleteResponse) String() string {
 func (*BackupRemoteDeleteResponse) ProtoMessage() {}
 
 func (x *BackupRemoteDeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[142]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8232,7 +8508,7 @@ func (x *BackupRemoteDeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRemoteDeleteResponse.ProtoReflect.Descriptor instead.
 func (*BackupRemoteDeleteResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{142}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{147}
 }
 
 type BackupInspectRequest struct {
@@ -8245,7 +8521,7 @@ type BackupInspectRequest struct {
 
 func (x *BackupInspectRequest) Reset() {
 	*x = BackupInspectRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[143]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8257,7 +8533,7 @@ func (x *BackupInspectRequest) String() string {
 func (*BackupInspectRequest) ProtoMessage() {}
 
 func (x *BackupInspectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[143]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8270,7 +8546,7 @@ func (x *BackupInspectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupInspectRequest.ProtoReflect.Descriptor instead.
 func (*BackupInspectRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{143}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *BackupInspectRequest) GetUsername() string {
@@ -8300,7 +8576,7 @@ type BackupInspectResponse struct {
 
 func (x *BackupInspectResponse) Reset() {
 	*x = BackupInspectResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[144]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8312,7 +8588,7 @@ func (x *BackupInspectResponse) String() string {
 func (*BackupInspectResponse) ProtoMessage() {}
 
 func (x *BackupInspectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[144]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8325,7 +8601,7 @@ func (x *BackupInspectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupInspectResponse.ProtoReflect.Descriptor instead.
 func (*BackupInspectResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{144}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *BackupInspectResponse) GetAccountJson() []byte {
@@ -8373,7 +8649,7 @@ type BackupRestoreRequest struct {
 
 func (x *BackupRestoreRequest) Reset() {
 	*x = BackupRestoreRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[145]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8385,7 +8661,7 @@ func (x *BackupRestoreRequest) String() string {
 func (*BackupRestoreRequest) ProtoMessage() {}
 
 func (x *BackupRestoreRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[145]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8398,7 +8674,7 @@ func (x *BackupRestoreRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRestoreRequest.ProtoReflect.Descriptor instead.
 func (*BackupRestoreRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{145}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *BackupRestoreRequest) GetUsername() string {
@@ -8424,7 +8700,7 @@ type BackupRestoreHomeResponse struct {
 
 func (x *BackupRestoreHomeResponse) Reset() {
 	*x = BackupRestoreHomeResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[146]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8436,7 +8712,7 @@ func (x *BackupRestoreHomeResponse) String() string {
 func (*BackupRestoreHomeResponse) ProtoMessage() {}
 
 func (x *BackupRestoreHomeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[146]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8449,7 +8725,7 @@ func (x *BackupRestoreHomeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRestoreHomeResponse.ProtoReflect.Descriptor instead.
 func (*BackupRestoreHomeResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{146}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *BackupRestoreHomeResponse) GetEntries() int64 {
@@ -8468,7 +8744,7 @@ type BackupRestoreDatabasesResponse struct {
 
 func (x *BackupRestoreDatabasesResponse) Reset() {
 	*x = BackupRestoreDatabasesResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[147]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8480,7 +8756,7 @@ func (x *BackupRestoreDatabasesResponse) String() string {
 func (*BackupRestoreDatabasesResponse) ProtoMessage() {}
 
 func (x *BackupRestoreDatabasesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[147]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8493,7 +8769,7 @@ func (x *BackupRestoreDatabasesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupRestoreDatabasesResponse.ProtoReflect.Descriptor instead.
 func (*BackupRestoreDatabasesResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{147}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *BackupRestoreDatabasesResponse) GetDatabases() []string {
@@ -8512,7 +8788,7 @@ type HostnameSetRequest struct {
 
 func (x *HostnameSetRequest) Reset() {
 	*x = HostnameSetRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[148]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8524,7 +8800,7 @@ func (x *HostnameSetRequest) String() string {
 func (*HostnameSetRequest) ProtoMessage() {}
 
 func (x *HostnameSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[148]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8537,7 +8813,7 @@ func (x *HostnameSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostnameSetRequest.ProtoReflect.Descriptor instead.
 func (*HostnameSetRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{148}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{153}
 }
 
 func (x *HostnameSetRequest) GetHostname() string {
@@ -8555,7 +8831,7 @@ type HostnameSetResponse struct {
 
 func (x *HostnameSetResponse) Reset() {
 	*x = HostnameSetResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[149]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8567,7 +8843,7 @@ func (x *HostnameSetResponse) String() string {
 func (*HostnameSetResponse) ProtoMessage() {}
 
 func (x *HostnameSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[149]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8580,7 +8856,7 @@ func (x *HostnameSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostnameSetResponse.ProtoReflect.Descriptor instead.
 func (*HostnameSetResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{149}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{154}
 }
 
 type TimezoneSetRequest struct {
@@ -8592,7 +8868,7 @@ type TimezoneSetRequest struct {
 
 func (x *TimezoneSetRequest) Reset() {
 	*x = TimezoneSetRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[150]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8604,7 +8880,7 @@ func (x *TimezoneSetRequest) String() string {
 func (*TimezoneSetRequest) ProtoMessage() {}
 
 func (x *TimezoneSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[150]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8617,7 +8893,7 @@ func (x *TimezoneSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimezoneSetRequest.ProtoReflect.Descriptor instead.
 func (*TimezoneSetRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{150}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *TimezoneSetRequest) GetTimezone() string {
@@ -8635,7 +8911,7 @@ type TimezoneSetResponse struct {
 
 func (x *TimezoneSetResponse) Reset() {
 	*x = TimezoneSetResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[151]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8647,7 +8923,7 @@ func (x *TimezoneSetResponse) String() string {
 func (*TimezoneSetResponse) ProtoMessage() {}
 
 func (x *TimezoneSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[151]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8660,7 +8936,7 @@ func (x *TimezoneSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimezoneSetResponse.ProtoReflect.Descriptor instead.
 func (*TimezoneSetResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{151}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{156}
 }
 
 type OSUpdatesSetRequest struct {
@@ -8672,7 +8948,7 @@ type OSUpdatesSetRequest struct {
 
 func (x *OSUpdatesSetRequest) Reset() {
 	*x = OSUpdatesSetRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[152]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8684,7 +8960,7 @@ func (x *OSUpdatesSetRequest) String() string {
 func (*OSUpdatesSetRequest) ProtoMessage() {}
 
 func (x *OSUpdatesSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[152]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8697,7 +8973,7 @@ func (x *OSUpdatesSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OSUpdatesSetRequest.ProtoReflect.Descriptor instead.
 func (*OSUpdatesSetRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{152}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *OSUpdatesSetRequest) GetEnabled() bool {
@@ -8716,7 +8992,7 @@ type OSUpdatesSetResponse struct {
 
 func (x *OSUpdatesSetResponse) Reset() {
 	*x = OSUpdatesSetResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[153]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8728,7 +9004,7 @@ func (x *OSUpdatesSetResponse) String() string {
 func (*OSUpdatesSetResponse) ProtoMessage() {}
 
 func (x *OSUpdatesSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[153]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8741,7 +9017,7 @@ func (x *OSUpdatesSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OSUpdatesSetResponse.ProtoReflect.Descriptor instead.
 func (*OSUpdatesSetResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{153}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *OSUpdatesSetResponse) GetChanged() bool {
@@ -8761,7 +9037,7 @@ type SSHSettingsSetRequest struct {
 
 func (x *SSHSettingsSetRequest) Reset() {
 	*x = SSHSettingsSetRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[154]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8773,7 +9049,7 @@ func (x *SSHSettingsSetRequest) String() string {
 func (*SSHSettingsSetRequest) ProtoMessage() {}
 
 func (x *SSHSettingsSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[154]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8786,7 +9062,7 @@ func (x *SSHSettingsSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSHSettingsSetRequest.ProtoReflect.Descriptor instead.
 func (*SSHSettingsSetRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{154}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{159}
 }
 
 func (x *SSHSettingsSetRequest) GetPasswordAuth() bool {
@@ -8812,7 +9088,7 @@ type SSHSettingsSetResponse struct {
 
 func (x *SSHSettingsSetResponse) Reset() {
 	*x = SSHSettingsSetResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[155]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8824,7 +9100,7 @@ func (x *SSHSettingsSetResponse) String() string {
 func (*SSHSettingsSetResponse) ProtoMessage() {}
 
 func (x *SSHSettingsSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[155]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8837,7 +9113,7 @@ func (x *SSHSettingsSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSHSettingsSetResponse.ProtoReflect.Descriptor instead.
 func (*SSHSettingsSetResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{155}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *SSHSettingsSetResponse) GetChanged() bool {
@@ -8856,7 +9132,7 @@ type ServerRebootRequest struct {
 
 func (x *ServerRebootRequest) Reset() {
 	*x = ServerRebootRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[156]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8868,7 +9144,7 @@ func (x *ServerRebootRequest) String() string {
 func (*ServerRebootRequest) ProtoMessage() {}
 
 func (x *ServerRebootRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[156]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8881,7 +9157,7 @@ func (x *ServerRebootRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerRebootRequest.ProtoReflect.Descriptor instead.
 func (*ServerRebootRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{156}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{161}
 }
 
 func (x *ServerRebootRequest) GetForce() bool {
@@ -8899,7 +9175,7 @@ type ServerRebootResponse struct {
 
 func (x *ServerRebootResponse) Reset() {
 	*x = ServerRebootResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[157]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8911,7 +9187,7 @@ func (x *ServerRebootResponse) String() string {
 func (*ServerRebootResponse) ProtoMessage() {}
 
 func (x *ServerRebootResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[157]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8924,7 +9200,7 @@ func (x *ServerRebootResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerRebootResponse.ProtoReflect.Descriptor instead.
 func (*ServerRebootResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{157}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{162}
 }
 
 type FirewallPort struct {
@@ -8937,7 +9213,7 @@ type FirewallPort struct {
 
 func (x *FirewallPort) Reset() {
 	*x = FirewallPort{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[158]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8949,7 +9225,7 @@ func (x *FirewallPort) String() string {
 func (*FirewallPort) ProtoMessage() {}
 
 func (x *FirewallPort) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[158]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8962,7 +9238,7 @@ func (x *FirewallPort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallPort.ProtoReflect.Descriptor instead.
 func (*FirewallPort) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{158}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{163}
 }
 
 func (x *FirewallPort) GetPort() string {
@@ -8989,7 +9265,7 @@ type FirewallBan struct {
 
 func (x *FirewallBan) Reset() {
 	*x = FirewallBan{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[159]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9001,7 +9277,7 @@ func (x *FirewallBan) String() string {
 func (*FirewallBan) ProtoMessage() {}
 
 func (x *FirewallBan) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[159]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9014,7 +9290,7 @@ func (x *FirewallBan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallBan.ProtoReflect.Descriptor instead.
 func (*FirewallBan) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{159}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *FirewallBan) GetIp() string {
@@ -9042,7 +9318,7 @@ type FirewallRestriction struct {
 
 func (x *FirewallRestriction) Reset() {
 	*x = FirewallRestriction{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[160]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9054,7 +9330,7 @@ func (x *FirewallRestriction) String() string {
 func (*FirewallRestriction) ProtoMessage() {}
 
 func (x *FirewallRestriction) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[160]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9067,7 +9343,7 @@ func (x *FirewallRestriction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallRestriction.ProtoReflect.Descriptor instead.
 func (*FirewallRestriction) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{160}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{165}
 }
 
 func (x *FirewallRestriction) GetName() string {
@@ -9109,7 +9385,7 @@ type FirewallApplyRequest struct {
 
 func (x *FirewallApplyRequest) Reset() {
 	*x = FirewallApplyRequest{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[161]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9121,7 +9397,7 @@ func (x *FirewallApplyRequest) String() string {
 func (*FirewallApplyRequest) ProtoMessage() {}
 
 func (x *FirewallApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[161]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9134,7 +9410,7 @@ func (x *FirewallApplyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallApplyRequest.ProtoReflect.Descriptor instead.
 func (*FirewallApplyRequest) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{161}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{166}
 }
 
 func (x *FirewallApplyRequest) GetEnabled() bool {
@@ -9216,7 +9492,7 @@ type FirewallApplyResponse struct {
 
 func (x *FirewallApplyResponse) Reset() {
 	*x = FirewallApplyResponse{}
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[162]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9228,7 +9504,7 @@ func (x *FirewallApplyResponse) String() string {
 func (*FirewallApplyResponse) ProtoMessage() {}
 
 func (x *FirewallApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xcp_agent_v1_agent_proto_msgTypes[162]
+	mi := &file_xcp_agent_v1_agent_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9241,7 +9517,7 @@ func (x *FirewallApplyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallApplyResponse.ProtoReflect.Descriptor instead.
 func (*FirewallApplyResponse) Descriptor() ([]byte, []int) {
-	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{162}
+	return file_xcp_agent_v1_agent_proto_rawDescGZIP(), []int{167}
 }
 
 func (x *FirewallApplyResponse) GetChanged() bool {
@@ -9553,7 +9829,25 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x18MailAccountRemoveRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"5\n" +
 	"\x19MailAccountRemoveResponse\x12\x18\n" +
-	"\aremoved\x18\x01 \x01(\bR\aremoved\"\x16\n" +
+	"\aremoved\x18\x01 \x01(\bR\aremoved\"K\n" +
+	"\x13MailboxUsageRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\"R\n" +
+	"\n" +
+	"MailFolder\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
+	"\bmessages\x18\x02 \x01(\x03R\bmessages\x12\x14\n" +
+	"\x05bytes\x18\x03 \x01(\x03R\x05bytes\"J\n" +
+	"\x14MailboxUsageResponse\x122\n" +
+	"\afolders\x18\x01 \x03(\v2\x18.xcp.agent.v1.MailFolderR\afolders\"y\n" +
+	"\x15MailboxCleanupRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x16\n" +
+	"\x06folder\x18\x03 \x01(\tR\x06folder\x12\x12\n" +
+	"\x04days\x18\x04 \x01(\x05R\x04days\"H\n" +
+	"\x16MailboxCleanupResponse\x12\x18\n" +
+	"\aremoved\x18\x01 \x01(\x03R\aremoved\x12\x14\n" +
+	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\"\x16\n" +
 	"\x14MailQueueListRequest\"\xc0\x01\n" +
 	"\n" +
 	"QueuedMail\x12\x0e\n" +
@@ -9900,7 +10194,7 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\tCanonical\x12\x19\n" +
 	"\x15CANONICAL_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rCANONICAL_WWW\x10\x01\x12\x12\n" +
-	"\x0eCANONICAL_BARE\x10\x022\xb91\n" +
+	"\x0eCANONICAL_BARE\x10\x022\xed2\n" +
 	"\fAgentService\x12=\n" +
 	"\x04Ping\x12\x19.xcp.agent.v1.PingRequest\x1a\x1a.xcp.agent.v1.PingResponse\x12X\n" +
 	"\rServiceStatus\x12\".xcp.agent.v1.ServiceStatusRequest\x1a#.xcp.agent.v1.ServiceStatusResponse\x12X\n" +
@@ -9936,7 +10230,9 @@ const file_xcp_agent_v1_agent_proto_rawDesc = "" +
 	"\x10MailAccountApply\x12%.xcp.agent.v1.MailAccountApplyRequest\x1a&.xcp.agent.v1.MailAccountApplyResponse\x12d\n" +
 	"\x11MailAccountRemove\x12&.xcp.agent.v1.MailAccountRemoveRequest\x1a'.xcp.agent.v1.MailAccountRemoveResponse\x12d\n" +
 	"\x11MailSettingsApply\x12&.xcp.agent.v1.MailSettingsApplyRequest\x1a'.xcp.agent.v1.MailSettingsApplyResponse\x12X\n" +
-	"\rMailQueueList\x12\".xcp.agent.v1.MailQueueListRequest\x1a#.xcp.agent.v1.MailQueueListResponse\x12^\n" +
+	"\rMailQueueList\x12\".xcp.agent.v1.MailQueueListRequest\x1a#.xcp.agent.v1.MailQueueListResponse\x12U\n" +
+	"\fMailboxUsage\x12!.xcp.agent.v1.MailboxUsageRequest\x1a\".xcp.agent.v1.MailboxUsageResponse\x12[\n" +
+	"\x0eMailboxCleanup\x12#.xcp.agent.v1.MailboxCleanupRequest\x1a$.xcp.agent.v1.MailboxCleanupResponse\x12^\n" +
 	"\x0fMailQueueAction\x12$.xcp.agent.v1.MailQueueActionRequest\x1a%.xcp.agent.v1.MailQueueActionResponse\x12d\n" +
 	"\x11MailWebmailSignon\x12&.xcp.agent.v1.MailWebmailSignonRequest\x1a'.xcp.agent.v1.MailWebmailSignonResponse\x12d\n" +
 	"\x11MailWebmailExpire\x12&.xcp.agent.v1.MailWebmailExpireRequest\x1a'.xcp.agent.v1.MailWebmailExpireResponse\x12^\n" +
@@ -9987,7 +10283,7 @@ func file_xcp_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_xcp_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 167)
+var file_xcp_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 172)
 var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(ServiceActionKind)(0),                 // 0: xcp.agent.v1.ServiceActionKind
 	(Validator)(0),                         // 1: xcp.agent.v1.Validator
@@ -10075,91 +10371,96 @@ var file_xcp_agent_v1_agent_proto_goTypes = []any{
 	(*MailAccountApplyResponse)(nil),       // 83: xcp.agent.v1.MailAccountApplyResponse
 	(*MailAccountRemoveRequest)(nil),       // 84: xcp.agent.v1.MailAccountRemoveRequest
 	(*MailAccountRemoveResponse)(nil),      // 85: xcp.agent.v1.MailAccountRemoveResponse
-	(*MailQueueListRequest)(nil),           // 86: xcp.agent.v1.MailQueueListRequest
-	(*QueuedMail)(nil),                     // 87: xcp.agent.v1.QueuedMail
-	(*QueuedRecipient)(nil),                // 88: xcp.agent.v1.QueuedRecipient
-	(*MailQueueListResponse)(nil),          // 89: xcp.agent.v1.MailQueueListResponse
-	(*MailQueueActionRequest)(nil),         // 90: xcp.agent.v1.MailQueueActionRequest
-	(*MailQueueActionResponse)(nil),        // 91: xcp.agent.v1.MailQueueActionResponse
-	(*MailSettingsApplyRequest)(nil),       // 92: xcp.agent.v1.MailSettingsApplyRequest
-	(*MailSettingsApplyResponse)(nil),      // 93: xcp.agent.v1.MailSettingsApplyResponse
-	(*MailWebmailSignonRequest)(nil),       // 94: xcp.agent.v1.MailWebmailSignonRequest
-	(*MailWebmailSignonResponse)(nil),      // 95: xcp.agent.v1.MailWebmailSignonResponse
-	(*MailWebmailExpireRequest)(nil),       // 96: xcp.agent.v1.MailWebmailExpireRequest
-	(*MailWebmailExpireResponse)(nil),      // 97: xcp.agent.v1.MailWebmailExpireResponse
-	(*UserHelperStartRequest)(nil),         // 98: xcp.agent.v1.UserHelperStartRequest
-	(*UserHelperStartResponse)(nil),        // 99: xcp.agent.v1.UserHelperStartResponse
-	(*FTPLogin)(nil),                       // 100: xcp.agent.v1.FTPLogin
-	(*FTPAccountApplyRequest)(nil),         // 101: xcp.agent.v1.FTPAccountApplyRequest
-	(*FTPAccountApplyResponse)(nil),        // 102: xcp.agent.v1.FTPAccountApplyResponse
-	(*FTPSessionsRequest)(nil),             // 103: xcp.agent.v1.FTPSessionsRequest
-	(*FTPSession)(nil),                     // 104: xcp.agent.v1.FTPSession
-	(*FTPSessionsResponse)(nil),            // 105: xcp.agent.v1.FTPSessionsResponse
-	(*FTPSessionKillRequest)(nil),          // 106: xcp.agent.v1.FTPSessionKillRequest
-	(*FTPSessionKillResponse)(nil),         // 107: xcp.agent.v1.FTPSessionKillResponse
-	(*FTPAccountRemoveRequest)(nil),        // 108: xcp.agent.v1.FTPAccountRemoveRequest
-	(*FTPAccountRemoveResponse)(nil),       // 109: xcp.agent.v1.FTPAccountRemoveResponse
-	(*CronJob)(nil),                        // 110: xcp.agent.v1.CronJob
-	(*CronAccountApplyRequest)(nil),        // 111: xcp.agent.v1.CronAccountApplyRequest
-	(*CronAccountApplyResponse)(nil),       // 112: xcp.agent.v1.CronAccountApplyResponse
-	(*CronAccountRemoveRequest)(nil),       // 113: xcp.agent.v1.CronAccountRemoveRequest
-	(*CronAccountRemoveResponse)(nil),      // 114: xcp.agent.v1.CronAccountRemoveResponse
-	(*CronStatusRequest)(nil),              // 115: xcp.agent.v1.CronStatusRequest
-	(*CronRun)(nil),                        // 116: xcp.agent.v1.CronRun
-	(*CronStatusResponse)(nil),             // 117: xcp.agent.v1.CronStatusResponse
-	(*SiteLogTailRequest)(nil),             // 118: xcp.agent.v1.SiteLogTailRequest
-	(*SiteLogTailResponse)(nil),            // 119: xcp.agent.v1.SiteLogTailResponse
-	(*SiteLogReadRequest)(nil),             // 120: xcp.agent.v1.SiteLogReadRequest
-	(*SiteLogReadResponse)(nil),            // 121: xcp.agent.v1.SiteLogReadResponse
-	(*BackupCreateRequest)(nil),            // 122: xcp.agent.v1.BackupCreateRequest
-	(*BackupCreateResponse)(nil),           // 123: xcp.agent.v1.BackupCreateResponse
-	(*BackupReadRequest)(nil),              // 124: xcp.agent.v1.BackupReadRequest
-	(*BackupReadResponse)(nil),             // 125: xcp.agent.v1.BackupReadResponse
-	(*BackupDeleteRequest)(nil),            // 126: xcp.agent.v1.BackupDeleteRequest
-	(*BackupDeleteResponse)(nil),           // 127: xcp.agent.v1.BackupDeleteResponse
-	(*BackupRemoveAccountRequest)(nil),     // 128: xcp.agent.v1.BackupRemoveAccountRequest
-	(*BackupRemoveAccountResponse)(nil),    // 129: xcp.agent.v1.BackupRemoveAccountResponse
-	(*ServerStatusRequest)(nil),            // 130: xcp.agent.v1.ServerStatusRequest
-	(*HostDisk)(nil),                       // 131: xcp.agent.v1.HostDisk
-	(*HostNet)(nil),                        // 132: xcp.agent.v1.HostNet
-	(*HostProc)(nil),                       // 133: xcp.agent.v1.HostProc
-	(*HostAccount)(nil),                    // 134: xcp.agent.v1.HostAccount
-	(*ServerStatusResponse)(nil),           // 135: xcp.agent.v1.ServerStatusResponse
-	(*ServiceLogRequest)(nil),              // 136: xcp.agent.v1.ServiceLogRequest
-	(*ServiceLogResponse)(nil),             // 137: xcp.agent.v1.ServiceLogResponse
-	(*RemoteSpec)(nil),                     // 138: xcp.agent.v1.RemoteSpec
-	(*BackupRemoteTestRequest)(nil),        // 139: xcp.agent.v1.BackupRemoteTestRequest
-	(*BackupRemoteTestResponse)(nil),       // 140: xcp.agent.v1.BackupRemoteTestResponse
-	(*BackupRemoteFileRequest)(nil),        // 141: xcp.agent.v1.BackupRemoteFileRequest
-	(*BackupRemoteSizeResponse)(nil),       // 142: xcp.agent.v1.BackupRemoteSizeResponse
-	(*BackupRemoteListRequest)(nil),        // 143: xcp.agent.v1.BackupRemoteListRequest
-	(*RemoteObject)(nil),                   // 144: xcp.agent.v1.RemoteObject
-	(*BackupRemoteListResponse)(nil),       // 145: xcp.agent.v1.BackupRemoteListResponse
-	(*BackupRemoteDeleteResponse)(nil),     // 146: xcp.agent.v1.BackupRemoteDeleteResponse
-	(*BackupInspectRequest)(nil),           // 147: xcp.agent.v1.BackupInspectRequest
-	(*BackupInspectResponse)(nil),          // 148: xcp.agent.v1.BackupInspectResponse
-	(*BackupRestoreRequest)(nil),           // 149: xcp.agent.v1.BackupRestoreRequest
-	(*BackupRestoreHomeResponse)(nil),      // 150: xcp.agent.v1.BackupRestoreHomeResponse
-	(*BackupRestoreDatabasesResponse)(nil), // 151: xcp.agent.v1.BackupRestoreDatabasesResponse
-	(*HostnameSetRequest)(nil),             // 152: xcp.agent.v1.HostnameSetRequest
-	(*HostnameSetResponse)(nil),            // 153: xcp.agent.v1.HostnameSetResponse
-	(*TimezoneSetRequest)(nil),             // 154: xcp.agent.v1.TimezoneSetRequest
-	(*TimezoneSetResponse)(nil),            // 155: xcp.agent.v1.TimezoneSetResponse
-	(*OSUpdatesSetRequest)(nil),            // 156: xcp.agent.v1.OSUpdatesSetRequest
-	(*OSUpdatesSetResponse)(nil),           // 157: xcp.agent.v1.OSUpdatesSetResponse
-	(*SSHSettingsSetRequest)(nil),          // 158: xcp.agent.v1.SSHSettingsSetRequest
-	(*SSHSettingsSetResponse)(nil),         // 159: xcp.agent.v1.SSHSettingsSetResponse
-	(*ServerRebootRequest)(nil),            // 160: xcp.agent.v1.ServerRebootRequest
-	(*ServerRebootResponse)(nil),           // 161: xcp.agent.v1.ServerRebootResponse
-	(*FirewallPort)(nil),                   // 162: xcp.agent.v1.FirewallPort
-	(*FirewallBan)(nil),                    // 163: xcp.agent.v1.FirewallBan
-	(*FirewallRestriction)(nil),            // 164: xcp.agent.v1.FirewallRestriction
-	(*FirewallApplyRequest)(nil),           // 165: xcp.agent.v1.FirewallApplyRequest
-	(*FirewallApplyResponse)(nil),          // 166: xcp.agent.v1.FirewallApplyResponse
-	nil,                                    // 167: xcp.agent.v1.WebOptions.ErrorPagesEntry
-	nil,                                    // 168: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
-	nil,                                    // 169: xcp.agent.v1.MySQLInventoryResponse.DatabasesEntry
-	nil,                                    // 170: xcp.agent.v1.ServerStatusResponse.VersionsEntry
+	(*MailboxUsageRequest)(nil),            // 86: xcp.agent.v1.MailboxUsageRequest
+	(*MailFolder)(nil),                     // 87: xcp.agent.v1.MailFolder
+	(*MailboxUsageResponse)(nil),           // 88: xcp.agent.v1.MailboxUsageResponse
+	(*MailboxCleanupRequest)(nil),          // 89: xcp.agent.v1.MailboxCleanupRequest
+	(*MailboxCleanupResponse)(nil),         // 90: xcp.agent.v1.MailboxCleanupResponse
+	(*MailQueueListRequest)(nil),           // 91: xcp.agent.v1.MailQueueListRequest
+	(*QueuedMail)(nil),                     // 92: xcp.agent.v1.QueuedMail
+	(*QueuedRecipient)(nil),                // 93: xcp.agent.v1.QueuedRecipient
+	(*MailQueueListResponse)(nil),          // 94: xcp.agent.v1.MailQueueListResponse
+	(*MailQueueActionRequest)(nil),         // 95: xcp.agent.v1.MailQueueActionRequest
+	(*MailQueueActionResponse)(nil),        // 96: xcp.agent.v1.MailQueueActionResponse
+	(*MailSettingsApplyRequest)(nil),       // 97: xcp.agent.v1.MailSettingsApplyRequest
+	(*MailSettingsApplyResponse)(nil),      // 98: xcp.agent.v1.MailSettingsApplyResponse
+	(*MailWebmailSignonRequest)(nil),       // 99: xcp.agent.v1.MailWebmailSignonRequest
+	(*MailWebmailSignonResponse)(nil),      // 100: xcp.agent.v1.MailWebmailSignonResponse
+	(*MailWebmailExpireRequest)(nil),       // 101: xcp.agent.v1.MailWebmailExpireRequest
+	(*MailWebmailExpireResponse)(nil),      // 102: xcp.agent.v1.MailWebmailExpireResponse
+	(*UserHelperStartRequest)(nil),         // 103: xcp.agent.v1.UserHelperStartRequest
+	(*UserHelperStartResponse)(nil),        // 104: xcp.agent.v1.UserHelperStartResponse
+	(*FTPLogin)(nil),                       // 105: xcp.agent.v1.FTPLogin
+	(*FTPAccountApplyRequest)(nil),         // 106: xcp.agent.v1.FTPAccountApplyRequest
+	(*FTPAccountApplyResponse)(nil),        // 107: xcp.agent.v1.FTPAccountApplyResponse
+	(*FTPSessionsRequest)(nil),             // 108: xcp.agent.v1.FTPSessionsRequest
+	(*FTPSession)(nil),                     // 109: xcp.agent.v1.FTPSession
+	(*FTPSessionsResponse)(nil),            // 110: xcp.agent.v1.FTPSessionsResponse
+	(*FTPSessionKillRequest)(nil),          // 111: xcp.agent.v1.FTPSessionKillRequest
+	(*FTPSessionKillResponse)(nil),         // 112: xcp.agent.v1.FTPSessionKillResponse
+	(*FTPAccountRemoveRequest)(nil),        // 113: xcp.agent.v1.FTPAccountRemoveRequest
+	(*FTPAccountRemoveResponse)(nil),       // 114: xcp.agent.v1.FTPAccountRemoveResponse
+	(*CronJob)(nil),                        // 115: xcp.agent.v1.CronJob
+	(*CronAccountApplyRequest)(nil),        // 116: xcp.agent.v1.CronAccountApplyRequest
+	(*CronAccountApplyResponse)(nil),       // 117: xcp.agent.v1.CronAccountApplyResponse
+	(*CronAccountRemoveRequest)(nil),       // 118: xcp.agent.v1.CronAccountRemoveRequest
+	(*CronAccountRemoveResponse)(nil),      // 119: xcp.agent.v1.CronAccountRemoveResponse
+	(*CronStatusRequest)(nil),              // 120: xcp.agent.v1.CronStatusRequest
+	(*CronRun)(nil),                        // 121: xcp.agent.v1.CronRun
+	(*CronStatusResponse)(nil),             // 122: xcp.agent.v1.CronStatusResponse
+	(*SiteLogTailRequest)(nil),             // 123: xcp.agent.v1.SiteLogTailRequest
+	(*SiteLogTailResponse)(nil),            // 124: xcp.agent.v1.SiteLogTailResponse
+	(*SiteLogReadRequest)(nil),             // 125: xcp.agent.v1.SiteLogReadRequest
+	(*SiteLogReadResponse)(nil),            // 126: xcp.agent.v1.SiteLogReadResponse
+	(*BackupCreateRequest)(nil),            // 127: xcp.agent.v1.BackupCreateRequest
+	(*BackupCreateResponse)(nil),           // 128: xcp.agent.v1.BackupCreateResponse
+	(*BackupReadRequest)(nil),              // 129: xcp.agent.v1.BackupReadRequest
+	(*BackupReadResponse)(nil),             // 130: xcp.agent.v1.BackupReadResponse
+	(*BackupDeleteRequest)(nil),            // 131: xcp.agent.v1.BackupDeleteRequest
+	(*BackupDeleteResponse)(nil),           // 132: xcp.agent.v1.BackupDeleteResponse
+	(*BackupRemoveAccountRequest)(nil),     // 133: xcp.agent.v1.BackupRemoveAccountRequest
+	(*BackupRemoveAccountResponse)(nil),    // 134: xcp.agent.v1.BackupRemoveAccountResponse
+	(*ServerStatusRequest)(nil),            // 135: xcp.agent.v1.ServerStatusRequest
+	(*HostDisk)(nil),                       // 136: xcp.agent.v1.HostDisk
+	(*HostNet)(nil),                        // 137: xcp.agent.v1.HostNet
+	(*HostProc)(nil),                       // 138: xcp.agent.v1.HostProc
+	(*HostAccount)(nil),                    // 139: xcp.agent.v1.HostAccount
+	(*ServerStatusResponse)(nil),           // 140: xcp.agent.v1.ServerStatusResponse
+	(*ServiceLogRequest)(nil),              // 141: xcp.agent.v1.ServiceLogRequest
+	(*ServiceLogResponse)(nil),             // 142: xcp.agent.v1.ServiceLogResponse
+	(*RemoteSpec)(nil),                     // 143: xcp.agent.v1.RemoteSpec
+	(*BackupRemoteTestRequest)(nil),        // 144: xcp.agent.v1.BackupRemoteTestRequest
+	(*BackupRemoteTestResponse)(nil),       // 145: xcp.agent.v1.BackupRemoteTestResponse
+	(*BackupRemoteFileRequest)(nil),        // 146: xcp.agent.v1.BackupRemoteFileRequest
+	(*BackupRemoteSizeResponse)(nil),       // 147: xcp.agent.v1.BackupRemoteSizeResponse
+	(*BackupRemoteListRequest)(nil),        // 148: xcp.agent.v1.BackupRemoteListRequest
+	(*RemoteObject)(nil),                   // 149: xcp.agent.v1.RemoteObject
+	(*BackupRemoteListResponse)(nil),       // 150: xcp.agent.v1.BackupRemoteListResponse
+	(*BackupRemoteDeleteResponse)(nil),     // 151: xcp.agent.v1.BackupRemoteDeleteResponse
+	(*BackupInspectRequest)(nil),           // 152: xcp.agent.v1.BackupInspectRequest
+	(*BackupInspectResponse)(nil),          // 153: xcp.agent.v1.BackupInspectResponse
+	(*BackupRestoreRequest)(nil),           // 154: xcp.agent.v1.BackupRestoreRequest
+	(*BackupRestoreHomeResponse)(nil),      // 155: xcp.agent.v1.BackupRestoreHomeResponse
+	(*BackupRestoreDatabasesResponse)(nil), // 156: xcp.agent.v1.BackupRestoreDatabasesResponse
+	(*HostnameSetRequest)(nil),             // 157: xcp.agent.v1.HostnameSetRequest
+	(*HostnameSetResponse)(nil),            // 158: xcp.agent.v1.HostnameSetResponse
+	(*TimezoneSetRequest)(nil),             // 159: xcp.agent.v1.TimezoneSetRequest
+	(*TimezoneSetResponse)(nil),            // 160: xcp.agent.v1.TimezoneSetResponse
+	(*OSUpdatesSetRequest)(nil),            // 161: xcp.agent.v1.OSUpdatesSetRequest
+	(*OSUpdatesSetResponse)(nil),           // 162: xcp.agent.v1.OSUpdatesSetResponse
+	(*SSHSettingsSetRequest)(nil),          // 163: xcp.agent.v1.SSHSettingsSetRequest
+	(*SSHSettingsSetResponse)(nil),         // 164: xcp.agent.v1.SSHSettingsSetResponse
+	(*ServerRebootRequest)(nil),            // 165: xcp.agent.v1.ServerRebootRequest
+	(*ServerRebootResponse)(nil),           // 166: xcp.agent.v1.ServerRebootResponse
+	(*FirewallPort)(nil),                   // 167: xcp.agent.v1.FirewallPort
+	(*FirewallBan)(nil),                    // 168: xcp.agent.v1.FirewallBan
+	(*FirewallRestriction)(nil),            // 169: xcp.agent.v1.FirewallRestriction
+	(*FirewallApplyRequest)(nil),           // 170: xcp.agent.v1.FirewallApplyRequest
+	(*FirewallApplyResponse)(nil),          // 171: xcp.agent.v1.FirewallApplyResponse
+	nil,                                    // 172: xcp.agent.v1.WebOptions.ErrorPagesEntry
+	nil,                                    // 173: xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	nil,                                    // 174: xcp.agent.v1.MySQLInventoryResponse.DatabasesEntry
+	nil,                                    // 175: xcp.agent.v1.ServerStatusResponse.VersionsEntry
 }
 var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	0,   // 0: xcp.agent.v1.ServiceActionRequest.action:type_name -> xcp.agent.v1.ServiceActionKind
@@ -10173,7 +10474,7 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	28,  // 8: xcp.agent.v1.VirtualHost.redirects:type_name -> xcp.agent.v1.Redirect
 	27,  // 9: xcp.agent.v1.VirtualHost.tls:type_name -> xcp.agent.v1.TLS
 	23,  // 10: xcp.agent.v1.VirtualHost.web:type_name -> xcp.agent.v1.WebOptions
-	167, // 11: xcp.agent.v1.WebOptions.error_pages:type_name -> xcp.agent.v1.WebOptions.ErrorPagesEntry
+	172, // 11: xcp.agent.v1.WebOptions.error_pages:type_name -> xcp.agent.v1.WebOptions.ErrorPagesEntry
 	26,  // 12: xcp.agent.v1.WebOptions.cache_rules:type_name -> xcp.agent.v1.CacheRule
 	24,  // 13: xcp.agent.v1.WebOptions.protected_dirs:type_name -> xcp.agent.v1.ProtectedDir
 	25,  // 14: xcp.agent.v1.ProtectedDir.users:type_name -> xcp.agent.v1.HtUser
@@ -10181,174 +10482,179 @@ var file_xcp_agent_v1_agent_proto_depIdxs = []int32{
 	27,  // 16: xcp.agent.v1.HostCertificateInstallRequest.tls:type_name -> xcp.agent.v1.TLS
 	46,  // 17: xcp.agent.v1.MySQLAccountApplyRequest.users:type_name -> xcp.agent.v1.MySQLUser
 	47,  // 18: xcp.agent.v1.MySQLUser.grants:type_name -> xcp.agent.v1.MySQLGrant
-	168, // 19: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
+	173, // 19: xcp.agent.v1.MySQLDatabaseSizesResponse.sizes:type_name -> xcp.agent.v1.MySQLDatabaseSizesResponse.SizesEntry
 	56,  // 20: xcp.agent.v1.MySQLDatabaseMaintainResponse.tables:type_name -> xcp.agent.v1.MySQLTableResult
-	169, // 21: xcp.agent.v1.MySQLInventoryResponse.databases:type_name -> xcp.agent.v1.MySQLInventoryResponse.DatabasesEntry
+	174, // 21: xcp.agent.v1.MySQLInventoryResponse.databases:type_name -> xcp.agent.v1.MySQLInventoryResponse.DatabasesEntry
 	59,  // 22: xcp.agent.v1.MySQLInventoryResponse.users:type_name -> xcp.agent.v1.MySQLInventoryUser
 	78,  // 23: xcp.agent.v1.MailAccountApplyRequest.domains:type_name -> xcp.agent.v1.MailDomain
 	79,  // 24: xcp.agent.v1.MailDomain.mailboxes:type_name -> xcp.agent.v1.Mailbox
 	82,  // 25: xcp.agent.v1.MailDomain.forwarders:type_name -> xcp.agent.v1.MailForwarder
 	81,  // 26: xcp.agent.v1.Mailbox.autoresponder:type_name -> xcp.agent.v1.MailAutoresponder
 	80,  // 27: xcp.agent.v1.Mailbox.spam:type_name -> xcp.agent.v1.MailSpamFilter
-	88,  // 28: xcp.agent.v1.QueuedMail.recipients:type_name -> xcp.agent.v1.QueuedRecipient
-	87,  // 29: xcp.agent.v1.MailQueueListResponse.messages:type_name -> xcp.agent.v1.QueuedMail
-	100, // 30: xcp.agent.v1.FTPAccountApplyRequest.logins:type_name -> xcp.agent.v1.FTPLogin
-	104, // 31: xcp.agent.v1.FTPSessionsResponse.sessions:type_name -> xcp.agent.v1.FTPSession
-	110, // 32: xcp.agent.v1.CronAccountApplyRequest.jobs:type_name -> xcp.agent.v1.CronJob
-	116, // 33: xcp.agent.v1.CronStatusResponse.runs:type_name -> xcp.agent.v1.CronRun
-	131, // 34: xcp.agent.v1.ServerStatusResponse.disks:type_name -> xcp.agent.v1.HostDisk
-	132, // 35: xcp.agent.v1.ServerStatusResponse.net:type_name -> xcp.agent.v1.HostNet
-	133, // 36: xcp.agent.v1.ServerStatusResponse.procs:type_name -> xcp.agent.v1.HostProc
-	134, // 37: xcp.agent.v1.ServerStatusResponse.accounts:type_name -> xcp.agent.v1.HostAccount
-	170, // 38: xcp.agent.v1.ServerStatusResponse.versions:type_name -> xcp.agent.v1.ServerStatusResponse.VersionsEntry
-	138, // 39: xcp.agent.v1.BackupRemoteTestRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
-	138, // 40: xcp.agent.v1.BackupRemoteFileRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
-	138, // 41: xcp.agent.v1.BackupRemoteListRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
-	144, // 42: xcp.agent.v1.BackupRemoteListResponse.objects:type_name -> xcp.agent.v1.RemoteObject
-	162, // 43: xcp.agent.v1.FirewallRestriction.ports:type_name -> xcp.agent.v1.FirewallPort
-	162, // 44: xcp.agent.v1.FirewallApplyRequest.open_ports:type_name -> xcp.agent.v1.FirewallPort
-	163, // 45: xcp.agent.v1.FirewallApplyRequest.bans:type_name -> xcp.agent.v1.FirewallBan
-	164, // 46: xcp.agent.v1.FirewallApplyRequest.restrictions:type_name -> xcp.agent.v1.FirewallRestriction
-	162, // 47: xcp.agent.v1.FirewallApplyRequest.rate_ports:type_name -> xcp.agent.v1.FirewallPort
-	4,   // 48: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
-	6,   // 49: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
-	8,   // 50: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
-	10,  // 51: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
-	12,  // 52: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
-	15,  // 53: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
-	17,  // 54: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
-	19,  // 55: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
-	21,  // 56: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
-	30,  // 57: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
-	32,  // 58: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
-	34,  // 59: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
-	37,  // 60: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
-	39,  // 61: xcp.agent.v1.AgentService.DNSZoneList:input_type -> xcp.agent.v1.DNSZoneListRequest
-	41,  // 62: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
-	43,  // 63: xcp.agent.v1.AgentService.MySQLStatus:input_type -> xcp.agent.v1.MySQLStatusRequest
-	45,  // 64: xcp.agent.v1.AgentService.MySQLAccountApply:input_type -> xcp.agent.v1.MySQLAccountApplyRequest
-	49,  // 65: xcp.agent.v1.AgentService.MySQLAccountRemove:input_type -> xcp.agent.v1.MySQLAccountRemoveRequest
-	51,  // 66: xcp.agent.v1.AgentService.MySQLDatabaseSizes:input_type -> xcp.agent.v1.MySQLDatabaseSizesRequest
-	53,  // 67: xcp.agent.v1.AgentService.MySQLDatabaseDrop:input_type -> xcp.agent.v1.MySQLDatabaseDropRequest
-	69,  // 68: xcp.agent.v1.AgentService.MySQLDatabaseRename:input_type -> xcp.agent.v1.MySQLDatabaseRenameRequest
-	55,  // 69: xcp.agent.v1.AgentService.MySQLDatabaseMaintain:input_type -> xcp.agent.v1.MySQLDatabaseMaintainRequest
-	65,  // 70: xcp.agent.v1.AgentService.MySQLDatabaseExport:input_type -> xcp.agent.v1.MySQLDatabaseExportRequest
-	67,  // 71: xcp.agent.v1.AgentService.MySQLDatabaseImport:input_type -> xcp.agent.v1.MySQLDatabaseImportRequest
-	63,  // 72: xcp.agent.v1.AgentService.MySQLListen:input_type -> xcp.agent.v1.MySQLListenRequest
-	58,  // 73: xcp.agent.v1.AgentService.MySQLInventory:input_type -> xcp.agent.v1.MySQLInventoryRequest
-	61,  // 74: xcp.agent.v1.AgentService.MySQLOrphanDrop:input_type -> xcp.agent.v1.MySQLOrphanDropRequest
-	71,  // 75: xcp.agent.v1.AgentService.MySQLSignon:input_type -> xcp.agent.v1.MySQLSignonRequest
-	73,  // 76: xcp.agent.v1.AgentService.MySQLSignonExpire:input_type -> xcp.agent.v1.MySQLSignonExpireRequest
-	75,  // 77: xcp.agent.v1.AgentService.MySQLRootPassword:input_type -> xcp.agent.v1.MySQLRootPasswordRequest
-	77,  // 78: xcp.agent.v1.AgentService.MailAccountApply:input_type -> xcp.agent.v1.MailAccountApplyRequest
-	84,  // 79: xcp.agent.v1.AgentService.MailAccountRemove:input_type -> xcp.agent.v1.MailAccountRemoveRequest
-	92,  // 80: xcp.agent.v1.AgentService.MailSettingsApply:input_type -> xcp.agent.v1.MailSettingsApplyRequest
-	86,  // 81: xcp.agent.v1.AgentService.MailQueueList:input_type -> xcp.agent.v1.MailQueueListRequest
-	90,  // 82: xcp.agent.v1.AgentService.MailQueueAction:input_type -> xcp.agent.v1.MailQueueActionRequest
-	94,  // 83: xcp.agent.v1.AgentService.MailWebmailSignon:input_type -> xcp.agent.v1.MailWebmailSignonRequest
-	96,  // 84: xcp.agent.v1.AgentService.MailWebmailExpire:input_type -> xcp.agent.v1.MailWebmailExpireRequest
-	98,  // 85: xcp.agent.v1.AgentService.UserHelperStart:input_type -> xcp.agent.v1.UserHelperStartRequest
-	101, // 86: xcp.agent.v1.AgentService.FTPAccountApply:input_type -> xcp.agent.v1.FTPAccountApplyRequest
-	108, // 87: xcp.agent.v1.AgentService.FTPAccountRemove:input_type -> xcp.agent.v1.FTPAccountRemoveRequest
-	103, // 88: xcp.agent.v1.AgentService.FTPSessions:input_type -> xcp.agent.v1.FTPSessionsRequest
-	106, // 89: xcp.agent.v1.AgentService.FTPSessionKill:input_type -> xcp.agent.v1.FTPSessionKillRequest
-	111, // 90: xcp.agent.v1.AgentService.CronAccountApply:input_type -> xcp.agent.v1.CronAccountApplyRequest
-	113, // 91: xcp.agent.v1.AgentService.CronAccountRemove:input_type -> xcp.agent.v1.CronAccountRemoveRequest
-	115, // 92: xcp.agent.v1.AgentService.CronStatus:input_type -> xcp.agent.v1.CronStatusRequest
-	118, // 93: xcp.agent.v1.AgentService.SiteLogTail:input_type -> xcp.agent.v1.SiteLogTailRequest
-	120, // 94: xcp.agent.v1.AgentService.SiteLogRead:input_type -> xcp.agent.v1.SiteLogReadRequest
-	122, // 95: xcp.agent.v1.AgentService.BackupCreate:input_type -> xcp.agent.v1.BackupCreateRequest
-	124, // 96: xcp.agent.v1.AgentService.BackupRead:input_type -> xcp.agent.v1.BackupReadRequest
-	126, // 97: xcp.agent.v1.AgentService.BackupDelete:input_type -> xcp.agent.v1.BackupDeleteRequest
-	128, // 98: xcp.agent.v1.AgentService.BackupRemoveAccount:input_type -> xcp.agent.v1.BackupRemoveAccountRequest
-	130, // 99: xcp.agent.v1.AgentService.ServerStatus:input_type -> xcp.agent.v1.ServerStatusRequest
-	136, // 100: xcp.agent.v1.AgentService.ServiceLog:input_type -> xcp.agent.v1.ServiceLogRequest
-	147, // 101: xcp.agent.v1.AgentService.BackupInspect:input_type -> xcp.agent.v1.BackupInspectRequest
-	139, // 102: xcp.agent.v1.AgentService.BackupRemoteTest:input_type -> xcp.agent.v1.BackupRemoteTestRequest
-	141, // 103: xcp.agent.v1.AgentService.BackupRemoteUpload:input_type -> xcp.agent.v1.BackupRemoteFileRequest
-	143, // 104: xcp.agent.v1.AgentService.BackupRemoteList:input_type -> xcp.agent.v1.BackupRemoteListRequest
-	141, // 105: xcp.agent.v1.AgentService.BackupRemoteDelete:input_type -> xcp.agent.v1.BackupRemoteFileRequest
-	141, // 106: xcp.agent.v1.AgentService.BackupRemoteFetch:input_type -> xcp.agent.v1.BackupRemoteFileRequest
-	149, // 107: xcp.agent.v1.AgentService.BackupRestoreHome:input_type -> xcp.agent.v1.BackupRestoreRequest
-	149, // 108: xcp.agent.v1.AgentService.BackupRestoreDatabases:input_type -> xcp.agent.v1.BackupRestoreRequest
-	152, // 109: xcp.agent.v1.AgentService.HostnameSet:input_type -> xcp.agent.v1.HostnameSetRequest
-	154, // 110: xcp.agent.v1.AgentService.TimezoneSet:input_type -> xcp.agent.v1.TimezoneSetRequest
-	156, // 111: xcp.agent.v1.AgentService.OSUpdatesSet:input_type -> xcp.agent.v1.OSUpdatesSetRequest
-	158, // 112: xcp.agent.v1.AgentService.SSHSettingsSet:input_type -> xcp.agent.v1.SSHSettingsSetRequest
-	160, // 113: xcp.agent.v1.AgentService.ServerReboot:input_type -> xcp.agent.v1.ServerRebootRequest
-	165, // 114: xcp.agent.v1.AgentService.FirewallApply:input_type -> xcp.agent.v1.FirewallApplyRequest
-	5,   // 115: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
-	7,   // 116: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
-	9,   // 117: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
-	11,  // 118: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
-	13,  // 119: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
-	16,  // 120: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
-	18,  // 121: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
-	20,  // 122: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
-	29,  // 123: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
-	31,  // 124: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
-	33,  // 125: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
-	36,  // 126: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
-	38,  // 127: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
-	40,  // 128: xcp.agent.v1.AgentService.DNSZoneList:output_type -> xcp.agent.v1.DNSZoneListResponse
-	42,  // 129: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
-	44,  // 130: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
-	48,  // 131: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
-	50,  // 132: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
-	52,  // 133: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
-	54,  // 134: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
-	70,  // 135: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
-	57,  // 136: xcp.agent.v1.AgentService.MySQLDatabaseMaintain:output_type -> xcp.agent.v1.MySQLDatabaseMaintainResponse
-	66,  // 137: xcp.agent.v1.AgentService.MySQLDatabaseExport:output_type -> xcp.agent.v1.MySQLDatabaseExportResponse
-	68,  // 138: xcp.agent.v1.AgentService.MySQLDatabaseImport:output_type -> xcp.agent.v1.MySQLDatabaseImportResponse
-	64,  // 139: xcp.agent.v1.AgentService.MySQLListen:output_type -> xcp.agent.v1.MySQLListenResponse
-	60,  // 140: xcp.agent.v1.AgentService.MySQLInventory:output_type -> xcp.agent.v1.MySQLInventoryResponse
-	62,  // 141: xcp.agent.v1.AgentService.MySQLOrphanDrop:output_type -> xcp.agent.v1.MySQLOrphanDropResponse
-	72,  // 142: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
-	74,  // 143: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
-	76,  // 144: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
-	83,  // 145: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
-	85,  // 146: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
-	93,  // 147: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
-	89,  // 148: xcp.agent.v1.AgentService.MailQueueList:output_type -> xcp.agent.v1.MailQueueListResponse
-	91,  // 149: xcp.agent.v1.AgentService.MailQueueAction:output_type -> xcp.agent.v1.MailQueueActionResponse
-	95,  // 150: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
-	97,  // 151: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
-	99,  // 152: xcp.agent.v1.AgentService.UserHelperStart:output_type -> xcp.agent.v1.UserHelperStartResponse
-	102, // 153: xcp.agent.v1.AgentService.FTPAccountApply:output_type -> xcp.agent.v1.FTPAccountApplyResponse
-	109, // 154: xcp.agent.v1.AgentService.FTPAccountRemove:output_type -> xcp.agent.v1.FTPAccountRemoveResponse
-	105, // 155: xcp.agent.v1.AgentService.FTPSessions:output_type -> xcp.agent.v1.FTPSessionsResponse
-	107, // 156: xcp.agent.v1.AgentService.FTPSessionKill:output_type -> xcp.agent.v1.FTPSessionKillResponse
-	112, // 157: xcp.agent.v1.AgentService.CronAccountApply:output_type -> xcp.agent.v1.CronAccountApplyResponse
-	114, // 158: xcp.agent.v1.AgentService.CronAccountRemove:output_type -> xcp.agent.v1.CronAccountRemoveResponse
-	117, // 159: xcp.agent.v1.AgentService.CronStatus:output_type -> xcp.agent.v1.CronStatusResponse
-	119, // 160: xcp.agent.v1.AgentService.SiteLogTail:output_type -> xcp.agent.v1.SiteLogTailResponse
-	121, // 161: xcp.agent.v1.AgentService.SiteLogRead:output_type -> xcp.agent.v1.SiteLogReadResponse
-	123, // 162: xcp.agent.v1.AgentService.BackupCreate:output_type -> xcp.agent.v1.BackupCreateResponse
-	125, // 163: xcp.agent.v1.AgentService.BackupRead:output_type -> xcp.agent.v1.BackupReadResponse
-	127, // 164: xcp.agent.v1.AgentService.BackupDelete:output_type -> xcp.agent.v1.BackupDeleteResponse
-	129, // 165: xcp.agent.v1.AgentService.BackupRemoveAccount:output_type -> xcp.agent.v1.BackupRemoveAccountResponse
-	135, // 166: xcp.agent.v1.AgentService.ServerStatus:output_type -> xcp.agent.v1.ServerStatusResponse
-	137, // 167: xcp.agent.v1.AgentService.ServiceLog:output_type -> xcp.agent.v1.ServiceLogResponse
-	148, // 168: xcp.agent.v1.AgentService.BackupInspect:output_type -> xcp.agent.v1.BackupInspectResponse
-	140, // 169: xcp.agent.v1.AgentService.BackupRemoteTest:output_type -> xcp.agent.v1.BackupRemoteTestResponse
-	142, // 170: xcp.agent.v1.AgentService.BackupRemoteUpload:output_type -> xcp.agent.v1.BackupRemoteSizeResponse
-	145, // 171: xcp.agent.v1.AgentService.BackupRemoteList:output_type -> xcp.agent.v1.BackupRemoteListResponse
-	146, // 172: xcp.agent.v1.AgentService.BackupRemoteDelete:output_type -> xcp.agent.v1.BackupRemoteDeleteResponse
-	142, // 173: xcp.agent.v1.AgentService.BackupRemoteFetch:output_type -> xcp.agent.v1.BackupRemoteSizeResponse
-	150, // 174: xcp.agent.v1.AgentService.BackupRestoreHome:output_type -> xcp.agent.v1.BackupRestoreHomeResponse
-	151, // 175: xcp.agent.v1.AgentService.BackupRestoreDatabases:output_type -> xcp.agent.v1.BackupRestoreDatabasesResponse
-	153, // 176: xcp.agent.v1.AgentService.HostnameSet:output_type -> xcp.agent.v1.HostnameSetResponse
-	155, // 177: xcp.agent.v1.AgentService.TimezoneSet:output_type -> xcp.agent.v1.TimezoneSetResponse
-	157, // 178: xcp.agent.v1.AgentService.OSUpdatesSet:output_type -> xcp.agent.v1.OSUpdatesSetResponse
-	159, // 179: xcp.agent.v1.AgentService.SSHSettingsSet:output_type -> xcp.agent.v1.SSHSettingsSetResponse
-	161, // 180: xcp.agent.v1.AgentService.ServerReboot:output_type -> xcp.agent.v1.ServerRebootResponse
-	166, // 181: xcp.agent.v1.AgentService.FirewallApply:output_type -> xcp.agent.v1.FirewallApplyResponse
-	115, // [115:182] is the sub-list for method output_type
-	48,  // [48:115] is the sub-list for method input_type
-	48,  // [48:48] is the sub-list for extension type_name
-	48,  // [48:48] is the sub-list for extension extendee
-	0,   // [0:48] is the sub-list for field type_name
+	87,  // 28: xcp.agent.v1.MailboxUsageResponse.folders:type_name -> xcp.agent.v1.MailFolder
+	93,  // 29: xcp.agent.v1.QueuedMail.recipients:type_name -> xcp.agent.v1.QueuedRecipient
+	92,  // 30: xcp.agent.v1.MailQueueListResponse.messages:type_name -> xcp.agent.v1.QueuedMail
+	105, // 31: xcp.agent.v1.FTPAccountApplyRequest.logins:type_name -> xcp.agent.v1.FTPLogin
+	109, // 32: xcp.agent.v1.FTPSessionsResponse.sessions:type_name -> xcp.agent.v1.FTPSession
+	115, // 33: xcp.agent.v1.CronAccountApplyRequest.jobs:type_name -> xcp.agent.v1.CronJob
+	121, // 34: xcp.agent.v1.CronStatusResponse.runs:type_name -> xcp.agent.v1.CronRun
+	136, // 35: xcp.agent.v1.ServerStatusResponse.disks:type_name -> xcp.agent.v1.HostDisk
+	137, // 36: xcp.agent.v1.ServerStatusResponse.net:type_name -> xcp.agent.v1.HostNet
+	138, // 37: xcp.agent.v1.ServerStatusResponse.procs:type_name -> xcp.agent.v1.HostProc
+	139, // 38: xcp.agent.v1.ServerStatusResponse.accounts:type_name -> xcp.agent.v1.HostAccount
+	175, // 39: xcp.agent.v1.ServerStatusResponse.versions:type_name -> xcp.agent.v1.ServerStatusResponse.VersionsEntry
+	143, // 40: xcp.agent.v1.BackupRemoteTestRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
+	143, // 41: xcp.agent.v1.BackupRemoteFileRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
+	143, // 42: xcp.agent.v1.BackupRemoteListRequest.spec:type_name -> xcp.agent.v1.RemoteSpec
+	149, // 43: xcp.agent.v1.BackupRemoteListResponse.objects:type_name -> xcp.agent.v1.RemoteObject
+	167, // 44: xcp.agent.v1.FirewallRestriction.ports:type_name -> xcp.agent.v1.FirewallPort
+	167, // 45: xcp.agent.v1.FirewallApplyRequest.open_ports:type_name -> xcp.agent.v1.FirewallPort
+	168, // 46: xcp.agent.v1.FirewallApplyRequest.bans:type_name -> xcp.agent.v1.FirewallBan
+	169, // 47: xcp.agent.v1.FirewallApplyRequest.restrictions:type_name -> xcp.agent.v1.FirewallRestriction
+	167, // 48: xcp.agent.v1.FirewallApplyRequest.rate_ports:type_name -> xcp.agent.v1.FirewallPort
+	4,   // 49: xcp.agent.v1.AgentService.Ping:input_type -> xcp.agent.v1.PingRequest
+	6,   // 50: xcp.agent.v1.AgentService.ServiceStatus:input_type -> xcp.agent.v1.ServiceStatusRequest
+	8,   // 51: xcp.agent.v1.AgentService.ServiceAction:input_type -> xcp.agent.v1.ServiceActionRequest
+	10,  // 52: xcp.agent.v1.AgentService.FileWriteManaged:input_type -> xcp.agent.v1.FileWriteManagedRequest
+	12,  // 53: xcp.agent.v1.AgentService.FileRemoveManaged:input_type -> xcp.agent.v1.FileRemoveManagedRequest
+	15,  // 54: xcp.agent.v1.AgentService.AccountEnsure:input_type -> xcp.agent.v1.AccountEnsureRequest
+	17,  // 55: xcp.agent.v1.AgentService.AccountSetSuspended:input_type -> xcp.agent.v1.AccountSetSuspendedRequest
+	19,  // 56: xcp.agent.v1.AgentService.AccountDelete:input_type -> xcp.agent.v1.AccountDeleteRequest
+	21,  // 57: xcp.agent.v1.AgentService.SiteApply:input_type -> xcp.agent.v1.SiteApplyRequest
+	30,  // 58: xcp.agent.v1.AgentService.SiteRemove:input_type -> xcp.agent.v1.SiteRemoveRequest
+	32,  // 59: xcp.agent.v1.AgentService.PHPVersions:input_type -> xcp.agent.v1.PHPVersionsRequest
+	34,  // 60: xcp.agent.v1.AgentService.DNSZoneApply:input_type -> xcp.agent.v1.DNSZoneApplyRequest
+	37,  // 61: xcp.agent.v1.AgentService.DNSZoneDelete:input_type -> xcp.agent.v1.DNSZoneDeleteRequest
+	39,  // 62: xcp.agent.v1.AgentService.DNSZoneList:input_type -> xcp.agent.v1.DNSZoneListRequest
+	41,  // 63: xcp.agent.v1.AgentService.HostCertificateInstall:input_type -> xcp.agent.v1.HostCertificateInstallRequest
+	43,  // 64: xcp.agent.v1.AgentService.MySQLStatus:input_type -> xcp.agent.v1.MySQLStatusRequest
+	45,  // 65: xcp.agent.v1.AgentService.MySQLAccountApply:input_type -> xcp.agent.v1.MySQLAccountApplyRequest
+	49,  // 66: xcp.agent.v1.AgentService.MySQLAccountRemove:input_type -> xcp.agent.v1.MySQLAccountRemoveRequest
+	51,  // 67: xcp.agent.v1.AgentService.MySQLDatabaseSizes:input_type -> xcp.agent.v1.MySQLDatabaseSizesRequest
+	53,  // 68: xcp.agent.v1.AgentService.MySQLDatabaseDrop:input_type -> xcp.agent.v1.MySQLDatabaseDropRequest
+	69,  // 69: xcp.agent.v1.AgentService.MySQLDatabaseRename:input_type -> xcp.agent.v1.MySQLDatabaseRenameRequest
+	55,  // 70: xcp.agent.v1.AgentService.MySQLDatabaseMaintain:input_type -> xcp.agent.v1.MySQLDatabaseMaintainRequest
+	65,  // 71: xcp.agent.v1.AgentService.MySQLDatabaseExport:input_type -> xcp.agent.v1.MySQLDatabaseExportRequest
+	67,  // 72: xcp.agent.v1.AgentService.MySQLDatabaseImport:input_type -> xcp.agent.v1.MySQLDatabaseImportRequest
+	63,  // 73: xcp.agent.v1.AgentService.MySQLListen:input_type -> xcp.agent.v1.MySQLListenRequest
+	58,  // 74: xcp.agent.v1.AgentService.MySQLInventory:input_type -> xcp.agent.v1.MySQLInventoryRequest
+	61,  // 75: xcp.agent.v1.AgentService.MySQLOrphanDrop:input_type -> xcp.agent.v1.MySQLOrphanDropRequest
+	71,  // 76: xcp.agent.v1.AgentService.MySQLSignon:input_type -> xcp.agent.v1.MySQLSignonRequest
+	73,  // 77: xcp.agent.v1.AgentService.MySQLSignonExpire:input_type -> xcp.agent.v1.MySQLSignonExpireRequest
+	75,  // 78: xcp.agent.v1.AgentService.MySQLRootPassword:input_type -> xcp.agent.v1.MySQLRootPasswordRequest
+	77,  // 79: xcp.agent.v1.AgentService.MailAccountApply:input_type -> xcp.agent.v1.MailAccountApplyRequest
+	84,  // 80: xcp.agent.v1.AgentService.MailAccountRemove:input_type -> xcp.agent.v1.MailAccountRemoveRequest
+	97,  // 81: xcp.agent.v1.AgentService.MailSettingsApply:input_type -> xcp.agent.v1.MailSettingsApplyRequest
+	91,  // 82: xcp.agent.v1.AgentService.MailQueueList:input_type -> xcp.agent.v1.MailQueueListRequest
+	86,  // 83: xcp.agent.v1.AgentService.MailboxUsage:input_type -> xcp.agent.v1.MailboxUsageRequest
+	89,  // 84: xcp.agent.v1.AgentService.MailboxCleanup:input_type -> xcp.agent.v1.MailboxCleanupRequest
+	95,  // 85: xcp.agent.v1.AgentService.MailQueueAction:input_type -> xcp.agent.v1.MailQueueActionRequest
+	99,  // 86: xcp.agent.v1.AgentService.MailWebmailSignon:input_type -> xcp.agent.v1.MailWebmailSignonRequest
+	101, // 87: xcp.agent.v1.AgentService.MailWebmailExpire:input_type -> xcp.agent.v1.MailWebmailExpireRequest
+	103, // 88: xcp.agent.v1.AgentService.UserHelperStart:input_type -> xcp.agent.v1.UserHelperStartRequest
+	106, // 89: xcp.agent.v1.AgentService.FTPAccountApply:input_type -> xcp.agent.v1.FTPAccountApplyRequest
+	113, // 90: xcp.agent.v1.AgentService.FTPAccountRemove:input_type -> xcp.agent.v1.FTPAccountRemoveRequest
+	108, // 91: xcp.agent.v1.AgentService.FTPSessions:input_type -> xcp.agent.v1.FTPSessionsRequest
+	111, // 92: xcp.agent.v1.AgentService.FTPSessionKill:input_type -> xcp.agent.v1.FTPSessionKillRequest
+	116, // 93: xcp.agent.v1.AgentService.CronAccountApply:input_type -> xcp.agent.v1.CronAccountApplyRequest
+	118, // 94: xcp.agent.v1.AgentService.CronAccountRemove:input_type -> xcp.agent.v1.CronAccountRemoveRequest
+	120, // 95: xcp.agent.v1.AgentService.CronStatus:input_type -> xcp.agent.v1.CronStatusRequest
+	123, // 96: xcp.agent.v1.AgentService.SiteLogTail:input_type -> xcp.agent.v1.SiteLogTailRequest
+	125, // 97: xcp.agent.v1.AgentService.SiteLogRead:input_type -> xcp.agent.v1.SiteLogReadRequest
+	127, // 98: xcp.agent.v1.AgentService.BackupCreate:input_type -> xcp.agent.v1.BackupCreateRequest
+	129, // 99: xcp.agent.v1.AgentService.BackupRead:input_type -> xcp.agent.v1.BackupReadRequest
+	131, // 100: xcp.agent.v1.AgentService.BackupDelete:input_type -> xcp.agent.v1.BackupDeleteRequest
+	133, // 101: xcp.agent.v1.AgentService.BackupRemoveAccount:input_type -> xcp.agent.v1.BackupRemoveAccountRequest
+	135, // 102: xcp.agent.v1.AgentService.ServerStatus:input_type -> xcp.agent.v1.ServerStatusRequest
+	141, // 103: xcp.agent.v1.AgentService.ServiceLog:input_type -> xcp.agent.v1.ServiceLogRequest
+	152, // 104: xcp.agent.v1.AgentService.BackupInspect:input_type -> xcp.agent.v1.BackupInspectRequest
+	144, // 105: xcp.agent.v1.AgentService.BackupRemoteTest:input_type -> xcp.agent.v1.BackupRemoteTestRequest
+	146, // 106: xcp.agent.v1.AgentService.BackupRemoteUpload:input_type -> xcp.agent.v1.BackupRemoteFileRequest
+	148, // 107: xcp.agent.v1.AgentService.BackupRemoteList:input_type -> xcp.agent.v1.BackupRemoteListRequest
+	146, // 108: xcp.agent.v1.AgentService.BackupRemoteDelete:input_type -> xcp.agent.v1.BackupRemoteFileRequest
+	146, // 109: xcp.agent.v1.AgentService.BackupRemoteFetch:input_type -> xcp.agent.v1.BackupRemoteFileRequest
+	154, // 110: xcp.agent.v1.AgentService.BackupRestoreHome:input_type -> xcp.agent.v1.BackupRestoreRequest
+	154, // 111: xcp.agent.v1.AgentService.BackupRestoreDatabases:input_type -> xcp.agent.v1.BackupRestoreRequest
+	157, // 112: xcp.agent.v1.AgentService.HostnameSet:input_type -> xcp.agent.v1.HostnameSetRequest
+	159, // 113: xcp.agent.v1.AgentService.TimezoneSet:input_type -> xcp.agent.v1.TimezoneSetRequest
+	161, // 114: xcp.agent.v1.AgentService.OSUpdatesSet:input_type -> xcp.agent.v1.OSUpdatesSetRequest
+	163, // 115: xcp.agent.v1.AgentService.SSHSettingsSet:input_type -> xcp.agent.v1.SSHSettingsSetRequest
+	165, // 116: xcp.agent.v1.AgentService.ServerReboot:input_type -> xcp.agent.v1.ServerRebootRequest
+	170, // 117: xcp.agent.v1.AgentService.FirewallApply:input_type -> xcp.agent.v1.FirewallApplyRequest
+	5,   // 118: xcp.agent.v1.AgentService.Ping:output_type -> xcp.agent.v1.PingResponse
+	7,   // 119: xcp.agent.v1.AgentService.ServiceStatus:output_type -> xcp.agent.v1.ServiceStatusResponse
+	9,   // 120: xcp.agent.v1.AgentService.ServiceAction:output_type -> xcp.agent.v1.ServiceActionResponse
+	11,  // 121: xcp.agent.v1.AgentService.FileWriteManaged:output_type -> xcp.agent.v1.FileWriteManagedResponse
+	13,  // 122: xcp.agent.v1.AgentService.FileRemoveManaged:output_type -> xcp.agent.v1.FileRemoveManagedResponse
+	16,  // 123: xcp.agent.v1.AgentService.AccountEnsure:output_type -> xcp.agent.v1.AccountEnsureResponse
+	18,  // 124: xcp.agent.v1.AgentService.AccountSetSuspended:output_type -> xcp.agent.v1.AccountSetSuspendedResponse
+	20,  // 125: xcp.agent.v1.AgentService.AccountDelete:output_type -> xcp.agent.v1.AccountDeleteResponse
+	29,  // 126: xcp.agent.v1.AgentService.SiteApply:output_type -> xcp.agent.v1.SiteApplyResponse
+	31,  // 127: xcp.agent.v1.AgentService.SiteRemove:output_type -> xcp.agent.v1.SiteRemoveResponse
+	33,  // 128: xcp.agent.v1.AgentService.PHPVersions:output_type -> xcp.agent.v1.PHPVersionsResponse
+	36,  // 129: xcp.agent.v1.AgentService.DNSZoneApply:output_type -> xcp.agent.v1.DNSZoneApplyResponse
+	38,  // 130: xcp.agent.v1.AgentService.DNSZoneDelete:output_type -> xcp.agent.v1.DNSZoneDeleteResponse
+	40,  // 131: xcp.agent.v1.AgentService.DNSZoneList:output_type -> xcp.agent.v1.DNSZoneListResponse
+	42,  // 132: xcp.agent.v1.AgentService.HostCertificateInstall:output_type -> xcp.agent.v1.HostCertificateInstallResponse
+	44,  // 133: xcp.agent.v1.AgentService.MySQLStatus:output_type -> xcp.agent.v1.MySQLStatusResponse
+	48,  // 134: xcp.agent.v1.AgentService.MySQLAccountApply:output_type -> xcp.agent.v1.MySQLAccountApplyResponse
+	50,  // 135: xcp.agent.v1.AgentService.MySQLAccountRemove:output_type -> xcp.agent.v1.MySQLAccountRemoveResponse
+	52,  // 136: xcp.agent.v1.AgentService.MySQLDatabaseSizes:output_type -> xcp.agent.v1.MySQLDatabaseSizesResponse
+	54,  // 137: xcp.agent.v1.AgentService.MySQLDatabaseDrop:output_type -> xcp.agent.v1.MySQLDatabaseDropResponse
+	70,  // 138: xcp.agent.v1.AgentService.MySQLDatabaseRename:output_type -> xcp.agent.v1.MySQLDatabaseRenameResponse
+	57,  // 139: xcp.agent.v1.AgentService.MySQLDatabaseMaintain:output_type -> xcp.agent.v1.MySQLDatabaseMaintainResponse
+	66,  // 140: xcp.agent.v1.AgentService.MySQLDatabaseExport:output_type -> xcp.agent.v1.MySQLDatabaseExportResponse
+	68,  // 141: xcp.agent.v1.AgentService.MySQLDatabaseImport:output_type -> xcp.agent.v1.MySQLDatabaseImportResponse
+	64,  // 142: xcp.agent.v1.AgentService.MySQLListen:output_type -> xcp.agent.v1.MySQLListenResponse
+	60,  // 143: xcp.agent.v1.AgentService.MySQLInventory:output_type -> xcp.agent.v1.MySQLInventoryResponse
+	62,  // 144: xcp.agent.v1.AgentService.MySQLOrphanDrop:output_type -> xcp.agent.v1.MySQLOrphanDropResponse
+	72,  // 145: xcp.agent.v1.AgentService.MySQLSignon:output_type -> xcp.agent.v1.MySQLSignonResponse
+	74,  // 146: xcp.agent.v1.AgentService.MySQLSignonExpire:output_type -> xcp.agent.v1.MySQLSignonExpireResponse
+	76,  // 147: xcp.agent.v1.AgentService.MySQLRootPassword:output_type -> xcp.agent.v1.MySQLRootPasswordResponse
+	83,  // 148: xcp.agent.v1.AgentService.MailAccountApply:output_type -> xcp.agent.v1.MailAccountApplyResponse
+	85,  // 149: xcp.agent.v1.AgentService.MailAccountRemove:output_type -> xcp.agent.v1.MailAccountRemoveResponse
+	98,  // 150: xcp.agent.v1.AgentService.MailSettingsApply:output_type -> xcp.agent.v1.MailSettingsApplyResponse
+	94,  // 151: xcp.agent.v1.AgentService.MailQueueList:output_type -> xcp.agent.v1.MailQueueListResponse
+	88,  // 152: xcp.agent.v1.AgentService.MailboxUsage:output_type -> xcp.agent.v1.MailboxUsageResponse
+	90,  // 153: xcp.agent.v1.AgentService.MailboxCleanup:output_type -> xcp.agent.v1.MailboxCleanupResponse
+	96,  // 154: xcp.agent.v1.AgentService.MailQueueAction:output_type -> xcp.agent.v1.MailQueueActionResponse
+	100, // 155: xcp.agent.v1.AgentService.MailWebmailSignon:output_type -> xcp.agent.v1.MailWebmailSignonResponse
+	102, // 156: xcp.agent.v1.AgentService.MailWebmailExpire:output_type -> xcp.agent.v1.MailWebmailExpireResponse
+	104, // 157: xcp.agent.v1.AgentService.UserHelperStart:output_type -> xcp.agent.v1.UserHelperStartResponse
+	107, // 158: xcp.agent.v1.AgentService.FTPAccountApply:output_type -> xcp.agent.v1.FTPAccountApplyResponse
+	114, // 159: xcp.agent.v1.AgentService.FTPAccountRemove:output_type -> xcp.agent.v1.FTPAccountRemoveResponse
+	110, // 160: xcp.agent.v1.AgentService.FTPSessions:output_type -> xcp.agent.v1.FTPSessionsResponse
+	112, // 161: xcp.agent.v1.AgentService.FTPSessionKill:output_type -> xcp.agent.v1.FTPSessionKillResponse
+	117, // 162: xcp.agent.v1.AgentService.CronAccountApply:output_type -> xcp.agent.v1.CronAccountApplyResponse
+	119, // 163: xcp.agent.v1.AgentService.CronAccountRemove:output_type -> xcp.agent.v1.CronAccountRemoveResponse
+	122, // 164: xcp.agent.v1.AgentService.CronStatus:output_type -> xcp.agent.v1.CronStatusResponse
+	124, // 165: xcp.agent.v1.AgentService.SiteLogTail:output_type -> xcp.agent.v1.SiteLogTailResponse
+	126, // 166: xcp.agent.v1.AgentService.SiteLogRead:output_type -> xcp.agent.v1.SiteLogReadResponse
+	128, // 167: xcp.agent.v1.AgentService.BackupCreate:output_type -> xcp.agent.v1.BackupCreateResponse
+	130, // 168: xcp.agent.v1.AgentService.BackupRead:output_type -> xcp.agent.v1.BackupReadResponse
+	132, // 169: xcp.agent.v1.AgentService.BackupDelete:output_type -> xcp.agent.v1.BackupDeleteResponse
+	134, // 170: xcp.agent.v1.AgentService.BackupRemoveAccount:output_type -> xcp.agent.v1.BackupRemoveAccountResponse
+	140, // 171: xcp.agent.v1.AgentService.ServerStatus:output_type -> xcp.agent.v1.ServerStatusResponse
+	142, // 172: xcp.agent.v1.AgentService.ServiceLog:output_type -> xcp.agent.v1.ServiceLogResponse
+	153, // 173: xcp.agent.v1.AgentService.BackupInspect:output_type -> xcp.agent.v1.BackupInspectResponse
+	145, // 174: xcp.agent.v1.AgentService.BackupRemoteTest:output_type -> xcp.agent.v1.BackupRemoteTestResponse
+	147, // 175: xcp.agent.v1.AgentService.BackupRemoteUpload:output_type -> xcp.agent.v1.BackupRemoteSizeResponse
+	150, // 176: xcp.agent.v1.AgentService.BackupRemoteList:output_type -> xcp.agent.v1.BackupRemoteListResponse
+	151, // 177: xcp.agent.v1.AgentService.BackupRemoteDelete:output_type -> xcp.agent.v1.BackupRemoteDeleteResponse
+	147, // 178: xcp.agent.v1.AgentService.BackupRemoteFetch:output_type -> xcp.agent.v1.BackupRemoteSizeResponse
+	155, // 179: xcp.agent.v1.AgentService.BackupRestoreHome:output_type -> xcp.agent.v1.BackupRestoreHomeResponse
+	156, // 180: xcp.agent.v1.AgentService.BackupRestoreDatabases:output_type -> xcp.agent.v1.BackupRestoreDatabasesResponse
+	158, // 181: xcp.agent.v1.AgentService.HostnameSet:output_type -> xcp.agent.v1.HostnameSetResponse
+	160, // 182: xcp.agent.v1.AgentService.TimezoneSet:output_type -> xcp.agent.v1.TimezoneSetResponse
+	162, // 183: xcp.agent.v1.AgentService.OSUpdatesSet:output_type -> xcp.agent.v1.OSUpdatesSetResponse
+	164, // 184: xcp.agent.v1.AgentService.SSHSettingsSet:output_type -> xcp.agent.v1.SSHSettingsSetResponse
+	166, // 185: xcp.agent.v1.AgentService.ServerReboot:output_type -> xcp.agent.v1.ServerRebootResponse
+	171, // 186: xcp.agent.v1.AgentService.FirewallApply:output_type -> xcp.agent.v1.FirewallApplyResponse
+	118, // [118:187] is the sub-list for method output_type
+	49,  // [49:118] is the sub-list for method input_type
+	49,  // [49:49] is the sub-list for extension type_name
+	49,  // [49:49] is the sub-list for extension extendee
+	0,   // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_xcp_agent_v1_agent_proto_init() }
@@ -10363,7 +10669,7 @@ func file_xcp_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xcp_agent_v1_agent_proto_rawDesc), len(file_xcp_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   167,
+			NumMessages:   172,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

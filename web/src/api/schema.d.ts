@@ -1658,6 +1658,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mailboxes/{id}/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A mailbox's folders with their messages and size
+         * @description A mailbox the mail server does not have yet (or whose domain's mail is elsewhere) has no folders.
+         */
+        get: operations["mailboxUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mailboxes/{id}/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete the messages of a folder that arrived before some days ago
+         * @description Runs as a job; its `result` has `removed` (messages) and `bytes`. The messages are gone for good.
+         */
+        post: operations["mailboxCleanup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/domains/{id}/mail/forward": {
         parameters: {
             query?: never;
@@ -7233,6 +7277,70 @@ export interface operations {
             };
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    mailboxUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description INBOX first, then the other folders by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        bytes: number;
+                        /** @description 0: no limit */
+                        quota_mb: number;
+                        folders: {
+                            name: string;
+                            messages: number;
+                            bytes: number;
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    mailboxCleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    folder: string;
+                    days: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRef"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     setDomainForward: {

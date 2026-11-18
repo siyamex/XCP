@@ -62,6 +62,8 @@ const (
 	AgentService_MailAccountRemove_FullMethodName      = "/xcp.agent.v1.AgentService/MailAccountRemove"
 	AgentService_MailSettingsApply_FullMethodName      = "/xcp.agent.v1.AgentService/MailSettingsApply"
 	AgentService_MailQueueList_FullMethodName          = "/xcp.agent.v1.AgentService/MailQueueList"
+	AgentService_MailboxUsage_FullMethodName           = "/xcp.agent.v1.AgentService/MailboxUsage"
+	AgentService_MailboxCleanup_FullMethodName         = "/xcp.agent.v1.AgentService/MailboxCleanup"
 	AgentService_MailQueueAction_FullMethodName        = "/xcp.agent.v1.AgentService/MailQueueAction"
 	AgentService_MailWebmailSignon_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailSignon"
 	AgentService_MailWebmailExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MailWebmailExpire"
@@ -198,6 +200,11 @@ type AgentServiceClient interface {
 	MailSettingsApply(ctx context.Context, in *MailSettingsApplyRequest, opts ...grpc.CallOption) (*MailSettingsApplyResponse, error)
 	// MailQueueList returns Postfix's queue (newest first, at most 500).
 	MailQueueList(ctx context.Context, in *MailQueueListRequest, opts ...grpc.CallOption) (*MailQueueListResponse, error)
+	// MailboxUsage lists a mailbox's folders with their messages and size.
+	MailboxUsage(ctx context.Context, in *MailboxUsageRequest, opts ...grpc.CallOption) (*MailboxUsageResponse, error)
+	// MailboxCleanup deletes the messages of one folder of a mailbox that
+	// arrived before a number of days ago.
+	MailboxCleanup(ctx context.Context, in *MailboxCleanupRequest, opts ...grpc.CallOption) (*MailboxCleanupResponse, error)
 	// MailQueueAction flushes or deletes queued mail.
 	MailQueueAction(ctx context.Context, in *MailQueueActionRequest, opts ...grpc.CallOption) (*MailQueueActionResponse, error)
 	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
@@ -626,6 +633,26 @@ func (c *agentServiceClient) MailQueueList(ctx context.Context, in *MailQueueLis
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MailQueueListResponse)
 	err := c.cc.Invoke(ctx, AgentService_MailQueueList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailboxUsage(ctx context.Context, in *MailboxUsageRequest, opts ...grpc.CallOption) (*MailboxUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailboxUsageResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailboxUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MailboxCleanup(ctx context.Context, in *MailboxCleanupRequest, opts ...grpc.CallOption) (*MailboxCleanupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailboxCleanupResponse)
+	err := c.cc.Invoke(ctx, AgentService_MailboxCleanup_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1063,6 +1090,11 @@ type AgentServiceServer interface {
 	MailSettingsApply(context.Context, *MailSettingsApplyRequest) (*MailSettingsApplyResponse, error)
 	// MailQueueList returns Postfix's queue (newest first, at most 500).
 	MailQueueList(context.Context, *MailQueueListRequest) (*MailQueueListResponse, error)
+	// MailboxUsage lists a mailbox's folders with their messages and size.
+	MailboxUsage(context.Context, *MailboxUsageRequest) (*MailboxUsageResponse, error)
+	// MailboxCleanup deletes the messages of one folder of a mailbox that
+	// arrived before a number of days ago.
+	MailboxCleanup(context.Context, *MailboxCleanupRequest) (*MailboxCleanupResponse, error)
 	// MailQueueAction flushes or deletes queued mail.
 	MailQueueAction(context.Context, *MailQueueActionRequest) (*MailQueueActionResponse, error)
 	// MailWebmailSignon makes a temporary IMAP password (8 hours) for a
@@ -1258,6 +1290,12 @@ func (UnimplementedAgentServiceServer) MailSettingsApply(context.Context, *MailS
 }
 func (UnimplementedAgentServiceServer) MailQueueList(context.Context, *MailQueueListRequest) (*MailQueueListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailQueueList not implemented")
+}
+func (UnimplementedAgentServiceServer) MailboxUsage(context.Context, *MailboxUsageRequest) (*MailboxUsageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailboxUsage not implemented")
+}
+func (UnimplementedAgentServiceServer) MailboxCleanup(context.Context, *MailboxCleanupRequest) (*MailboxCleanupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MailboxCleanup not implemented")
 }
 func (UnimplementedAgentServiceServer) MailQueueAction(context.Context, *MailQueueActionRequest) (*MailQueueActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MailQueueAction not implemented")
@@ -1987,6 +2025,42 @@ func _AgentService_MailQueueList_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).MailQueueList(ctx, req.(*MailQueueListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailboxUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailboxUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailboxUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailboxUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailboxUsage(ctx, req.(*MailboxUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MailboxCleanup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MailboxCleanupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MailboxCleanup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MailboxCleanup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MailboxCleanup(ctx, req.(*MailboxCleanupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2727,6 +2801,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MailQueueList",
 			Handler:    _AgentService_MailQueueList_Handler,
+		},
+		{
+			MethodName: "MailboxUsage",
+			Handler:    _AgentService_MailboxUsage_Handler,
+		},
+		{
+			MethodName: "MailboxCleanup",
+			Handler:    _AgentService_MailboxCleanup_Handler,
 		},
 		{
 			MethodName: "MailQueueAction",

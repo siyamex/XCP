@@ -21,6 +21,7 @@ import (
 const (
 	JobApply    = "mail.apply"    // give the agent all mail of an account
 	JobSettings = "mail.settings" // render the mail servers' configuration
+	JobCleanup  = "mail.cleanup"  // delete old mail of a mailbox folder
 )
 
 type applyPayload struct {
@@ -32,6 +33,7 @@ func (s *Service) RegisterJobs(w *jobs.Worker) {
 	w.Register(JobApply, 4, s.applyJob)
 	w.Register(JobSettings, 1, s.settingsJob)
 	w.Register(JobWebmailExpire, 1, s.webmailExpireJob)
+	w.Register(JobCleanup, 2, s.cleanupJob)
 }
 
 // EnqueueApply queues, inside tx, the job that applies an account's mail.

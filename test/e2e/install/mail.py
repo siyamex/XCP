@@ -197,6 +197,33 @@ st, r = api("PUT", "/server/mail", dict(body, max_message_mb=1))
 wait_job(r["job_id"])
 limit = subprocess.run(["postconf", "-h", "message_size_limit"], capture_output=True, text=True).stdout.strip()
 check(limit == "1048576", "the largest message size reaches Postfix", limit)
+# Mailbox usage and clean-up (USR-MAIL-02): the folders as Dovecot counts them; old mail goes.
+st, u = user.call("GET", f"/mailboxes/{info['id']}/usage")
+inbox_n = next((f["messages"] for f in u.get("folders", []) if f["name"] == "INBOX"), 0)
+check(st == 200 and inbox_n >= 1 and u["bytes"] > 0, "the mailbox's folders with messages and size", str(u)[:300])
+st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "INBOX", "days": 3650})
+j = user.wait_job(r["job_id"]) if st == 202 else {}
+check(st == 202 and j.get("status") == "succeeded" and (j.get("result") or {}).get("removed") == 0, "nothing is older than ten years", f"{st} {j}")
+# Make one message old: Dovecot reads the save date from the file's time in maildir.
+import glob
+cur = sorted(glob.glob(f"/home/mail1/mail/{DOMAIN}/info/Maildir/cur/*") + glob.glob(f"/home/mail1/mail/{DOMAIN}/info/Maildir/new/*"))
+old = 1500000000
+if cur:
+    os.utime(cur[0], (old, old))
+subprocess.run(["doveadm", "index", "-u", f"info@{DOMAIN}", "INBOX"], capture_output=True)
+subprocess.run(["doveadm", "force-resync", "-u", f"info@{DOMAIN}", "INBOX"], capture_output=True)
+st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "INBOX", "days": 30})
+j = user.wait_job(r["job_id"]) if st == 202 else {}
+st, u2 = user.call("GET", f"/mailboxes/{info['id']}/usage")
+left = next((f["messages"] for f in u2.get("folders", []) if f["name"] == "INBOX"), -1)
+check(bool(cur) and j.get("status") == "succeeded" and (j.get("result") or {}).get("removed", 0) >= 1 and left == inbox_n - (j.get("result") or {}).get("removed", 0),
+      "mail older than 30 days is deleted, newer mail stays", f"{j} {inbox_n}->{left}")
+st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "*", "days": 30})
+check(st == 400, "a folder pattern is refused", f"{st} {r}")
+st, r = user.call("POST", f"/mailboxes/{info['id']}/cleanup", {"folder": "Nope", "days": 30})
+j = user.wait_job(r["job_id"]) if st == 202 else {}
+check(j.get("status") == "failed", "a folder the mailbox does not have fails", str(j))
+
 # Domain forwarder (USR-MAIL-04): unknown addresses go to the same name at another domain.
 st, r = api("PUT", f"/domains/{dom}/mail/forward", {"to": "elsewhere.example"})
 check(st == 409 and r.get("code") == "has_catch_all", "a domain forwarder is refused beside a default address", f"{st} {r}")

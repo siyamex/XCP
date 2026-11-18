@@ -101,6 +101,31 @@ func (s *Server) setCatchAll(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) mailboxUsage(w http.ResponseWriter, r *http.Request) error {
+	u, err := s.Mail.Usage(r.Context(), principal(r), r.PathValue("id"))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, u)
+	return nil
+}
+
+func (s *Server) mailboxCleanup(w http.ResponseWriter, r *http.Request) error {
+	var in struct {
+		Folder string `json:"folder"`
+		Days   int    `json:"days"`
+	}
+	if err := decodeJSON(w, r, &in); err != nil {
+		return err
+	}
+	jobID, err := s.Mail.Cleanup(r.Context(), client(r), principal(r), r.PathValue("id"), in.Folder, in.Days)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"job_id": jobID})
+	return nil
+}
+
 func (s *Server) setDomainForward(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
 		To string `json:"to"`

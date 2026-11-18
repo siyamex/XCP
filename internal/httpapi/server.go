@@ -223,6 +223,8 @@ func New(d Deps) *Server {
 		{method: "POST", path: "/api/v1/accounts/{id}/mailboxes", access: authed, roles: adminOrUser, h: s.createMailbox},
 		{method: "PUT", path: "/api/v1/mailboxes/{id}", access: authed, roles: adminOrUser, h: s.updateMailbox},
 		{method: "PUT", path: "/api/v1/mailboxes/{id}/password", access: authed, roles: adminOrUser, h: s.setMailboxPassword},
+		{method: "GET", path: "/api/v1/mailboxes/{id}/usage", access: authed, roles: adminOrUser, h: s.mailboxUsage},
+		{method: "POST", path: "/api/v1/mailboxes/{id}/cleanup", access: authed, roles: adminOrUser, h: s.mailboxCleanup},
 		{method: "DELETE", path: "/api/v1/mailboxes/{id}", access: authed, roles: adminOrUser, h: s.deleteMailbox},
 		{method: "PUT", path: "/api/v1/mailboxes/{id}/autoresponder", access: authed, roles: adminOrUser, h: s.setAutoresponder},
 		{method: "DELETE", path: "/api/v1/mailboxes/{id}/autoresponder", access: authed, roles: adminOrUser, h: s.deleteAutoresponder},

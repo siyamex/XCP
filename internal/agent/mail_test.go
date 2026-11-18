@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -115,6 +116,33 @@ func TestRenderMail(t *testing.T) {
 	}
 	if _, ok := f.dkim["alice.example.xcp.key"]; !ok || !strings.Contains(f.dkimMap, "alice.example xcp") {
 		t.Error("DKIM key not written")
+	}
+}
+
+func TestParseFolderStatus(t *testing.T) {
+	out := "mailbox\tmessages\tvsize\nSent\t2\t3000\nINBOX\t5\t12345\nArchive/2025 Q1\t1\t10\nbroken\tx\t1\n"
+	got, err := parseFolderStatus([]byte(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []MailFolder{{"INBOX", 5, 12345}, {"Archive/2025 Q1", 1, 10}, {"Sent", 2, 3000}}
+	if !slices.Equal(got, want) {
+		t.Fatalf("%+v", got)
+	}
+	if _, err := parseFolderStatus([]byte("name\tsize\nINBOX\t1\n")); err == nil {
+		t.Error("unexpected columns were taken")
+	}
+	if got, err := parseFolderStatus(nil); err != nil || len(got) != 0 {
+		t.Errorf("empty: %v %v", got, err)
+	}
+	for _, bad := range []string{"", "*", "INBOX%", "a\x01b", strings.Repeat("a", 201)} {
+		if err := CheckFolderName(bad); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+	m := &Mail{}
+	if _, _, err := m.MailboxCleanup(ctx, "alice", "info@alice.example", "INBOX", 0); !errors.Is(err, ErrInvalidRequest) {
+		t.Errorf("0 days: %v", err)
 	}
 }
 

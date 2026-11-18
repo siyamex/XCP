@@ -2349,6 +2349,66 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /mailboxes/{id}/usage:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [mail]
+      summary: A mailbox's folders with their messages and size
+      description: A mailbox the mail server does not have yet (or whose domain's mail is elsewhere) has no folders.
+      operationId: mailboxUsage
+      responses:
+        "200":
+          description: INBOX first, then the other folders by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [folders, bytes, quota_mb]
+                properties:
+                  bytes: { type: integer }
+                  quota_mb: { type: integer, description: "0: no limit" }
+                  folders:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, messages, bytes]
+                      properties:
+                        name: { type: string }
+                        messages: { type: integer }
+                        bytes: { type: integer }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /mailboxes/{id}/cleanup:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [mail]
+      summary: Delete the messages of a folder that arrived before some days ago
+      description: Runs as a job; its `result` has `removed` (messages) and `bytes`. The messages are gone for good.
+      operationId: mailboxCleanup
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [folder, days]
+              properties:
+                folder: { type: string, maxLength: 200 }
+                days: { type: integer, minimum: 1, maximum: 3650 }
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobRef" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /domains/{id}/mail/forward:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }

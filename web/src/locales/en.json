@@ -1043,6 +1043,17 @@
     "setRoot": "Set root password"
   },
   "email": {
+    "usage": {
+      "total": "Uses {{size}}",
+      "ofQuota": "of {{quota}} MB ({{percent}} %)",
+      "none": "No mail yet.",
+      "messages": "{{count}} messages",
+      "folder": "Delete old mail in",
+      "olderThan": "Older than (days)",
+      "clean": "Delete",
+      "confirm": "Delete the messages in {{folder}} that arrived more than {{days}} days ago? They cannot be brought back.",
+      "cleaned": "Deleted {{count}} messages ({{size}})."
+    },
     "track": {
       "title": "Track delivery",
       "help": "What the mail server did with each message of the last two weeks: delivered, still trying, returned or refused. New mail shows up within a minute or two.",
