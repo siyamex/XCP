@@ -16,6 +16,7 @@ import (
 	"github.com/siyamex/XCP/internal/accounts"
 	"github.com/siyamex/XCP/internal/agent"
 	"github.com/siyamex/XCP/internal/agentrpc"
+	"github.com/siyamex/XCP/internal/agentrpc/agentv1"
 	"github.com/siyamex/XCP/internal/apperr"
 	"github.com/siyamex/XCP/internal/audit"
 	"github.com/siyamex/XCP/internal/auth"
@@ -122,6 +123,82 @@ func (e *env) waitJob(t *testing.T, id string) *jobs.Job {
 			t.Fatalf("job %s did not finish", id)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestDatabaseMap(t *testing.T) {
+	e := newEnv(t)
+	a, alice := e.account(t, "alice")
+	res, err := e.svc.Wizard(ctx, client, alice, a.ID, databases.WizardInput{Database: "shop", User: "app", Password: pw})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.waitJob(t, res.JobID)
+	if _, err := e.svc.Map(ctx, alice); !errors.Is(err, apperr.ErrForbidden) {
+		t.Fatalf("a customer: %v", err)
+	}
+	e.fake.SetMySQLStray("wordpress", "wp")
+	m, err := e.svc.Map(ctx, e.admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := func(m databases.ServerMap) []string {
+		var out []string
+		for _, d := range m.Databases {
+			out = append(out, "db "+d.Name+" "+d.State+" "+d.Account)
+		}
+		for _, u := range m.Users {
+			out = append(out, "user "+u.Name+" "+u.State+" "+u.Account+" "+strings.Join(u.Hosts, ","))
+		}
+		return out
+	}
+	want := []string{"db wordpress orphan ", "db alice_shop ok alice", "user wp orphan  %", "user alice_app ok alice localhost"}
+	if !slices.Equal(got(m), want) {
+		t.Fatalf("map =\n%q\nwant\n%q", got(m), want)
+	}
+
+	// An account's database or user is never dropped as an orphan.
+	if err := e.svc.DropOrphan(ctx, client, e.admin, "database", "alice_shop"); !conflict(err, "not_orphan") {
+		t.Errorf("an account's database: %v", err)
+	}
+	if err := e.svc.DropOrphan(ctx, client, e.admin, "user", "alice_app"); !conflict(err, "not_orphan") {
+		t.Errorf("an account's user: %v", err)
+	}
+	if err := e.svc.DropOrphan(ctx, client, e.admin, "database", "nothing"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("an unknown one: %v", err)
+	}
+	if err := e.svc.DropOrphan(ctx, client, e.admin, "table", "wordpress"); !field(err, "kind") {
+		t.Errorf("a bad kind: %v", err)
+	}
+	if err := e.svc.DropOrphan(ctx, client, alice, "database", "wordpress"); !errors.Is(err, apperr.ErrForbidden) {
+		t.Errorf("a customer drops: %v", err)
+	}
+	for _, x := range [][2]string{{"database", "wordpress"}, {"user", "wp"}} {
+		if err := e.svc.DropOrphan(ctx, client, e.admin, x[0], x[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if m, _ := e.svc.Map(ctx, e.admin); !slices.Equal(got(m), []string{want[1], want[3]}) {
+		t.Errorf("after dropping: %q", got(m))
+	}
+
+	// Gone from MariaDB behind the panel's back: missing, and made again.
+	if _, err := e.fake.MySQLDatabaseDrop(ctx, &agentv1.MySQLDatabaseDropRequest{Username: "alice", Database: "alice_shop"}); err != nil {
+		t.Fatal(err)
+	}
+	if m, _ := e.svc.Map(ctx, e.admin); m.Databases[0].State != databases.MapMissing || m.Databases[0].SizeBytes != nil {
+		t.Fatalf("missing: %+v", m.Databases)
+	}
+	n, err := e.svc.RepairMissing(ctx, client, e.admin)
+	if err != nil || n != 1 {
+		t.Fatalf("repair: %d %v", n, err)
+	}
+	waitFor(t, func() bool {
+		m, _ := e.svc.Map(ctx, e.admin)
+		return len(m.Databases) == 1 && m.Databases[0].State == databases.MapOK
+	})
+	if n, _ := e.svc.RepairMissing(ctx, client, e.admin); n != 0 {
+		t.Errorf("nothing left to repair: %d", n)
 	}
 }
 

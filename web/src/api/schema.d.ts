@@ -1372,6 +1372,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/server/mysql/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every database and database user of the server, by owner (admins)
+         * @description `orphan`: MariaDB has it, no account owns it. `missing`: an account has it, MariaDB does not.
+         *     MariaDB's own and XCP's temporary users are left out. 409 `not_installed`.
+         */
+        get: operations["getDatabaseMap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mysql/map/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make the missing databases and users again (admins)
+         * @description Queues the apply job of each account that has some; a missing database comes back empty.
+         */
+        post: operations["repairMissingDatabases"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server/mysql/orphans/{kind}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "database" | "user";
+                name: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Drop a database, or a user on all its hosts, that no account owns (admins)
+         * @description 409 codes: `not_orphan` (an account has it), `refused` (MariaDB's own).
+         */
+        delete: operations["dropOrphanDatabase"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/server/mysql/remote": {
         parameters: {
             query?: never;
@@ -6686,6 +6750,94 @@ export interface operations {
                 };
             };
             403: components["responses"]["Problem"];
+        };
+    };
+    getDatabaseMap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Orphans first, then missing ones. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        databases: {
+                            name: string;
+                            size_bytes: number | null;
+                            account_id?: string;
+                            account?: string;
+                            /** @enum {string} */
+                            state: "ok" | "orphan" | "missing";
+                        }[];
+                        users: {
+                            name: string;
+                            hosts: string[];
+                            account_id?: string;
+                            account?: string;
+                            /** @enum {string} */
+                            state: "ok" | "orphan" | "missing";
+                        }[];
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    repairMissingDatabases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many accounts were queued. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accounts: number;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    dropOrphanDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "database" | "user";
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dropped. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     setMySQLRemote: {

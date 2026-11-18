@@ -87,6 +87,37 @@ func (s *Server) MySQLDatabaseMaintain(ctx context.Context, req *agentv1.MySQLDa
 	return res, nil
 }
 
+// MySQLInventory implements agentv1.AgentServiceServer.
+func (s *Server) MySQLInventory(ctx context.Context, _ *agentv1.MySQLInventoryRequest) (*agentv1.MySQLInventoryResponse, error) {
+	inv, err := s.MySQL.Inventory(ctx)
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	res := &agentv1.MySQLInventoryResponse{Databases: inv.Databases}
+	for _, n := range sortedNames(inv.Users) {
+		res.Users = append(res.Users, &agentv1.MySQLInventoryUser{Name: n, Hosts: inv.Users[n]})
+	}
+	return res, nil
+}
+
+func sortedNames[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	slices.Sort(out)
+	return out
+}
+
+// MySQLOrphanDrop implements agentv1.AgentServiceServer.
+func (s *Server) MySQLOrphanDrop(ctx context.Context, req *agentv1.MySQLOrphanDropRequest) (*agentv1.MySQLOrphanDropResponse, error) {
+	dropped, err := s.MySQL.DropOrphan(ctx, req.GetDatabase(), req.GetUser())
+	if err != nil {
+		return nil, s.toStatus(err)
+	}
+	return &agentv1.MySQLOrphanDropResponse{Dropped: dropped}, nil
+}
+
 // MySQLListen implements agentv1.AgentServiceServer.
 func (s *Server) MySQLListen(ctx context.Context, req *agentv1.MySQLListenRequest) (*agentv1.MySQLListenResponse, error) {
 	changed, err := s.MySQL.Listen(ctx, req.GetRemote())
@@ -154,6 +185,8 @@ type fakeMySQL struct {
 	signons  []string // usernames, one per sign-on
 	rootHash string
 	remote   bool
+	// made by hand, of no account
+	strayDBs, strayUsers map[string]bool
 }
 
 type fakeMySQLAccount struct {
@@ -290,6 +323,73 @@ func (f *Fake) MySQLDatabaseMaintain(_ context.Context, req *agentv1.MySQLDataba
 		res.Tables = append(res.Tables, &agentv1.MySQLTableResult{Table: "bad", Type: "error", Text: "Table is marked as crashed"})
 	}
 	return res, nil
+}
+
+// MySQLInventory implements Client: the accounts' databases and users, and
+// the ones SetMySQLStray added.
+func (f *Fake) MySQLInventory(context.Context, *agentv1.MySQLInventoryRequest, ...grpc.CallOption) (*agentv1.MySQLInventoryResponse, error) {
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	res := &agentv1.MySQLInventoryResponse{Databases: map[string]int64{}}
+	users := map[string][]string{}
+	for _, a := range f.mysql.accounts {
+		for d := range a.databases {
+			res.Databases[d] = 0
+		}
+		for u := range a.users {
+			users[u] = append([]string{"localhost"}, a.hosts...)
+		}
+	}
+	for d := range f.mysql.strayDBs {
+		res.Databases[d] = 100
+	}
+	for u := range f.mysql.strayUsers {
+		users[u] = []string{"%"}
+	}
+	for _, n := range sortedNames(users) {
+		res.Users = append(res.Users, &agentv1.MySQLInventoryUser{Name: n, Hosts: users[n]})
+	}
+	return res, nil
+}
+
+// SetMySQLStray adds a database and a user to the fake MariaDB that no
+// account has, as if made by hand. For tests.
+func (f *Fake) SetMySQLStray(database, user string) {
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	if f.mysql.strayDBs == nil {
+		f.mysql.strayDBs, f.mysql.strayUsers = map[string]bool{}, map[string]bool{}
+	}
+	if database != "" {
+		f.mysql.strayDBs[database] = true
+	}
+	if user != "" {
+		f.mysql.strayUsers[user] = true
+	}
+}
+
+// MySQLOrphanDrop implements Client.
+func (f *Fake) MySQLOrphanDrop(_ context.Context, req *agentv1.MySQLOrphanDropRequest, _ ...grpc.CallOption) (*agentv1.MySQLOrphanDropResponse, error) {
+	f.recordf("MySQLOrphanDrop %q %q", req.GetDatabase(), req.GetUser())
+	if (req.GetDatabase() == "") == (req.GetUser() == "") || agent.IsSystemDatabase(req.GetDatabase()) || (req.GetUser() != "" && agent.IsSystemUser(req.GetUser())) {
+		return nil, status.Error(codes.InvalidArgument, "cannot be dropped here")
+	}
+	f.mysql.mu.Lock()
+	defer f.mysql.mu.Unlock()
+	dropped := f.mysql.strayDBs[req.GetDatabase()] || f.mysql.strayUsers[req.GetUser()]
+	delete(f.mysql.strayDBs, req.GetDatabase())
+	delete(f.mysql.strayUsers, req.GetUser())
+	for _, a := range f.mysql.accounts {
+		if a.databases[req.GetDatabase()] {
+			delete(a.databases, req.GetDatabase())
+			dropped = true
+		}
+		if _, ok := a.users[req.GetUser()]; ok {
+			delete(a.users, req.GetUser())
+			dropped = true
+		}
+	}
+	return &agentv1.MySQLOrphanDropResponse{Dropped: dropped}, nil
 }
 
 // MySQLListen implements Client.

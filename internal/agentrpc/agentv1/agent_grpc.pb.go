@@ -53,6 +53,8 @@ const (
 	AgentService_MySQLDatabaseExport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseExport"
 	AgentService_MySQLDatabaseImport_FullMethodName    = "/xcp.agent.v1.AgentService/MySQLDatabaseImport"
 	AgentService_MySQLListen_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLListen"
+	AgentService_MySQLInventory_FullMethodName         = "/xcp.agent.v1.AgentService/MySQLInventory"
+	AgentService_MySQLOrphanDrop_FullMethodName        = "/xcp.agent.v1.AgentService/MySQLOrphanDrop"
 	AgentService_MySQLSignon_FullMethodName            = "/xcp.agent.v1.AgentService/MySQLSignon"
 	AgentService_MySQLSignonExpire_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLSignonExpire"
 	AgentService_MySQLRootPassword_FullMethodName      = "/xcp.agent.v1.AgentService/MySQLRootPassword"
@@ -173,6 +175,12 @@ type AgentServiceClient interface {
 	// MySQLListen makes MariaDB listen on every address (remote) or on
 	// 127.0.0.1 only, and restarts it when that changes.
 	MySQLListen(ctx context.Context, in *MySQLListenRequest, opts ...grpc.CallOption) (*MySQLListenResponse, error)
+	// MySQLInventory lists every database and user of MariaDB, without
+	// MariaDB's own and XCP's temporary ones.
+	MySQLInventory(ctx context.Context, in *MySQLInventoryRequest, opts ...grpc.CallOption) (*MySQLInventoryResponse, error)
+	// MySQLOrphanDrop drops a database, or a user on all its hosts, by name,
+	// whoever's it is. MariaDB's own and XCP's temporary ones are refused.
+	MySQLOrphanDrop(ctx context.Context, in *MySQLOrphanDropRequest, opts ...grpc.CallOption) (*MySQLOrphanDropResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(ctx context.Context, in *MySQLSignonRequest, opts ...grpc.CallOption) (*MySQLSignonResponse, error)
@@ -528,6 +536,26 @@ func (c *agentServiceClient) MySQLListen(ctx context.Context, in *MySQLListenReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MySQLListenResponse)
 	err := c.cc.Invoke(ctx, AgentService_MySQLListen_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLInventory(ctx context.Context, in *MySQLInventoryRequest, opts ...grpc.CallOption) (*MySQLInventoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLInventoryResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLInventory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) MySQLOrphanDrop(ctx context.Context, in *MySQLOrphanDropRequest, opts ...grpc.CallOption) (*MySQLOrphanDropResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MySQLOrphanDropResponse)
+	err := c.cc.Invoke(ctx, AgentService_MySQLOrphanDrop_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1012,6 +1040,12 @@ type AgentServiceServer interface {
 	// MySQLListen makes MariaDB listen on every address (remote) or on
 	// 127.0.0.1 only, and restarts it when that changes.
 	MySQLListen(context.Context, *MySQLListenRequest) (*MySQLListenResponse, error)
+	// MySQLInventory lists every database and user of MariaDB, without
+	// MariaDB's own and XCP's temporary ones.
+	MySQLInventory(context.Context, *MySQLInventoryRequest) (*MySQLInventoryResponse, error)
+	// MySQLOrphanDrop drops a database, or a user on all its hosts, by name,
+	// whoever's it is. MariaDB's own and XCP's temporary ones are refused.
+	MySQLOrphanDrop(context.Context, *MySQLOrphanDropRequest) (*MySQLOrphanDropResponse, error)
 	// MySQLSignon creates a temporary user for phpMyAdmin with all privileges
 	// on the given databases and a one-time ticket to sign in with it.
 	MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error)
@@ -1197,6 +1231,12 @@ func (UnimplementedAgentServiceServer) MySQLDatabaseImport(context.Context, *MyS
 }
 func (UnimplementedAgentServiceServer) MySQLListen(context.Context, *MySQLListenRequest) (*MySQLListenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLListen not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLInventory(context.Context, *MySQLInventoryRequest) (*MySQLInventoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLInventory not implemented")
+}
+func (UnimplementedAgentServiceServer) MySQLOrphanDrop(context.Context, *MySQLOrphanDropRequest) (*MySQLOrphanDropResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MySQLOrphanDrop not implemented")
 }
 func (UnimplementedAgentServiceServer) MySQLSignon(context.Context, *MySQLSignonRequest) (*MySQLSignonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MySQLSignon not implemented")
@@ -1785,6 +1825,42 @@ func _AgentService_MySQLListen_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentServiceServer).MySQLListen(ctx, req.(*MySQLListenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLInventoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLInventory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLInventory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLInventory(ctx, req.(*MySQLInventoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_MySQLOrphanDrop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MySQLOrphanDropRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).MySQLOrphanDrop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_MySQLOrphanDrop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).MySQLOrphanDrop(ctx, req.(*MySQLOrphanDropRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2615,6 +2691,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MySQLListen",
 			Handler:    _AgentService_MySQLListen_Handler,
+		},
+		{
+			MethodName: "MySQLInventory",
+			Handler:    _AgentService_MySQLInventory_Handler,
+		},
+		{
+			MethodName: "MySQLOrphanDrop",
+			Handler:    _AgentService_MySQLOrphanDrop_Handler,
 		},
 		{
 			MethodName: "MySQLSignon",

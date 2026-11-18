@@ -170,6 +170,30 @@ func TestCheckDumpPath(t *testing.T) {
 	}
 }
 
+func TestOrphanGuards(t *testing.T) {
+	m := &MySQL{}
+	for _, c := range [][2]string{
+		{"", ""},
+		{"a", "b"},
+		{"mysql", ""},
+		{"Performance_Schema", ""},
+		{"", "root"},
+		{"", "mariadb.sys"},
+		{"", "xcp_sso_alice_1"},
+		{"", "xcprestore1a2b"},
+		{"a/b", ""},
+		{"a`b", ""},
+		{"", ""},
+	} {
+		if _, err := m.DropOrphan(ctx, c[0], c[1]); !errors.Is(err, ErrInvalidRequest) {
+			t.Errorf("%q: %v", c, err)
+		}
+	}
+	if !IsSystemUser("") || IsSystemUser("wordpress") || !IsSystemDatabase("sys") || IsSystemDatabase("shop") {
+		t.Error("system names")
+	}
+}
+
 func TestSignonNames(t *testing.T) {
 	exp := time.Unix(1_800_000_000, 0)
 	name := signonName("alice", exp, "ab12cd")

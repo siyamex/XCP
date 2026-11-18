@@ -219,3 +219,38 @@ func SetGrant(ctx context.Context, q querier, g DBGrant) error {
 func DeleteGrant(ctx context.Context, q querier, userID, databaseID string) error {
 	return execOne(ctx, q, `DELETE FROM db_grants WHERE db_user_id = ? AND database_id = ?`, userID, databaseID)
 }
+
+// DBOwner is a database or database user with the account it belongs to.
+type DBOwner struct {
+	Name      string
+	AccountID string
+	Username  string
+	Status    string // the account's
+}
+
+func queryOwners(ctx context.Context, q querier, table string) ([]DBOwner, error) {
+	rows, err := q.QueryContext(ctx, `SELECT t.name, a.id, a.username, a.status FROM `+table+` t JOIN accounts a ON a.id = t.account_id ORDER BY t.name`) //nolint:gosec // G202: fixed table names
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []DBOwner
+	for rows.Next() {
+		var o DBOwner
+		if err := rows.Scan(&o.Name, &o.AccountID, &o.Username, &o.Status); err != nil {
+			return nil, err
+		}
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
+// AllDatabaseOwners returns every database the panel knows, with its account.
+func AllDatabaseOwners(ctx context.Context, q querier) ([]DBOwner, error) {
+	return queryOwners(ctx, q, "databases")
+}
+
+// AllDBUserOwners returns every database user the panel knows, with its account.
+func AllDBUserOwners(ctx context.Context, q querier) ([]DBOwner, error) {
+	return queryOwners(ctx, q, "db_users")
+}

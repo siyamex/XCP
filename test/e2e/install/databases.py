@@ -148,6 +148,24 @@ check(st == 204, "remote access off again", f"{st}")
 time.sleep(3)
 check(not listening(), "MariaDB listens on 127.0.0.1 only again")
 
+# The server's map (ADM-DB-02): an orphan made by hand is listed and can be dropped; an account's cannot.
+root_sql("CREATE DATABASE e2e_stray; CREATE USER 'e2e_stray'@'%' IDENTIFIED BY 'x'")
+st, m = api("GET", "/server/mysql/map")
+state = lambda kind, name: next((x["state"] + " " + x.get("account", "") for x in m.get(kind, []) if x["name"] == name), None)
+check(st == 200 and state("databases", "e2e_stray") == "orphan " and state("users", "e2e_stray") == "orphan "
+      and state("databases", "db1_store") == "ok db1" and state("users", "db1_app") == "ok db1", "the map shows owners and orphans", str(m)[:400])
+check(not any(u["name"] in ("root", "mariadb.sys") or u["name"].startswith("xcp_sso_") for u in m["users"]), "and leaves MariaDB's own users out")
+st, r = user.call("GET", "/server/mysql/map")
+check(st == 403, "a customer cannot see it", f"{st}")
+st, r = api("DELETE", "/server/mysql/orphans/database/db1_store")
+check(st == 409 and r.get("code") == "not_orphan", "an account's database is not dropped as an orphan", f"{st} {r}")
+st, r = api("DELETE", "/server/mysql/orphans/database/mysql")
+check(st == 404, "nor MariaDB's own", f"{st} {r}")
+for kind in ("database", "user"):
+    st, r = api("DELETE", f"/server/mysql/orphans/{kind}/e2e_stray")
+    check(st == 204, f"the orphan {kind} is dropped", f"{st} {r}")
+check("e2e_stray" not in root_sql("SHOW DATABASES").split() and root_sql("SELECT COUNT(*) FROM mysql.global_priv WHERE User = 'e2e_stray'") == "0", "and gone from MariaDB")
+
 # Export and import (USR-DB-07): a dump in the home folder, owned by the account.
 import gzip, os, pwd
 st, r = user.call("POST", f"/databases/{w['database']['id']}/export")

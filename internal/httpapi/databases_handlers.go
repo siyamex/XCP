@@ -151,6 +151,32 @@ func (s *Server) setMySQLRemote(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) databaseMap(w http.ResponseWriter, r *http.Request) error {
+	m, err := s.Databases.Map(r.Context(), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, m)
+	return nil
+}
+
+func (s *Server) dropOrphanDatabase(w http.ResponseWriter, r *http.Request) error {
+	if err := s.Databases.DropOrphan(r.Context(), client(r), principal(r), r.PathValue("kind"), r.PathValue("name")); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+func (s *Server) repairMissingDatabases(w http.ResponseWriter, r *http.Request) error {
+	n, err := s.Databases.RepairMissing(r.Context(), client(r), principal(r))
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"accounts": n})
+	return nil
+}
+
 func (s *Server) createDBUser(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
 		Name     string `json:"name"`

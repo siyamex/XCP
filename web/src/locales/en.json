@@ -991,6 +991,21 @@
     "newPassword": "New password",
     "changePassword": "Change password",
     "confirmDelete": "Delete the database {{name}} with all its data? This cannot be undone.",
+    "map": {
+      "title": "Databases of the server",
+      "help": "Every database and database user in MariaDB and in the panel, with the account it belongs to. Orphans are in MariaDB but belong to no account, for example made by hand or left from an earlier setup. Missing ones belong to an account but are not in MariaDB.",
+      "account": "Account",
+      "state": "State",
+      "user": "user",
+      "ok": "in order",
+      "orphan": "no account",
+      "missing": "missing in MariaDB",
+      "repair": "Make the missing ones again",
+      "repaired": "Queued for {{count}} accounts. A missing database comes back empty.",
+      "confirmDatabase": "Drop the database {{name}} with all its data? It belongs to no account. This cannot be undone.",
+      "confirmUser": "Drop the database user {{name}} on all its hosts?",
+      "empty": "No databases yet."
+    },
     "remote": {
       "title": "Remote access",
       "help": "Applications on this server always reach your databases. To connect from another computer, list its address here: one address per line, a network like 198.51.100.0/24, or % for any address. Every database user gets these hosts, with the same password and rights.",

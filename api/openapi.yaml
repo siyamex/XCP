@@ -1975,6 +1975,81 @@ paths:
                   remote: { type: boolean, description: MariaDB listens on every address }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /server/mysql/map:
+    get:
+      tags: [databases]
+      summary: Every database and database user of the server, by owner (admins)
+      description: |
+        `orphan`: MariaDB has it, no account owns it. `missing`: an account has it, MariaDB does not.
+        MariaDB's own and XCP's temporary users are left out. 409 `not_installed`.
+      operationId: getDatabaseMap
+      responses:
+        "200":
+          description: Orphans first, then missing ones.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [databases, users]
+                properties:
+                  databases:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, size_bytes, state]
+                      properties:
+                        name: { type: string }
+                        size_bytes: { type: [integer, "null"] }
+                        account_id: { type: string }
+                        account: { type: string }
+                        state: { type: string, enum: [ok, orphan, missing] }
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, hosts, state]
+                      properties:
+                        name: { type: string }
+                        hosts: { type: array, items: { type: string } }
+                        account_id: { type: string }
+                        account: { type: string }
+                        state: { type: string, enum: [ok, orphan, missing] }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/mysql/map/repair:
+    post:
+      tags: [databases]
+      summary: Make the missing databases and users again (admins)
+      description: Queues the apply job of each account that has some; a missing database comes back empty.
+      operationId: repairMissingDatabases
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "200":
+          description: How many accounts were queued.
+          content:
+            application/json:
+              schema: { type: object, required: [accounts], properties: { accounts: { type: integer } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /server/mysql/orphans/{kind}/{name}:
+    parameters:
+      - { name: kind, in: path, required: true, schema: { type: string, enum: [database, user] } }
+      - { name: name, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [databases]
+      summary: Drop a database, or a user on all its hosts, that no account owns (admins)
+      description: "409 codes: `not_orphan` (an account has it), `refused` (MariaDB's own)."
+      operationId: dropOrphanDatabase
+      security: [{ sessionCookie: [], csrfHeader: [] }]
+      responses:
+        "204": { description: Dropped. }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /server/mysql/remote:
     put:
       tags: [databases]

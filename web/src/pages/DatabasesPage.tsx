@@ -30,7 +30,7 @@ export function DatabasesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("databases.title")}</h1>
-      {me.data?.role === "admin" ? <ServerCard />
+      {me.data?.role === "admin" ? <><ServerCard /><DatabaseMap /></>
         : me.data?.account_id ? <AccountDatabases accountId={me.data.account_id} /> : <Alert kind="info">{t("domains.noAccount")}</Alert>}
     </div>
   );
@@ -407,6 +407,64 @@ function RemoteCard({ accountId, onStarted }: { accountId: string; onStarted: (r
         <ErrorAlert error={save.error} />
         <Button type="submit" variant="secondary" disabled={save.isPending}>{t("common.save")}</Button>
       </form>
+    </Card>
+  );
+}
+
+const stateStyle: Record<string, string> = {
+  orphan: "text-amber-700 dark:text-amber-400",
+  missing: "text-red-700 dark:text-red-400",
+  ok: "text-slate-500",
+};
+
+/** Every database and user of the server by owner, with orphans and missing ones (ADM-DB-02). */
+function DatabaseMap() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["db-map"], queryFn: () => unwrap(api.GET("/server/mysql/map")), retry: false });
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["db-map"] });
+  const drop = useMutation({
+    mutationFn: (x: { kind: "database" | "user"; name: string }) => unwrap(api.DELETE("/server/mysql/orphans/{kind}/{name}", { params: { path: x } })),
+    onSuccess: refresh,
+  });
+  const repair = useMutation({ mutationFn: () => unwrap(api.POST("/server/mysql/map/repair")), onSuccess: refresh });
+  if (q.isPending) return <Spinner />;
+  if (!q.data) return <ErrorAlert error={q.error} />;
+  const m = q.data;
+  const missing = m.databases.some((d) => d.state === "missing") || m.users.some((u) => u.state === "missing");
+  const row = (kind: "database" | "user", name: string, state: string, owner: string | undefined, extra: string) => (
+    <tr key={kind + name} className="border-t border-slate-100 dark:border-slate-800">
+      <td className="px-4 py-2 font-mono">{name}</td>
+      <td className="px-4 py-2">{owner ?? <span className="text-slate-500">{t("common.none")}</span>}</td>
+      <td className="px-4 py-2 text-slate-500">{extra}</td>
+      <td className={`px-4 py-2 ${stateStyle[state] ?? ""}`}>{t(`databases.map.${state}`)}</td>
+      <td className="px-4 py-2 text-right">
+        {state === "orphan" && (
+          <Button variant="ghost" disabled={drop.isPending}
+            onClick={() => window.confirm(t(kind === "database" ? "databases.map.confirmDatabase" : "databases.map.confirmUser", { name })) && drop.mutate({ kind, name })}>{t("common.delete")}</Button>
+        )}
+      </td>
+    </tr>
+  );
+  return (
+    <Card className="overflow-x-auto p-0">
+      <div className="space-y-2 px-4 pt-4">
+        <CardTitle>{t("databases.map.title")}</CardTitle>
+        <p className="text-sm text-slate-500">{t("databases.map.help")}</p>
+        <ErrorAlert error={drop.error ?? repair.error} />
+        {repair.data && <Alert kind="success">{t("databases.map.repaired", { count: repair.data.accounts })}</Alert>}
+        {missing && <Button variant="secondary" disabled={repair.isPending} onClick={() => repair.mutate()}>{t("databases.map.repair")}</Button>}
+      </div>
+      <table className="mt-3 w-full text-left text-sm">
+        <thead className="border-b border-slate-200 text-slate-500 dark:border-slate-800">
+          <tr>{["databases.name", "databases.map.account", "", "databases.map.state", ""].map((k, i) => <th key={i} className="px-4 py-2 font-medium">{k && t(k)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {m.databases.map((d) => row("database", d.name, d.state, d.account, d.size_bytes == null ? "" : formatSize(d.size_bytes)))}
+          {m.users.map((u) => row("user", u.name, u.state, u.account, `${t("databases.map.user")} @ ${u.hosts.join(", ")}`))}
+          {m.databases.length + m.users.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-500">{t("databases.map.empty")}</td></tr>}
+        </tbody>
+      </table>
     </Card>
   );
 }

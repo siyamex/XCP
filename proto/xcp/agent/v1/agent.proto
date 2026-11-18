@@ -117,6 +117,14 @@ service AgentService {
   // 127.0.0.1 only, and restarts it when that changes.
   rpc MySQLListen(MySQLListenRequest) returns (MySQLListenResponse);
 
+  // MySQLInventory lists every database and user of MariaDB, without
+  // MariaDB's own and XCP's temporary ones.
+  rpc MySQLInventory(MySQLInventoryRequest) returns (MySQLInventoryResponse);
+
+  // MySQLOrphanDrop drops a database, or a user on all its hosts, by name,
+  // whoever's it is. MariaDB's own and XCP's temporary ones are refused.
+  rpc MySQLOrphanDrop(MySQLOrphanDropRequest) returns (MySQLOrphanDropResponse);
+
   // MySQLSignon creates a temporary user for phpMyAdmin with all privileges
   // on the given databases and a one-time ticket to sign in with it.
   rpc MySQLSignon(MySQLSignonRequest) returns (MySQLSignonResponse);
@@ -596,6 +604,27 @@ message MySQLTableResult {
 
 message MySQLDatabaseMaintainResponse {
   repeated MySQLTableResult tables = 1;
+}
+
+message MySQLInventoryRequest {}
+
+message MySQLInventoryUser {
+  string name = 1;
+  repeated string hosts = 2;
+}
+
+message MySQLInventoryResponse {
+  map<string, int64> databases = 1;  // name -> size in bytes
+  repeated MySQLInventoryUser users = 2;
+}
+
+message MySQLOrphanDropRequest {
+  string database = 1;  // one of database and user
+  string user = 2;
+}
+
+message MySQLOrphanDropResponse {
+  bool dropped = 1;
 }
 
 message MySQLListenRequest {
